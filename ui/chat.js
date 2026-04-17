@@ -7,7 +7,7 @@ export function initStreamListeners() {
   listen("stream-token", (event) => {
     state.currentAssistantContent += event.payload;
     if (state.currentAssistantEl) {
-      state.currentAssistantEl.querySelector(".content").textContent = state.currentAssistantContent;
+      state.currentAssistantEl.querySelector(".content").innerHTML = marked.parse(state.currentAssistantContent);
       scrollToBottom();
     }
   });
@@ -81,7 +81,7 @@ export function createMessageElement(role, content) {
 
   const body = document.createElement("div");
   body.className = "content";
-  body.textContent = content;
+  body.innerHTML = marked.parse(content);
 
   el.appendChild(label);
   el.appendChild(body);

@@ -32,7 +32,7 @@
           <button class="tab" data-tab="description">Description</button>
           <button class="tab" data-tab="first-response">First Response</button>
         </div>
-        <textarea id="editor" placeholder="Select a tab and start editing..." spellcheck="false"></textarea>
+        <div id="editor" data-placeholder="Select a tab and start editing..."></div>
         <div id="token-counter">0 tokens</div>
 <div id="version-control-bar">
           <button id="git-history-btn" class="git-bar-control" title="View history">⏱ History</button>
@@ -115,6 +115,8 @@
     </div>
   </div>
 
+  <script src="lib/marked.min.js"></script>
+  <script src="lib/editor-cm.bundle.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
