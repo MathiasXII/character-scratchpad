@@ -2,7 +2,7 @@ const { invoke } = window.__TAURI__;
 
 import { dom, state } from "./app.js";
 import { loadCharacters } from "./characters.js";
-import { updateTokenCounter } from "./editor.js";
+import { setEditorValue, setEditorPlaceholder, updateTokenCounter } from "./editor.js";
 
 export function openSettingsModal() {
   dom.settingsModal.classList.remove("hidden");
@@ -50,8 +50,8 @@ export async function handleSaveSettings() {
     for (const key in state.tabContents) {
       state.tabContents[key] = "";
     }
-    dom.editor.value = "";
-    dom.editor.placeholder = "Select a character to start editing...";
+    setEditorValue("");
+    setEditorPlaceholder("Select a character to start editing...");
     updateTokenCounter();
     await loadCharacters();
   }
