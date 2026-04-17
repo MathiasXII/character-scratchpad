@@ -1,5 +1,8 @@
 use std::fs;
+use std::ffi::OsStr;
 use std::path::Path;
+
+use git2::{IndexAddOption, Signature};
 
 #[tauri::command]
 pub fn list_characters(work_folder: String) -> Result<Vec<String>, String> {
@@ -53,5 +56,32 @@ pub fn create_character(work_folder: String, name: String) -> Result<String, Str
     fs::create_dir_all(&context_dir)
         .map_err(|e| format!("Failed to create context directory: {}", e))?;
 
-    Ok(char_dir.to_str().unwrap_or_default().to_string())
+    let repo = git2::Repository::init(&char_dir).map_err(|e| e.to_string())?;
+    let sig = Signature::now("LLM Chat", "app@localhost").map_err(|e| e.to_string())?;
+    let mut index = repo.index().map_err(|e| e.to_string())?;
+
+    index
+        .add_all(["."], IndexAddOption::DEFAULT, Some(&mut |path, _| {
+            if path
+                .components()
+                .any(|component| component.as_os_str() == OsStr::new(".git"))
+            {
+                1
+            } else {
+                0
+            }
+        }))
+        .map_err(|e| e.to_string())?;
+    index.write().map_err(|e| e.to_string())?;
+
+    let tree_id = index.write_tree().map_err(|e| e.to_string())?;
+    let tree = repo.find_tree(tree_id).map_err(|e| e.to_string())?;
+
+    repo.commit(Some("HEAD"), &sig, &sig, "Initial commit", &tree, &[])
+        .map_err(|e| e.to_string())?;
+
+    char_dir
+        .to_str()
+        .map(|path| path.to_string())
+        .ok_or_else(|| "Failed to convert character path to string".to_string())
 }

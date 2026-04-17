@@ -5,6 +5,7 @@ mod types;
 
 use commands::characters::{create_character, list_characters};
 use commands::files::{load_file, save_file};
+use commands::git::{git_commit, git_log, git_revert};
 use commands::settings::{get_settings, update_settings};
 use commands::stream_chat::send_message_stream;
 use state::AppState;
@@ -25,6 +26,9 @@ fn main() {
             save_file,
             list_characters,
             create_character,
+            git_commit,
+            git_log,
+            git_revert,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
