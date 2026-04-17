@@ -72,6 +72,7 @@ header h1 {
   max-width: 320px;
   cursor: pointer;
   transition: border-color 0.2s;
+  margin: 0 10px;
 }
 
 #character-select:focus {
@@ -87,22 +88,6 @@ header h1 {
   font-size: 13px;
   color: var(--text-secondary);
   white-space: nowrap;
-}
-
-#character-select {
-  padding: 6px 12px;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
-  min-width: 200px;
-  max-width: 320px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-  margin: 0 10px;
 }
 
 #new-character-btn {
