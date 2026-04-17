@@ -1,5 +1,6 @@
 const { invoke } = window.__TAURI__;
 const { listen } = window.__TAURI__.event;
+const { open } = window.__TAURI__.dialog;
 
 // --- State ---
 let conversationHistory = [];
@@ -15,6 +16,9 @@ const tabContents = {
   "first-response": "",
 };
 let activeTab = "instructions";
+
+// --- Character State ---
+let currentWorkFolder = "";
 
 // --- DOM ---
 const messagesEl = document.getElementById("messages");
@@ -33,12 +37,18 @@ const editor = document.getElementById("editor");
 const tabs = document.querySelectorAll("#tab-bar .tab");
 const tokenCounter = document.getElementById("token-counter");
 
+// --- Character DOM ---
+const characterSelect = document.getElementById("character-select");
+const workFolderInput = document.getElementById("work-folder");
+const browseFolderBtn = document.getElementById("browse-folder-btn");
+
 // --- Init ---
 async function init() {
   loadSettingsFromStorage();
   await syncSettingsToBackend();
   showWelcome();
   initPaneDivider();
+  await loadCharacters();
 
   // Event listeners
   listen("stream-token", (event) => {
@@ -85,6 +95,14 @@ async function init() {
   });
 
   saveSettingsBtn.addEventListener("click", handleSaveSettings);
+
+  // --- Browse folder ---
+  browseFolderBtn.addEventListener("click", async () => {
+    const selected = await open({ directory: true, multiple: false });
+    if (selected) {
+      workFolderInput.value = selected;
+    }
+  });
 
   // --- Tab switching ---
   tabs.forEach((tab) => {
@@ -194,6 +212,8 @@ function loadSettingsFromStorage() {
   modelInput.value = localStorage.getItem("llm-model") || "gpt-4o-mini";
   endpointInput.value =
     localStorage.getItem("llm-endpoint") || "https://api.openai.com/v1/chat/completions";
+  workFolderInput.value = localStorage.getItem("llm-work-folder") || "";
+  currentWorkFolder = workFolderInput.value;
 }
 
 async function syncSettingsToBackend() {
@@ -213,9 +233,16 @@ async function handleSaveSettings() {
   localStorage.setItem("llm-api-key", apiKeyInput.value);
   localStorage.setItem("llm-model", modelInput.value);
   localStorage.setItem("llm-endpoint", endpointInput.value);
+  localStorage.setItem("llm-work-folder", workFolderInput.value);
 
   await syncSettingsToBackend();
   settingsModal.classList.add("hidden");
+
+  // Reload characters if work folder changed
+  if (workFolderInput.value !== currentWorkFolder) {
+    currentWorkFolder = workFolderInput.value;
+    await loadCharacters();
+  }
 }
 
 // --- Pane Divider ---
@@ -262,6 +289,50 @@ function initPaneDivider() {
     document.body.style.userSelect = "";
     document.body.style.webkitUserSelect = "";
   });
+}
+
+// --- Character List ---
+async function loadCharacters() {
+  characterSelect.innerHTML = "";
+  characterSelect.disabled = true;
+
+  if (!currentWorkFolder) {
+    const opt = document.createElement("option");
+    opt.textContent = "Set work folder in Settings";
+    opt.value = "";
+    characterSelect.appendChild(opt);
+    return;
+  }
+
+  try {
+    const characters = await invoke("list_characters", { workFolder: currentWorkFolder });
+
+    if (characters.length === 0) {
+      const opt = document.createElement("option");
+      opt.textContent = "No characters yet — create one";
+      opt.value = "";
+      characterSelect.appendChild(opt);
+    } else {
+      const placeholder = document.createElement("option");
+      placeholder.textContent = "Select a character...";
+      placeholder.value = "";
+      characterSelect.appendChild(placeholder);
+
+      for (const name of characters) {
+        const opt = document.createElement("option");
+        opt.textContent = name;
+        opt.value = name;
+        characterSelect.appendChild(opt);
+      }
+      characterSelect.disabled = false;
+    }
+  } catch (e) {
+    const opt = document.createElement("option");
+    opt.textContent = "Error loading characters";
+    opt.value = "";
+    characterSelect.appendChild(opt);
+    console.error("Failed to load characters:", e);
+  }
 }
 
 // --- Tab Switching ---

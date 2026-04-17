@@ -37,7 +37,7 @@
 
 ## Remaining Work — Vertical Slices (each item is testable end-to-end)
 
-- [ ] **A. Work Folder Setting + Character List**
+- [x] **A. Work Folder Setting + Character List**
   Add a "Work Folder" input to the Settings modal. Store it in `localStorage` under key `llm-work-folder`. Default value: a `characters` folder next to the app executable. On app init (and whenever the work folder setting changes), call `list_characters` and populate a character selector dropdown in the header. If no characters exist, show a "No characters yet — create one" prompt in the dropdown area.
 
 - [ ] **B. New Character Creation**
