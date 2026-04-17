@@ -1,5 +1,6 @@
 const { invoke } = window.__TAURI__;
 const { listen } = window.__TAURI__.event;
+const { open } = window.__TAURI__.dialog;
 
 // --- State ---
 let conversationHistory = [];
@@ -39,6 +40,7 @@ const tokenCounter = document.getElementById("token-counter");
 // --- Character DOM ---
 const characterSelect = document.getElementById("character-select");
 const workFolderInput = document.getElementById("work-folder");
+const browseFolderBtn = document.getElementById("browse-folder-btn");
 
 // --- Init ---
 async function init() {
@@ -93,6 +95,14 @@ async function init() {
   });
 
   saveSettingsBtn.addEventListener("click", handleSaveSettings);
+
+  // --- Browse folder ---
+  browseFolderBtn.addEventListener("click", async () => {
+    const selected = await open({ directory: true, multiple: false });
+    if (selected) {
+      workFolderInput.value = selected;
+    }
+  });
 
   // --- Tab switching ---
   tabs.forEach((tab) => {
