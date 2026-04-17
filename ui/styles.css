@@ -76,7 +76,7 @@ main {
 
 /* Left Pane */
 #left-pane {
-  width: 40%;
+  width: 66.67%;
   min-width: 250px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
@@ -87,7 +87,7 @@ main {
 
 /* Right Pane */
 #right-pane {
-  flex: 1;
+  width: 33.33%;
   min-width: 250px;
   display: flex;
   flex-direction: column;
@@ -186,7 +186,7 @@ main {
 }
 
 /* Footer / Input */
-footer {
+#right-pane footer {
   padding: 16px 20px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
@@ -197,8 +197,6 @@ footer {
   display: flex;
   align-items: flex-end;
   gap: 10px;
-  max-width: 800px;
-  margin: 0 auto;
 }
 
 #user-input {
