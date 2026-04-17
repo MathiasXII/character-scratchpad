@@ -8,7 +8,7 @@
 
 ## Phase 1 — Two-Pane Layout
 
-- [ ] **1.1** Restructure `index.html` into a two-pane horizontal layout: `<div id="left-pane">` and `<div id="right-pane">` inside `<main>`. Move the chat container into the right pane. Left pane is empty for now.
+- [x] **1.1** Restructure `index.html` into a two-pane horizontal layout: `<div id="left-pane">` and `<div id="right-pane">` inside `<main>`. Move the chat container into the right pane. Left pane is empty for now.
 - [ ] **1.2** Add a resizable divider between the two panes. Dragging the divider resizes the panes. Default split: 40% left / 60% right. Minimum pane width: 250px.
 - [ ] **1.3** Add a horizontal tab bar at the top of the left pane with four tabs: "Instructions", "System Prompt", "Description", "First Response". Clicking a tab switches the content of a **single shared `<textarea>`** below (not one textarea per tab — reuse the same element and swap its content). The textarea must fill all vertical space between the tab bar and the bottom of the pane. No other UI elements in the left pane at this stage.
 - [ ] **1.4** Style the left pane, tab bar, and textarea to match the existing dark theme in `styles.css`. Tabs use the accent color for the active state. The textarea has no border, fills 100% width/height, uses a monospace or readable font. Maximum editing space — no padding waste.
