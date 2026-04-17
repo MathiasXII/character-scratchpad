@@ -177,39 +177,35 @@ main {
   border-bottom-color: var(--accent);
 }
 
-/* Editor Textarea */
+/* Editor (CodeMirror container) */
 #editor {
   flex: 1;
   min-height: 0;
   width: 100%;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: none;
-  outline: none;
-  resize: none;
-  padding: 8px 12px;
-  font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace;
-  font-size: 14px;
-  line-height: 1.6;
-  tab-size: 2;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
-#editor::placeholder {
-  color: var(--text-secondary);
+#editor .cm-editor {
+  height: 100%;
 }
 
-#editor::-webkit-scrollbar {
+#editor .cm-scroller::-webkit-scrollbar {
   width: 6px;
 }
 
-#editor::-webkit-scrollbar-track {
+#editor .cm-scroller::-webkit-scrollbar-track {
   background: transparent;
 }
 
-#editor::-webkit-scrollbar-thumb {
+#editor .cm-scroller::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 3px;
+}
+
+#editor[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 /* Save Error Banner */

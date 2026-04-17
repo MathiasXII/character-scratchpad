@@ -1,7 +1,7 @@
 const { invoke } = window.__TAURI__;
 
 import { dom, state } from "./app.js";
-import { updateTokenCounter } from "./editor.js";
+import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder } from "./editor.js";
 import { openSettingsModal } from "./settings.js";
 import { updateGitBarVisibility, checkDirty } from "./git.js";
 
@@ -103,8 +103,8 @@ export async function handleCharacterSelect() {
     for (const key in state.tabContents) {
       state.tabContents[key] = "";
     }
-    dom.editor.value = "";
-    dom.editor.placeholder = "Select a character to start editing...";
+    setEditorValue("");
+    setEditorPlaceholder("Select a character to start editing...");
     updateTokenCounter();
     updateGitBarVisibility();
     checkDirty();
@@ -145,8 +145,8 @@ export async function handleCharacterSelect() {
     state.tabContents[key] = content;
   }
 
-  dom.editor.value = state.tabContents[state.activeTab];
-  dom.editor.placeholder = "Start editing...";
+  setEditorValue(state.tabContents[state.activeTab]);
+  setEditorPlaceholder("Start editing...");
   updateTokenCounter();
   state.isLoadingCharacter = false;
   updateGitBarVisibility();
