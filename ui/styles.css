@@ -56,6 +56,7 @@ header h1 {
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
 }
 
 #character-select {
@@ -82,18 +83,42 @@ header h1 {
   cursor: not-allowed;
 }
 
+#character-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+#character-select {
+  padding: 6px 12px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  min-width: 200px;
+  max-width: 320px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  margin: 0 10px;
+}
+
 #new-character-btn {
-  padding: 4px 10px;
+  padding: 6px 12px;
   background: var(--accent);
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.2s;
   flex-shrink: 0;
   line-height: 1;
+  align-self: stretch;
 }
 
 #new-character-btn:hover {
@@ -509,6 +534,57 @@ main {
 
 #save-settings:hover {
   background: var(--accent-hover);
+}
+
+/* Compact Modal */
+.modal-sm {
+  max-width: 340px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.btn-primary {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  background: var(--border);
 }
 
 /* Welcome message */
