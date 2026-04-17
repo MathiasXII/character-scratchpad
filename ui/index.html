@@ -62,7 +62,10 @@
         <input type="text" id="endpoint" placeholder="https://api.openai.com/v1/chat/completions" />
 
         <label for="work-folder">Work Folder</label>
-        <input type="text" id="work-folder" placeholder="Path to characters folder..." />
+        <div id="work-folder-row">
+          <input type="text" id="work-folder" placeholder="Path to characters folder..." readonly />
+          <button id="browse-folder-btn" title="Browse">&#128193;</button>
+        </div>
 
         <button id="save-settings">Save</button>
       </div>
