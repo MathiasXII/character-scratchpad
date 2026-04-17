@@ -8,6 +8,7 @@ export const TAB_FILE_MAP = {
 export const state = {
   conversationHistory: [],
   isStreaming: false,
+  editingIndex: null,
   currentAssistantEl: null,
   currentAssistantContent: "",
   tabContents: {
@@ -35,6 +36,7 @@ export const dom = {
   chatContainer: document.getElementById("chat-container"),
   userInput: document.getElementById("user-input"),
   sendBtn: document.getElementById("send-btn"),
+  resendBtn: document.getElementById("resend-btn"),
   settingsBtn: document.getElementById("settings-btn"),
   settingsModal: document.getElementById("settings-modal"),
   settingsClose: document.getElementById("settings-close"),
@@ -63,6 +65,7 @@ import {
   addErrorMessage,
   autoResizeInput,
   handleSend,
+  handleResend,
   initStreamListeners,
   scrollToBottom,
   showWelcome,
@@ -96,7 +99,11 @@ async function init() {
   await loadCharacters();
   initStreamListeners();
 
+  // Set initial resend button state
+  dom.resendBtn.disabled = state.conversationHistory.length === 0;
+
   dom.sendBtn.addEventListener("click", handleSend);
+  dom.resendBtn.addEventListener("click", handleResend);
   dom.userInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
