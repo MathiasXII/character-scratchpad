@@ -14,7 +14,15 @@
     </header>
 
     <main>
-      <div id="left-pane"></div>
+      <div id="left-pane">
+        <div id="tab-bar">
+          <button class="tab active" data-tab="instructions">Instructions</button>
+          <button class="tab" data-tab="prompt">System Prompt</button>
+          <button class="tab" data-tab="description">Description</button>
+          <button class="tab" data-tab="first-response">First Response</button>
+        </div>
+        <textarea id="editor" placeholder="Select a tab and start editing..." spellcheck="false"></textarea>
+      </div>
       <div id="pane-divider"></div>
       <div id="right-pane">
         <div id="chat-container">
