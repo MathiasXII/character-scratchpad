@@ -114,6 +114,14 @@ export async function handleCharacterSelect() {
   state.selectedCharacter = name;
   state.isLoadingCharacter = true;
 
+  try {
+    // Ensure all necessary character files exist
+    await invoke("ensure_character_files", { workFolder: state.currentWorkFolder, name });
+  } catch (error) {
+    console.error("Failed to ensure character files:", error);
+    // Continue anyway - we'll try to load files even if some are missing
+  }
+
   const charDir = state.currentWorkFolder + "/" + name;
   const fileEntries = [
     ["instructions", charDir + "/instructions.md"],
