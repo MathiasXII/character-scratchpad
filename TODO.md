@@ -2,6 +2,8 @@
 
 **RULE: Complete ONE unchecked item, then STOP. Do not proceed to the next item.**
 
+**After completing any step, commit all changes with a message like `X.Y: <short description>` (e.g. `1.3: Add horizontal tab bar to left pane`). Then STOP.**
+
 ---
 
 ## Phase 1 — Two-Pane Layout
