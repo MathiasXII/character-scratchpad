@@ -356,12 +356,7 @@ main {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 4px;
   color: var(--text-secondary);
-}
-
-.message.user .role-label {
-  text-align: right;
 }
 
 .message.streaming {
@@ -435,6 +430,27 @@ main {
 
 #send-btn:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+#resend-btn {
+  padding: 10px 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+#resend-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+#resend-btn:disabled {
+  opacity: 0.3;
   cursor: not-allowed;
 }
 
@@ -969,4 +985,68 @@ main {
 .message .content img {
   max-width: 100%;
   border-radius: 8px;
+}
+
+/* Message Header & Action Buttons */
+.message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.message.user .message-header {
+  flex-direction: row-reverse;
+}
+
+.message-actions {
+  display: flex;
+  gap: 4px;
+  visibility: hidden;
+}
+
+.message:hover .message-actions {
+  visibility: visible;
+}
+
+.message.streaming .message-actions,
+.message.error .message-actions {
+  visibility: hidden;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.action-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Edit Textarea */
+.edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: 8px 12px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+
+.edit-textarea:focus {
+  border-color: var(--accent);
 }
