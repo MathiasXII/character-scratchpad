@@ -17758,9 +17758,7 @@
               ext.push(EditorView.styleModule.of(highlighter.module));
           themeType = highlighter.themeType;
       }
-      if (options === null || options === void 0 ? void 0 : options.fallback)
-          ext.push(fallbackHighlighter.of(highlighter));
-      else if (themeType)
+      if (themeType)
           ext.push(highlighterFacet.computeN([EditorView.darkTheme], state => {
               return state.facet(EditorView.darkTheme) == (themeType == "dark") ? [highlighter] : [];
           }));
@@ -17804,50 +17802,6 @@
   const treeHighlighter = /*@__PURE__*/Prec.high(/*@__PURE__*/ViewPlugin.fromClass(TreeHighlighter, {
       decorations: v => v.decorations
   }));
-  /**
-  A default highlight style (works well with light themes).
-  */
-  const defaultHighlightStyle = /*@__PURE__*/HighlightStyle.define([
-      { tag: tags$1.meta,
-          color: "#404740" },
-      { tag: tags$1.link,
-          textDecoration: "underline" },
-      { tag: tags$1.heading,
-          textDecoration: "underline",
-          fontWeight: "bold" },
-      { tag: tags$1.emphasis,
-          fontStyle: "italic" },
-      { tag: tags$1.strong,
-          fontWeight: "bold" },
-      { tag: tags$1.strikethrough,
-          textDecoration: "line-through" },
-      { tag: tags$1.keyword,
-          color: "#708" },
-      { tag: [tags$1.atom, tags$1.bool, tags$1.url, tags$1.contentSeparator, tags$1.labelName],
-          color: "#219" },
-      { tag: [tags$1.literal, tags$1.inserted],
-          color: "#164" },
-      { tag: [tags$1.string, tags$1.deleted],
-          color: "#a11" },
-      { tag: [tags$1.regexp, tags$1.escape, /*@__PURE__*/tags$1.special(tags$1.string)],
-          color: "#e40" },
-      { tag: /*@__PURE__*/tags$1.definition(tags$1.variableName),
-          color: "#00f" },
-      { tag: /*@__PURE__*/tags$1.local(tags$1.variableName),
-          color: "#30a" },
-      { tag: [tags$1.typeName, tags$1.namespace],
-          color: "#085" },
-      { tag: tags$1.className,
-          color: "#167" },
-      { tag: [/*@__PURE__*/tags$1.special(tags$1.variableName), tags$1.macroName],
-          color: "#256" },
-      { tag: /*@__PURE__*/tags$1.definition(tags$1.propertyName),
-          color: "#00c" },
-      { tag: tags$1.comment,
-          color: "#940" },
-      { tag: tags$1.invalid,
-          color: "#f00" }
-  ]);
   const DefaultScanDist = 10000, DefaultBrackets = "()[]{}";
   /**
   When larger syntax nodes, such as HTML tags, are marked as
@@ -26673,22 +26627,22 @@
 
   const darkTheme = EditorView.theme({
     "&": {
-      color: "var(--text-primary)",
-      backgroundColor: "var(--bg-primary)",
+      color: "#e0e0e0",
+      backgroundColor: "#0f0f1a",
       height: "100%"
     },
     ".cm-content": {
-      caretColor: "var(--text-primary)",
+      caretColor: "#6c63ff",
       fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace',
       fontSize: "14px",
       lineHeight: "1.6",
       tabSize: "2"
     },
     ".cm-cursor": {
-      borderLeftColor: "var(--accent)"
+      borderLeftColor: "#6c63ff"
     },
     ".cm-focused .cm-cursor": {
-      borderLeftColor: "var(--accent)"
+      borderLeftColor: "#6c63ff"
     },
     ".cm-selectionBackground, ::selection": {
       backgroundColor: "rgba(108, 99, 255, 0.3) !important"
@@ -26712,11 +26666,53 @@
       backgroundColor: "rgba(108, 99, 255, 0.05)"
     },
     ".cm-placeholder": {
-      color: "var(--text-secondary)",
+      color: "#a0a0b0",
       fontStyle: "italic",
       padding: "0 12px"
     }
   }, { dark: true });
+
+  const markdownHighlight = HighlightStyle.define([
+    { tag: tags$1.heading1, color: "#e0e0e0", fontWeight: "bold", fontSize: "1.4em" },
+    { tag: tags$1.heading2, color: "#e0e0e0", fontWeight: "bold", fontSize: "1.2em" },
+    { tag: tags$1.heading3, color: "#e0e0e0", fontWeight: "bold", fontSize: "1.1em" },
+    { tag: tags$1.heading4, color: "#e0e0e0", fontWeight: "bold" },
+    { tag: tags$1.heading5, color: "#e0e0e0", fontWeight: "bold" },
+    { tag: tags$1.heading6, color: "#a0a0b0", fontWeight: "bold" },
+    { tag: tags$1.strong, color: "#e0e0e0", fontWeight: "bold" },
+    { tag: tags$1.emphasis, color: "#e0e0e0", fontStyle: "italic" },
+    { tag: tags$1.strikethrough, color: "#a0a0b0", textDecoration: "line-through" },
+    { tag: tags$1.link, color: "#7b73ff", textDecoration: "none" },
+    { tag: tags$1.url, color: "#6c63ff" },
+    { tag: tags$1.monospace, color: "#c8c8e0" },
+    { tag: tags$1.quote, color: "#a0a0b0" },
+    { tag: tags$1.comment, color: "#6a6a80" },
+    { tag: tags$1.processingInstruction, color: "#6a6a80" },
+    { tag: tags$1.meta, color: "#6a6a80" },
+    { tag: tags$1.keyword, color: "#c8c8e0" },
+    { tag: tags$1.string, color: "#c8c8e0" },
+    { tag: tags$1.number, color: "#c8c8e0" },
+    { tag: tags$1.bool, color: "#c8c8e0" },
+    { tag: tags$1.null, color: "#a0a0b0" },
+    { tag: tags$1.propertyName, color: "#c8c8e0" },
+    { tag: tags$1.variableName, color: "#c8c8e0" },
+    { tag: tags$1.operator, color: "#a0a0b0" },
+    { tag: tags$1.punctuation, color: "#6a6a80" },
+    { tag: tags$1.bracket, color: "#6a6a80" },
+    { tag: tags$1.separator, color: "#6a6a80" },
+    { tag: tags$1.special(tags$1.string), color: "#c8c8e0" },
+    { tag: tags$1.definition(tags$1.variableName), color: "#e0e0e0" },
+    { tag: tags$1.typeName, color: "#c8c8e0" },
+    { tag: tags$1.className, color: "#c8c8e0" },
+    { tag: tags$1.labelName, color: "#c8c8e0" },
+    { tag: tags$1.atom, color: "#c8c8e0" },
+    { tag: tags$1.content, color: "#e0e0e0" },
+    { tag: tags$1.contentSeparator, color: "#6a6a80" },
+    { tag: tags$1.list, color: "#c8c8e0" },
+    { tag: tags$1.inserted, color: "#c8c8e0" },
+    { tag: tags$1.deleted, color: "#a0a0b0" },
+    { tag: tags$1.changed, color: "#c8c8e0" },
+  ]);
 
   function createEditor(parent, options = {}) {
     const extensions = [
@@ -26724,7 +26720,7 @@
       keymap.of([...defaultKeymap, ...historyKeymap]),
       history(),
       markdown({ base: markdownLanguage }),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      syntaxHighlighting(markdownHighlight),
       EditorView.lineWrapping,
       EditorState.allowMultipleSelections.of(false)
     ];
