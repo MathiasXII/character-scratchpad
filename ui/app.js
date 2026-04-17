@@ -62,7 +62,7 @@ import {
 } from "./characters.js";
 import { hideSaveError, saveCurrentTab, switchTab, updateTokenCounter } from "./editor.js";
 import { initPaneDivider } from "./divider.js";
-import { initGit, updateGitBarVisibility } from "./git.js";
+import { initGit, updateGitBarVisibility, checkDirty } from "./git.js";
 import {
   closeSettingsModal,
   handleSaveSettings,

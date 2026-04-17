@@ -11,96 +11,142 @@ function formatTimestamp(unix) {
   return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function getRepoPath() {
+  if (!state.currentWorkFolder || !state.selectedCharacter) return null;
+  return state.currentWorkFolder + "/" + state.selectedCharacter;
+}
+
+// --- Dirty state indicator ---
+
+export async function checkDirty() {
+  const indicator = document.getElementById("git-status-indicator");
+  const saveBtn = document.getElementById("git-commit-btn");
+  if (!indicator || !saveBtn) return;
+
+  const repoPath = getRepoPath();
+  if (!repoPath) {
+    indicator.textContent = "";
+    indicator.className = "git-status-indicator";
+    saveBtn.classList.remove("has-changes");
+    return;
+  }
+
+  try {
+    const dirty = await invoke("git_is_dirty", { repoPath });
+    if (dirty) {
+      indicator.textContent = "Unsaved changes";
+      indicator.className = "git-status-indicator dirty";
+      saveBtn.classList.add("has-changes");
+    } else {
+      indicator.textContent = "All saved";
+      indicator.className = "git-status-indicator clean";
+      saveBtn.classList.remove("has-changes");
+    }
+  } catch {
+    // If git_is_dirty fails (e.g. no git repo yet), just leave the indicator empty
+    indicator.textContent = "";
+    indicator.className = "git-status-indicator";
+    saveBtn.classList.remove("has-changes");
+  }
+}
+
+// --- Visibility ---
+
 export function updateGitBarVisibility() {
   const bar = document.getElementById("version-control-bar");
-  const commitInput = document.getElementById("git-commit-input");
+  if (!bar) return;
   if (state.selectedCharacter) {
     bar.classList.remove("hidden");
   } else {
     bar.classList.add("hidden");
-    commitInput.classList.add("hidden");
   }
 }
 
-export function initGit() {
-  const commitBtn = document.getElementById("git-commit-btn");
-  const commitConfirm = document.getElementById("git-commit-confirm");
-  const commitCancel = document.getElementById("git-commit-cancel");
-  const commitMessage = document.getElementById("git-commit-message");
-  const commitInput = document.getElementById("git-commit-input");
-  const historyBtn = document.getElementById("git-history-btn");
-  const historyClose = document.getElementById("git-history-close");
-  const historyModal = document.getElementById("git-history-modal");
+// --- Save checkpoint flow ---
 
-  commitBtn.addEventListener("click", () => {
-    commitInput.classList.remove("hidden");
-    commitMessage.focus();
-  });
-
-  commitConfirm.addEventListener("click", () => handleGitCommit());
-
-  commitCancel.addEventListener("click", () => {
-    commitInput.classList.add("hidden");
-  });
-
-  commitMessage.addEventListener("keydown", (event) => {
-    if (event.key === "Enter") {
-      handleGitCommit();
-    } else if (event.key === "Escape") {
-      commitInput.classList.add("hidden");
-    }
-  });
-
-  historyBtn.addEventListener("click", () => openGitHistory());
-
-  historyClose.addEventListener("click", () => closeGitHistory());
-
-  historyModal.addEventListener("click", (event) => {
-    if (event.target === historyModal) {
-      closeGitHistory();
-    }
-  });
-
-  updateGitBarVisibility();
+function showStatus(message, type) {
+  const status = document.getElementById("git-save-status");
+  if (!status) return;
+  status.textContent = message;
+  status.className = "git-save-status " + type;
+  // Force reflow for animation reset
+  void status.offsetWidth;
+  status.classList.add("visible");
 }
 
-export async function handleGitCommit() {
+function hideStatus() {
+  const status = document.getElementById("git-save-status");
+  if (!status) return;
+  status.classList.remove("visible");
+}
+
+async function handleSaveCheckpoint() {
   if (!state.selectedCharacter || isCommitting) return;
-
-  const commitMessage = document.getElementById("git-commit-message");
-  const commitInput = document.getElementById("git-commit-input");
-  const commitConfirm = document.getElementById("git-commit-confirm");
-
-  const message = commitMessage.value.trim();
-  if (!message) {
-    commitMessage.style.borderColor = "var(--error)";
-    return;
-  }
-
   isCommitting = true;
-  commitConfirm.disabled = true;
 
-  const repoPath = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const repoPath = getRepoPath();
+  if (!repoPath) { isCommitting = false; return; }
+
+  const saveBtn = document.getElementById("git-commit-btn");
+  if (saveBtn) saveBtn.disabled = true;
+
+  // Generate timestamp commit message
+  const now = new Date();
+  const message = "Checkpoint — " + now.toLocaleString();
+
+  showStatus("Saving...", "saving");
 
   try {
     await invoke("git_commit", { repoPath, message });
-    commitInput.classList.add("hidden");
-    commitMessage.value = "";
-    commitMessage.style.borderColor = "";
+
+    showStatus("✓ Saved", "saved");
+    await checkDirty();
+
+    // Background: generate AI name and amend the commit
+    renameCheckpointInBackground(repoPath);
+
+    // Auto-hide "✓ Saved" after 2 seconds
+    setTimeout(hideStatus, 2000);
   } catch (error) {
-    showSaveError("Git commit failed: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Checkpoint failed: " + (typeof error === "string" ? error : String(error)));
+    hideStatus();
   } finally {
     isCommitting = false;
-    commitConfirm.disabled = false;
+    if (saveBtn) saveBtn.disabled = false;
   }
 }
+
+async function renameCheckpointInBackground(repoPath) {
+  try {
+    const diff = await invoke("git_diff_last", { repoPath });
+    if (!diff || diff.trim().length === 0) return; // no diff, skip rename
+
+    const newName = await invoke("generate_checkpoint_name", { diff });
+    if (newName && newName.trim().length > 0) {
+      await invoke("git_commit_amend", { repoPath, message: newName.trim() });
+    }
+  } catch {
+    // Silently fail — the timestamp name is perfectly fine
+  }
+}
+
+// --- History ---
 
 export async function openGitHistory() {
   if (!state.selectedCharacter) return;
 
-  const repoPath = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const repoPath = getRepoPath();
+  if (!repoPath) return;
+
   const historyList = document.getElementById("git-history-list");
   const historyModal = document.getElementById("git-history-modal");
+  if (!historyList || !historyModal) return;
 
   try {
     const commits = await invoke("git_log", { repoPath });
@@ -108,7 +154,7 @@ export async function openGitHistory() {
     historyList.innerHTML = "";
 
     if (commits.length === 0) {
-      historyList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No commits yet</div>';
+      historyList.innerHTML = '<div style="color: var(--text-secondary); text-align: center; padding: 20px;">No checkpoints yet</div>';
     } else {
       for (const entry of commits) {
         const el = document.createElement("div");
@@ -118,7 +164,7 @@ export async function openGitHistory() {
             <span class="git-entry-message">${escapeHtml(entry.message)}</span>
             <span class="git-entry-time">${formatTimestamp(entry.timestamp)}</span>
           </div>
-          <button class="git-revert-btn" data-commit-id="${escapeHtml(entry.id)}">Revert to this</button>
+          <button class="git-revert-btn" data-commit-id="${escapeHtml(entry.id)}">Restore this version</button>
         `;
         el.querySelector(".git-revert-btn").addEventListener("click", () => {
           handleGitRevert(entry.id);
@@ -129,34 +175,62 @@ export async function openGitHistory() {
 
     historyModal.classList.remove("hidden");
   } catch (error) {
-    showSaveError("Git log failed: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Failed to load history: " + (typeof error === "string" ? error : String(error)));
   }
 }
 
 export function closeGitHistory() {
-  document.getElementById("git-history-modal").classList.add("hidden");
+  const historyModal = document.getElementById("git-history-modal");
+  if (historyModal) historyModal.classList.add("hidden");
 }
 
-export async function handleGitRevert(commitId) {
+async function handleGitRevert(commitId) {
   if (!state.selectedCharacter) return;
 
-  const confirmed = window.confirm("Revert to this commit? All current changes will be lost.");
+  const confirmed = window.confirm("Restore this version? Your current changes will be replaced by the selected checkpoint.");
   if (!confirmed) return;
 
-  const repoPath = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const repoPath = getRepoPath();
+  if (!repoPath) return;
 
   try {
     await invoke("git_revert", { repoPath, commitId });
     await handleCharacterSelect();
+    await checkDirty();
   } catch (error) {
-    showSaveError("Git revert failed: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Restore failed: " + (typeof error === "string" ? error : String(error)));
   }
 
   closeGitHistory();
 }
 
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
+// --- Init ---
+
+export function initGit() {
+  const saveBtn = document.getElementById("git-commit-btn");
+  const historyBtn = document.getElementById("git-history-btn");
+  const historyClose = document.getElementById("git-history-close");
+  const historyModal = document.getElementById("git-history-modal");
+
+  if (saveBtn) {
+    saveBtn.addEventListener("click", handleSaveCheckpoint);
+  }
+
+  if (historyBtn) {
+    historyBtn.addEventListener("click", openGitHistory);
+  }
+
+  if (historyClose) {
+    historyClose.addEventListener("click", closeGitHistory);
+  }
+
+  if (historyModal) {
+    historyModal.addEventListener("click", (event) => {
+      if (event.target === historyModal) {
+        closeGitHistory();
+      }
+    });
+  }
+
+  updateGitBarVisibility();
 }
