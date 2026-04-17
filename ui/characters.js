@@ -1,0 +1,139 @@
+const { invoke } = window.__TAURI__;
+
+import { dom, state } from "./app.js";
+import { updateTokenCounter } from "./editor.js";
+import { openSettingsModal } from "./settings.js";
+
+export async function loadCharacters() {
+  dom.characterSelect.innerHTML = "";
+  dom.characterSelect.disabled = true;
+
+  if (!state.currentWorkFolder) {
+    const opt = document.createElement("option");
+    opt.textContent = "Set work folder in Settings";
+    opt.value = "";
+    dom.characterSelect.appendChild(opt);
+    return;
+  }
+
+  try {
+    const characters = await invoke("list_characters", { workFolder: state.currentWorkFolder });
+
+    if (characters.length === 0) {
+      const opt = document.createElement("option");
+      opt.textContent = "No characters yet";
+      opt.value = "";
+      dom.characterSelect.appendChild(opt);
+    } else {
+      const placeholder = document.createElement("option");
+      placeholder.textContent = "Select a character...";
+      placeholder.value = "";
+      dom.characterSelect.appendChild(placeholder);
+
+      for (const name of characters) {
+        const opt = document.createElement("option");
+        opt.textContent = name;
+        opt.value = name;
+        dom.characterSelect.appendChild(opt);
+      }
+      dom.characterSelect.disabled = false;
+    }
+  } catch (error) {
+    const opt = document.createElement("option");
+    opt.textContent = "Error loading characters";
+    opt.value = "";
+    dom.characterSelect.appendChild(opt);
+    console.error("Failed to load characters:", error);
+  }
+}
+
+export function openNewCharacterModal() {
+  if (!state.currentWorkFolder) {
+    openSettingsModal();
+    return;
+  }
+
+  dom.newCharacterNameInput.value = "";
+  dom.newCharacterNameInput.style.borderColor = "";
+  dom.newCharacterModal.classList.remove("hidden");
+  dom.newCharacterNameInput.focus();
+}
+
+export function closeNewCharacterModal() {
+  dom.newCharacterModal.classList.add("hidden");
+}
+
+export async function handleCreateCharacter() {
+  const name = dom.newCharacterNameInput.value.trim();
+  if (!name) {
+    dom.newCharacterNameInput.style.borderColor = "var(--error)";
+    dom.newCharacterNameInput.focus();
+    return;
+  }
+
+  dom.newCharacterCreate.disabled = true;
+  try {
+    await invoke("create_character", { workFolder: state.currentWorkFolder, name });
+    await loadCharacters();
+    dom.characterSelect.value = name;
+    await handleCharacterSelect();
+    closeNewCharacterModal();
+  } catch (error) {
+    dom.newCharacterNameInput.style.borderColor = "var(--error)";
+    dom.newCharacterNameInput.value = "";
+    dom.newCharacterNameInput.placeholder =
+      typeof error === "string" ? error : String(error);
+    dom.newCharacterNameInput.focus();
+  } finally {
+    dom.newCharacterCreate.disabled = false;
+  }
+}
+
+export async function handleCharacterSelect() {
+  const name = dom.characterSelect.value;
+
+  clearTimeout(state.saveTimeout);
+  state.saveTimeout = null;
+
+  if (!name) {
+    state.selectedCharacter = "";
+    for (const key in state.tabContents) {
+      state.tabContents[key] = "";
+    }
+    dom.editor.value = "";
+    dom.editor.placeholder = "Select a character to start editing...";
+    updateTokenCounter();
+    return;
+  }
+
+  state.selectedCharacter = name;
+  state.isLoadingCharacter = true;
+
+  const charDir = state.currentWorkFolder + "/" + name;
+  const fileEntries = [
+    ["instructions", charDir + "/instructions.md"],
+    ["prompt", charDir + "/prompt.md"],
+    ["description", charDir + "/description.md"],
+    ["first-response", charDir + "/first-response.md"],
+  ];
+
+  const results = await Promise.all(
+    fileEntries.map(([key, path]) =>
+      invoke("load_file", { path })
+        .then((content) => ({ key, content }))
+        .catch((error) => {
+          console.error(`Failed to load ${key}:`, error);
+          return { key, content: "" };
+        })
+    )
+  );
+
+  for (const { key, content } of results) {
+    state.tabContents[key] = content;
+  }
+
+  dom.editor.value = state.tabContents[state.activeTab];
+  dom.editor.placeholder = "Start editing...";
+  updateTokenCounter();
+  state.isLoadingCharacter = false;
+}
