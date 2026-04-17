@@ -62,6 +62,7 @@ import {
 } from "./characters.js";
 import { hideSaveError, saveCurrentTab, switchTab, updateTokenCounter } from "./editor.js";
 import { initPaneDivider } from "./divider.js";
+import { initGit, updateGitBarVisibility } from "./git.js";
 import {
   closeSettingsModal,
   handleSaveSettings,
@@ -77,6 +78,7 @@ async function init() {
   await syncSettingsToBackend();
   showWelcome();
   initPaneDivider();
+  initGit();
   await loadCharacters();
   initStreamListeners();
 

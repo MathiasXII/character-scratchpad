@@ -634,3 +634,161 @@ main {
   font-size: 14px;
   line-height: 1.6;
 }
+
+/* Version Control Bar */
+#version-control-bar {
+  display: flex;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#version-control-bar.hidden {
+  display: none;
+}
+
+#version-control-bar button {
+  padding: 4px 10px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+#version-control-bar button:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+#git-commit-input {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#git-commit-input.hidden {
+  display: none;
+}
+
+#git-commit-message {
+  flex: 1;
+  padding: 6px 10px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+#git-commit-message:focus {
+  border-color: var(--accent);
+}
+
+#git-commit-message::placeholder {
+  color: var(--text-secondary);
+}
+
+#git-commit-confirm,
+#git-commit-cancel {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+#git-commit-confirm {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+#git-commit-confirm:hover {
+  background: var(--accent-hover);
+}
+
+#git-commit-cancel {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+#git-commit-cancel:hover {
+  background: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+
+/* Git History Modal */
+#git-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.git-history-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.git-entry-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.git-entry-message {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.git-entry-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.git-revert-btn {
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.git-revert-btn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}

@@ -34,6 +34,15 @@
         </div>
         <textarea id="editor" placeholder="Select a tab and start editing..." spellcheck="false"></textarea>
         <div id="token-counter">0 tokens</div>
+        <div id="version-control-bar" class="hidden">
+          <button id="git-commit-btn" title="Commit changes">⇡ Commit</button>
+          <button id="git-history-btn" title="View history">⏱ History</button>
+        </div>
+        <div id="git-commit-input" class="hidden">
+          <input type="text" id="git-commit-message" placeholder="Commit message..." />
+          <button id="git-commit-confirm" title="Confirm commit">✓</button>
+          <button id="git-commit-cancel" title="Cancel">✗</button>
+        </div>
       </div>
       <div id="pane-divider"></div>
       <div id="right-pane">
@@ -92,6 +101,19 @@
           <button id="new-character-cancel" class="btn-secondary">Cancel</button>
           <button id="new-character-create" class="btn-primary">Create</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Git History Modal -->
+  <div id="git-history-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Version History</h2>
+        <button id="git-history-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="git-history-list"></div>
       </div>
     </div>
   </div>

@@ -3,6 +3,7 @@ const { invoke } = window.__TAURI__;
 import { dom, state } from "./app.js";
 import { updateTokenCounter } from "./editor.js";
 import { openSettingsModal } from "./settings.js";
+import { updateGitBarVisibility } from "./git.js";
 
 export async function loadCharacters() {
   dom.characterSelect.innerHTML = "";
@@ -45,6 +46,7 @@ export async function loadCharacters() {
     dom.characterSelect.appendChild(opt);
     console.error("Failed to load characters:", error);
   }
+  updateGitBarVisibility();
 }
 
 export function openNewCharacterModal() {
@@ -103,6 +105,7 @@ export async function handleCharacterSelect() {
     dom.editor.value = "";
     dom.editor.placeholder = "Select a character to start editing...";
     updateTokenCounter();
+    updateGitBarVisibility();
     return;
   }
 
@@ -136,4 +139,5 @@ export async function handleCharacterSelect() {
   dom.editor.placeholder = "Start editing...";
   updateTokenCounter();
   state.isLoadingCharacter = false;
+  updateGitBarVisibility();
 }
