@@ -141,6 +141,30 @@ fn save_file(path: String, content: String) -> Result<(), String> {
     fs::write(&path, &content).map_err(|e| format!("Failed to write '{}': {}", path, e))
 }
 
+#[tauri::command]
+fn list_characters(work_folder: String) -> Result<Vec<String>, String> {
+    let dir = fs::read_dir(&work_folder)
+        .map_err(|e| format!("Failed to read directory '{}': {}", work_folder, e))?;
+
+    let mut names: Vec<String> = dir
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            if path.is_dir() {
+                let name = path.file_name()?.to_str()?.to_string();
+                // Skip hidden directories (e.g. .git)
+                if !name.starts_with('.') {
+                    return Some(name);
+                }
+            }
+            None
+        })
+        .collect();
+
+    names.sort();
+    Ok(names)
+}
+
 // --- Main ---
 
 fn main() {
@@ -157,6 +181,7 @@ fn main() {
             get_settings,
             load_file,
             save_file,
+            list_characters,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
