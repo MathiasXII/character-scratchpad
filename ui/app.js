@@ -7,6 +7,15 @@ let isStreaming = false;
 let currentAssistantEl = null;
 let currentAssistantContent = "";
 
+// --- Editor Tab State ---
+const tabContents = {
+  instructions: "",
+  prompt: "",
+  description: "",
+  "first-response": "",
+};
+let activeTab = "instructions";
+
 // --- DOM ---
 const messagesEl = document.getElementById("messages");
 const userInput = document.getElementById("user-input");
@@ -18,6 +27,10 @@ const saveSettingsBtn = document.getElementById("save-settings");
 const apiKeyInput = document.getElementById("api-key");
 const modelInput = document.getElementById("model");
 const endpointInput = document.getElementById("endpoint");
+
+// --- Editor DOM ---
+const editor = document.getElementById("editor");
+const tabs = document.querySelectorAll("#tab-bar .tab");
 
 // --- Init ---
 async function init() {
@@ -71,6 +84,13 @@ async function init() {
   });
 
   saveSettingsBtn.addEventListener("click", handleSaveSettings);
+
+  // --- Tab switching ---
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => switchTab(tab.dataset.tab));
+  });
+  // Initialize editor with default tab content
+  editor.value = tabContents[activeTab];
 }
 
 // --- Chat Logic ---
@@ -237,6 +257,20 @@ function initPaneDivider() {
     document.body.style.userSelect = "";
     document.body.style.webkitUserSelect = "";
   });
+}
+
+// --- Tab Switching ---
+function switchTab(tabName) {
+  // Save current editor content to the previously active tab
+  tabContents[activeTab] = editor.value;
+
+  // Update active tab
+  activeTab = tabName;
+  tabs.forEach((t) => t.classList.toggle("active", t.dataset.tab === tabName));
+
+  // Load the new tab's content into the editor
+  editor.value = tabContents[tabName];
+  editor.focus();
 }
 
 // --- Boot ---
