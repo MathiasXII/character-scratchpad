@@ -151,6 +151,17 @@ main {
   border-radius: 3px;
 }
 
+/* Token Counter */
+#token-counter {
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  text-align: right;
+  flex-shrink: 0;
+  user-select: none;
+}
+
 /* Pane Divider */
 #pane-divider {
   width: 5px;
