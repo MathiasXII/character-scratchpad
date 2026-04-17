@@ -225,6 +225,51 @@ main {
   border-radius: 3px;
 }
 
+/* Save Error Banner */
+.error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 55, 55, 0.15);
+  color: var(--error);
+  border-bottom: 1px solid rgba(255, 55, 55, 0.3);
+  font-size: 13px;
+  flex-shrink: 0;
+  min-height: 0;
+  transition: min-height 0.2s, padding 0.2s, opacity 0.2s;
+  overflow: hidden;
+}
+
+.error-banner.hidden {
+  min-height: 0;
+  padding: 0 12px;
+  opacity: 0;
+  pointer-events: none;
+  border: none;
+}
+
+.error-banner #save-error-text {
+  flex: 1;
+  text-align: center;
+}
+
+.error-banner #save-error-dismiss {
+  background: none;
+  border: none;
+  color: var(--error);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.error-banner #save-error-dismiss:hover {
+  color: white;
+}
+
 /* Token Counter */
 #token-counter {
   padding: 4px 12px;
