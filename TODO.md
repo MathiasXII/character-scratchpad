@@ -40,7 +40,7 @@
 - [x] **A. Work Folder Setting + Character List**
   Add a "Work Folder" input to the Settings modal. Store it in `localStorage` under key `llm-work-folder`. Default value: a `characters` folder next to the app executable. On app init (and whenever the work folder setting changes), call `list_characters` and populate a character selector dropdown in the header. If no characters exist, show a "No characters yet — create one" prompt in the dropdown area.
 
-- [ ] **B. New Character Creation**
+- [x] **B. New Character Creation**
   Add a "+" button next to the character selector. Clicking it prompts the user for a character name (simple browser `prompt()`), then calls `create_character`. On success, refresh the character list and auto-select the new character.
 
 - [ ] **C. Editor ↔ File Wiring (Load + Auto-Save)**
