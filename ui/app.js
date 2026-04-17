@@ -40,6 +40,11 @@ const tokenCounter = document.getElementById("token-counter");
 // --- Character DOM ---
 const characterSelect = document.getElementById("character-select");
 const newCharacterBtn = document.getElementById("new-character-btn");
+const newCharacterModal = document.getElementById("new-character-modal");
+const newCharacterNameInput = document.getElementById("new-character-name");
+const newCharacterClose = document.getElementById("new-character-close");
+const newCharacterCancel = document.getElementById("new-character-cancel");
+const newCharacterCreate = document.getElementById("new-character-create");
 const workFolderInput = document.getElementById("work-folder");
 const browseFolderBtn = document.getElementById("browse-folder-btn");
 
@@ -106,7 +111,17 @@ async function init() {
   });
 
   // --- New character ---
-  newCharacterBtn.addEventListener("click", createCharacter);
+  newCharacterBtn.addEventListener("click", openNewCharacterModal);
+  newCharacterClose.addEventListener("click", closeNewCharacterModal);
+  newCharacterCancel.addEventListener("click", closeNewCharacterModal);
+  newCharacterModal.addEventListener("click", (e) => {
+    if (e.target === newCharacterModal) closeNewCharacterModal();
+  });
+  newCharacterCreate.addEventListener("click", handleCreateCharacter);
+  newCharacterNameInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleCreateCharacter();
+    newCharacterNameInput.style.borderColor = "";
+  });
 
   // --- Tab switching ---
   tabs.forEach((tab) => {
@@ -313,7 +328,7 @@ async function loadCharacters() {
 
     if (characters.length === 0) {
       const opt = document.createElement("option");
-      opt.textContent = "No characters yet — create one";
+      opt.textContent = "No characters yet";
       opt.value = "";
       characterSelect.appendChild(opt);
     } else {
@@ -340,21 +355,42 @@ async function loadCharacters() {
 }
 
 // --- New Character ---
-async function createCharacter() {
+function openNewCharacterModal() {
   if (!currentWorkFolder) {
-    alert("Please set a work folder in Settings first.");
+    openSettingsModal();
+    return;
+  }
+  newCharacterNameInput.value = "";
+  newCharacterNameInput.style.borderColor = "";
+  newCharacterModal.classList.remove("hidden");
+  newCharacterNameInput.focus();
+}
+
+function closeNewCharacterModal() {
+  newCharacterModal.classList.add("hidden");
+}
+
+async function handleCreateCharacter() {
+  const name = newCharacterNameInput.value.trim();
+  if (!name) {
+    newCharacterNameInput.style.borderColor = "var(--error)";
+    newCharacterNameInput.focus();
     return;
   }
 
-  const name = prompt("Character name:");
-  if (!name || !name.trim()) return;
-
+  newCharacterCreate.disabled = true;
   try {
-    await invoke("create_character", { workFolder: currentWorkFolder, name: name.trim() });
+    await invoke("create_character", { workFolder: currentWorkFolder, name });
     await loadCharacters();
-    characterSelect.value = name.trim();
+    characterSelect.value = name;
+    closeNewCharacterModal();
   } catch (e) {
-    alert(typeof e === "string" ? e : String(e));
+    newCharacterNameInput.style.borderColor = "var(--error)";
+    newCharacterNameInput.value = "";
+    newCharacterNameInput.placeholder = typeof e === "string" ? e : String(e);
+    newCharacterNameInput.focus();
+  } finally {
+    newCharacterCreate.disabled = false;
   }
 }
 
