@@ -38,17 +38,48 @@ html, body {
 header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 12px 20px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  gap: 16px;
 }
 
 header h1 {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
+}
+
+#header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+#character-select {
+  padding: 6px 12px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  min-width: 200px;
+  max-width: 320px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+#character-select:focus {
+  border-color: var(--accent);
+}
+
+#character-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 #settings-btn {
