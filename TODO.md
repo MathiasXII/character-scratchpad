@@ -52,7 +52,7 @@
 - [ ] **E. Chat: Markdown Rendering**
   Add `marked.js` (via CDN or bundled). Render assistant message bubbles as markdown (`body.innerHTML = marked.parse(content)`). Render user message bubbles as markdown too. The edit input box (item F) shows raw text, not rendered markdown.
 
-- [ ] **F. Chat: Delete, Edit, Resend**
+- [x] **F. Chat: Delete, Edit, Resend**
   Add a delete button (trash icon) and edit button (pencil icon) to each message bubble on hover. Delete removes that message + all messages below it from `conversationHistory` and the DOM. Edit replaces the message content with a `<textarea>` pre-filled with raw text, plus "Save" and "Cancel" buttons. On Save: truncate `conversationHistory` at that point, remove subsequent DOM elements, and re-trigger streaming. Add a "Resend" button next to Send: it takes current input text, deletes the last user message, appends the new one, and triggers a new stream.
 
 - [ ] **G. Context Folder (full stack)**
