@@ -1,6 +1,6 @@
 const { invoke } = window.__TAURI__;
 
-import { dom, state } from "./app.js";
+import { dom, state, TAB_FILE_MAP } from "./app.js";
 import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder } from "./editor.js";
 import { openSettingsModal } from "./settings.js";
 import { updateGitBarVisibility, checkDirty } from "./git.js";
@@ -124,10 +124,10 @@ export async function handleCharacterSelect() {
 
   const charDir = state.currentWorkFolder + "/" + name;
   const fileEntries = [
-    ["instructions", charDir + "/instructions.md"],
-    ["prompt", charDir + "/prompt.md"],
-    ["description", charDir + "/description.md"],
-    ["first-response", charDir + "/first-response.md"],
+    ["instructions", charDir + "/" + TAB_FILE_MAP["instructions"]],
+    ["prompt", charDir + "/" + TAB_FILE_MAP["prompt"]],
+    ["description", charDir + "/" + TAB_FILE_MAP["description"]],
+    ["first-response", charDir + "/" + TAB_FILE_MAP["first-response"]],
   ];
 
   const results = await Promise.all(

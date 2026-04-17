@@ -1,6 +1,6 @@
 const { invoke } = window.__TAURI__;
 
-import { dom, state } from "./app.js";
+import { dom, state, TAB_FILE_MAP } from "./app.js";
 import { checkDirty } from "./git.js";
 
 function getEditorValue() {
@@ -30,7 +30,7 @@ export async function saveCurrentTab() {
   }
 
   state.tabContents[state.activeTab] = getEditorValue();
-  const filename = state.activeTab + ".md";
+  const filename = TAB_FILE_MAP[state.activeTab];
   const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
 
   try {
@@ -62,7 +62,7 @@ export function switchTab(tabName) {
   state.saveTimeout = null;
   if (state.selectedCharacter && !state.isLoadingCharacter) {
     const oldTab = state.activeTab;
-    const filename = oldTab + ".md";
+    const filename = TAB_FILE_MAP[oldTab];
     const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
     invoke("save_file", { path, content: state.tabContents[oldTab] })
       .then(() => { hideSaveError(); checkDirty(); })

@@ -1,3 +1,10 @@
+export const TAB_FILE_MAP = {
+  instructions: "instructions.txt",
+  prompt: "system-prompt.txt",
+  description: "description.txt",
+  "first-response": "intro.txt",
+};
+
 export const state = {
   conversationHistory: [],
   isStreaming: false,
