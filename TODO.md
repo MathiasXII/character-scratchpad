@@ -1,6 +1,6 @@
 # TODO — LLM Chat → Venice.ai Character Workbench
 
-**RULE: Create branch. Complete ONE unchecked item, Commit, then STOP. Do not proceed to the next item.**
+**RULE: Create branch. Complete ONE unchecked item, Test, Commit, then STOP. Do not proceed to the next item.**
 
 **RULE: The user will either ask you to do some changes or say it is acceptable. When it is acceptable, merge branch into the main one.**
 
