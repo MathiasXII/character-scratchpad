@@ -34,7 +34,7 @@ llm-chat/
 │           ├── stream_chat.rs   # send_message_stream — SSE streaming to frontend
 │           ├── settings.rs      # update_settings, get_settings
 │           ├── files.rs         # load_file, save_file
-│           ├── characters.rs    # list_characters, create_character (git init + initial commit)
+│           ├── characters.rs    # list_characters, create_character, ensure_character_files (file integrity + git init)
 │           └── git.rs           # git_commit, git_log, git_revert, git_is_dirty, git_diff_last, git_commit_amend, generate_checkpoint_name
 └── ui/
     ├── index.html              # SPA markup (script type="module")
@@ -97,7 +97,8 @@ llm-chat/
 | `load_file` | `commands/files.rs` | Read a file from disk |
 | `save_file` | `commands/files.rs` | Write content to file (creates parent dirs) |
 | `list_characters` | `commands/characters.rs` | List non-hidden directories in work folder |
-| `create_character` | `commands/characters.rs` | Create character dir + default empty files + context/ + git init + initial commit |
+| `create_character` | `commands/characters.rs` | Create character dir + delegate to `ensure_character_files` |
+| `ensure_character_files` | `commands/characters.rs` | Ensure all essential files, context dir, and git repo exist for a character; create missing ones and make initial commit if repo is empty |
 | `git_commit` | `commands/git.rs` | Stage all + commit with message |
 | `git_log` | `commands/git.rs` | Return last 50 commits as { id, message, timestamp } |
 | `git_revert` | `commands/git.rs` | Hard-reset to a commit's tree, reload files |

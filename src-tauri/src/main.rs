@@ -3,7 +3,7 @@ mod commands;
 mod state;
 mod types;
 
-use commands::characters::{create_character, list_characters};
+use commands::characters::{create_character, ensure_character_files, list_characters};
 use commands::files::{load_file, save_file};
 use commands::git::{
     generate_checkpoint_name, git_commit, git_commit_amend, git_diff_last, git_is_dirty,
@@ -29,6 +29,7 @@ fn main() {
             save_file,
             list_characters,
             create_character,
+            ensure_character_files,
             git_commit,
             git_log,
             git_revert,
