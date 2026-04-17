@@ -10,6 +10,11 @@
   <div id="app">
     <header>
       <h1>LLM Chat</h1>
+      <div id="header-center">
+        <select id="character-select" disabled>
+          <option value="">No characters yet</option>
+        </select>
+      </div>
       <button id="settings-btn" title="Settings">&#9881;</button>
     </header>
 
@@ -55,6 +60,12 @@
 
         <label for="endpoint">API Endpoint</label>
         <input type="text" id="endpoint" placeholder="https://api.openai.com/v1/chat/completions" />
+
+        <label for="work-folder">Work Folder</label>
+        <div id="work-folder-row">
+          <input type="text" id="work-folder" placeholder="Path to characters folder..." readonly />
+          <button id="browse-folder-btn" title="Browse">&#128193;</button>
+        </div>
 
         <button id="save-settings">Save</button>
       </div>
