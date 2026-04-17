@@ -34,6 +34,7 @@ export async function checkDirty() {
     indicator.textContent = "";
     indicator.className = "git-status-indicator";
     saveBtn.classList.remove("has-changes");
+    saveBtn.disabled = true;
     return;
   }
 
@@ -43,16 +44,19 @@ export async function checkDirty() {
       indicator.textContent = "Unsaved changes";
       indicator.className = "git-status-indicator dirty";
       saveBtn.classList.add("has-changes");
+      saveBtn.disabled = false;
     } else {
       indicator.textContent = "All saved";
       indicator.className = "git-status-indicator clean";
       saveBtn.classList.remove("has-changes");
+      saveBtn.disabled = true;
     }
   } catch {
     // If git_is_dirty fails (e.g. no git repo yet), just leave the indicator empty
     indicator.textContent = "";
     indicator.className = "git-status-indicator";
     saveBtn.classList.remove("has-changes");
+    saveBtn.disabled = true;
   }
 }
 
@@ -118,7 +122,7 @@ async function handleSaveCheckpoint() {
     hideStatus();
   } finally {
     isCommitting = false;
-    if (saveBtn) saveBtn.disabled = false;
+    // Don't re-enable button here — checkDirty() already set disabled state
   }
 }
 
