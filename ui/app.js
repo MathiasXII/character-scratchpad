@@ -19,6 +19,9 @@ let activeTab = "instructions";
 
 // --- Character State ---
 let currentWorkFolder = "";
+let selectedCharacter = "";
+let saveTimeout = null;
+let isLoadingCharacter = false;
 
 // --- DOM ---
 const messagesEl = document.getElementById("messages");
@@ -47,6 +50,11 @@ const newCharacterCancel = document.getElementById("new-character-cancel");
 const newCharacterCreate = document.getElementById("new-character-create");
 const workFolderInput = document.getElementById("work-folder");
 const browseFolderBtn = document.getElementById("browse-folder-btn");
+
+// --- Save Error Banner DOM ---
+const saveErrorBanner = document.getElementById("save-error-banner");
+const saveErrorText = document.getElementById("save-error-text");
+const saveErrorDismiss = document.getElementById("save-error-dismiss");
 
 // --- Init ---
 async function init() {
@@ -123,6 +131,12 @@ async function init() {
     newCharacterNameInput.style.borderColor = "";
   });
 
+  // --- Character selection ---
+  characterSelect.addEventListener("change", handleCharacterSelect);
+
+  // --- Save error banner ---
+  saveErrorDismiss.addEventListener("click", hideSaveError);
+
   // --- Tab switching ---
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => switchTab(tab.dataset.tab));
@@ -131,8 +145,14 @@ async function init() {
   editor.value = tabContents[activeTab];
   updateTokenCounter();
 
-  // Update token counter on every input
-  editor.addEventListener("input", updateTokenCounter);
+  // Update token counter on every input + debounced auto-save
+  editor.addEventListener("input", () => {
+    updateTokenCounter();
+    if (!isLoadingCharacter && selectedCharacter) {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveCurrentTab, 1000);
+    }
+  });
 }
 
 // --- Chat Logic ---
@@ -260,6 +280,13 @@ async function handleSaveSettings() {
   // Reload characters if work folder changed
   if (workFolderInput.value !== currentWorkFolder) {
     currentWorkFolder = workFolderInput.value;
+    selectedCharacter = "";
+    for (const key in tabContents) {
+      tabContents[key] = "";
+    }
+    editor.value = "";
+    editor.placeholder = "Select a character to start editing...";
+    updateTokenCounter();
     await loadCharacters();
   }
 }
@@ -383,6 +410,7 @@ async function handleCreateCharacter() {
     await invoke("create_character", { workFolder: currentWorkFolder, name });
     await loadCharacters();
     characterSelect.value = name;
+    await handleCharacterSelect();
     closeNewCharacterModal();
   } catch (e) {
     newCharacterNameInput.style.borderColor = "var(--error)";
@@ -394,10 +422,102 @@ async function handleCreateCharacter() {
   }
 }
 
+// --- Character File Loading ---
+async function handleCharacterSelect() {
+  const name = characterSelect.value;
+
+  // Cancel any pending save
+  clearTimeout(saveTimeout);
+  saveTimeout = null;
+
+  if (!name) {
+    selectedCharacter = "";
+    for (const key in tabContents) {
+      tabContents[key] = "";
+    }
+    editor.value = "";
+    editor.placeholder = "Select a character to start editing...";
+    updateTokenCounter();
+    return;
+  }
+
+  selectedCharacter = name;
+  isLoadingCharacter = true;
+
+  const charDir = currentWorkFolder + "/" + name;
+  const fileEntries = [
+    ["instructions", charDir + "/instructions.md"],
+    ["prompt", charDir + "/prompt.md"],
+    ["description", charDir + "/description.md"],
+    ["first-response", charDir + "/first-response.md"],
+  ];
+
+  const results = await Promise.all(
+    fileEntries.map(([key, path]) =>
+      invoke("load_file", { path })
+        .then((content) => ({ key, content }))
+        .catch((err) => {
+          console.error(`Failed to load ${key}:`, err);
+          return { key, content: "" };
+        })
+    )
+  );
+
+  for (const { key, content } of results) {
+    tabContents[key] = content;
+  }
+
+  // Update editor with current active tab
+  editor.value = tabContents[activeTab];
+  editor.placeholder = "Start editing...";
+  updateTokenCounter();
+  isLoadingCharacter = false;
+}
+
+// --- Auto-Save ---
+async function saveCurrentTab() {
+  if (!selectedCharacter || isLoadingCharacter) return;
+
+  tabContents[activeTab] = editor.value;
+  const filename = activeTab + ".md";
+  const path = currentWorkFolder + "/" + selectedCharacter + "/" + filename;
+
+  try {
+    await invoke("save_file", { path, content: tabContents[activeTab] });
+    hideSaveError();
+  } catch (e) {
+    showSaveError("Save failed: " + (typeof e === "string" ? e : String(e)));
+  }
+}
+
+// --- Save Error Banner ---
+function showSaveError(message) {
+  saveErrorText.textContent = message;
+  saveErrorBanner.classList.remove("hidden");
+}
+
+function hideSaveError() {
+  saveErrorBanner.classList.add("hidden");
+}
+
 // --- Tab Switching ---
 function switchTab(tabName) {
+  if (tabName === activeTab) return;
+
   // Save current editor content to the previously active tab
   tabContents[activeTab] = editor.value;
+
+  // Cancel pending debounced save and force-save old tab content
+  clearTimeout(saveTimeout);
+  saveTimeout = null;
+  if (selectedCharacter && !isLoadingCharacter) {
+    const oldTab = activeTab;
+    const filename = oldTab + ".md";
+    const path = currentWorkFolder + "/" + selectedCharacter + "/" + filename;
+    invoke("save_file", { path, content: tabContents[oldTab] })
+      .then(() => hideSaveError())
+      .catch((e) => showSaveError("Save failed: " + (typeof e === "string" ? e : String(e))));
+  }
 
   // Update active tab
   activeTab = tabName;

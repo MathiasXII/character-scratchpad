@@ -43,7 +43,7 @@
 - [x] **B. New Character Creation**
   Add a "+" button next to the character selector. Clicking it prompts the user for a character name (simple browser `prompt()`), then calls `create_character`. On success, refresh the character list and auto-select the new character.
 
-- [ ] **C. Editor ↔ File Wiring (Load + Auto-Save)**
+- [x] **C. Editor ↔ File Wiring (Load + Auto-Save)**
   When a character is selected, call `load_file` for all four character files (`instructions.md`, `prompt.md`, `description.md`, `first-response.md`) in parallel and populate the corresponding tabs. Add an `oninput` listener on the textarea that, after a 1-second debounce, calls `save_file` to write the current tab's content to the corresponding file. If `save_file` returns an error, display a non-blocking red error banner at the top of the left pane. Dismiss it on the next successful save.
 
 - [ ] **D. Git Versioning (full stack)**
