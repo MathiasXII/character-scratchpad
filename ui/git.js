@@ -34,9 +34,13 @@ export async function checkDirty() {
     indicator.textContent = "";
     indicator.className = "git-status-indicator";
     saveBtn.classList.remove("has-changes");
+    saveBtn.classList.add("hidden");
     saveBtn.disabled = true;
     return;
   }
+
+  // Ensure saveBtn is visible when a character is selected
+  saveBtn.classList.remove("hidden");
 
   try {
     const dirty = await invoke("git_is_dirty", { repoPath });
@@ -63,12 +67,17 @@ export async function checkDirty() {
 // --- Visibility ---
 
 export function updateGitBarVisibility() {
-  const bar = document.getElementById("version-control-bar");
-  if (!bar) return;
+  const historyBtn = document.getElementById("git-history-btn");
+  const saveBtn = document.getElementById("git-commit-btn");
+  const indicator = document.getElementById("git-status-indicator");
+
   if (state.selectedCharacter) {
-    bar.classList.remove("hidden");
+    if (historyBtn) historyBtn.classList.remove("hidden");
+    // saveBtn visibility is controlled by checkDirty (disabled when clean)
   } else {
-    bar.classList.add("hidden");
+    if (historyBtn) historyBtn.classList.add("hidden");
+    if (saveBtn) { saveBtn.classList.add("hidden"); saveBtn.disabled = true; }
+    if (indicator) { indicator.textContent = ""; indicator.className = "git-status-indicator"; }
   }
 }
 

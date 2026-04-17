@@ -646,10 +646,7 @@ main {
   background: var(--bg-tertiary);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
-}
-
-#version-control-bar.hidden {
-  display: none;
+  min-height: 33px;
 }
 
 #version-control-bar button {
@@ -662,6 +659,10 @@ main {
   font-family: inherit;
   cursor: pointer;
   transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+#version-control-bar button.hidden {
+  display: none;
 }
 
 #version-control-bar button:hover {
