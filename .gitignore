@@ -1,0 +1,9 @@
+# Build artifacts
+target/
+
+# Node
+node_modules/
+
+# OS
+Thumbs.db
+.DS_Store

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LLM Chat</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>LLM Chat</h1>
+      <button id="settings-btn" title="Settings">&#9881;</button>
+    </header>
+
+    <main id="chat-container">
+      <div id="messages"></div>
+    </main>
+
+    <footer>
+      <div id="input-area">
+        <textarea id="user-input" placeholder="Type a message..." rows="1"></textarea>
+        <button id="send-btn" title="Send">&#10148;</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Settings</h2>
+        <button id="settings-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="api-key">API Key</label>
+        <input type="password" id="api-key" placeholder="sk-..." />
+
+        <label for="model">Model</label>
+        <input type="text" id="model" placeholder="gpt-4o-mini" />
+
+        <label for="endpoint">API Endpoint</label>
+        <input type="text" id="endpoint" placeholder="https://api.openai.com/v1/chat/completions" />
+
+        <button id="save-settings">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
