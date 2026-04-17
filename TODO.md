@@ -19,7 +19,7 @@
 - [x] **2.1** Add a `load_file` Tauri command that takes a file path as a string and returns its contents as a string. Return an error if the file doesn't exist or can't be read.
 - [x] **2.2** Add a `save_file` Tauri command that takes a file path and content as strings. Creates the file if it doesn't exist, overwrites if it does. Return an error on failure.
 - [x] **2.3** Add a `list_characters` Tauri command that takes a work folder path and returns an array of subfolder names. Each subfolder is a character. Skip non-directory entries.
-- [ ] **2.4** Add a `create_character` Tauri command that takes a work folder path and character name. It creates the subfolder and writes default empty files: `instructions.md`, `prompt.md`, `description.md`, `first-response.md`, and a `context/` directory. Return the character folder path.
+- [x] **2.4** Add a `create_character` Tauri command that takes a work folder path and character name. It creates the subfolder and writes default empty files: `instructions.md`, `prompt.md`, `description.md`, `first-response.md`, and a `context/` directory. Return the character folder path.
 - [ ] **2.5** Register all new commands in `tauri::Builder::invoke_handler`. Add `fs` and `path` to the Tauri allowlist in `tauri.conf.json` if needed for file access.
 
 ## Phase 3 — Work Folder & Character Selection

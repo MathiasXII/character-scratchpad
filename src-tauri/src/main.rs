@@ -165,6 +165,32 @@ fn list_characters(work_folder: String) -> Result<Vec<String>, String> {
     Ok(names)
 }
 
+#[tauri::command]
+fn create_character(work_folder: String, name: String) -> Result<String, String> {
+    let char_dir = Path::new(&work_folder).join(&name);
+
+    if char_dir.exists() {
+        return Err(format!("Character '{}' already exists", name));
+    }
+
+    fs::create_dir_all(&char_dir)
+        .map_err(|e| format!("Failed to create character directory: {}", e))?;
+
+    // Create default empty files
+    let files = ["instructions.md", "prompt.md", "description.md", "first-response.md"];
+    for file in &files {
+        let path = char_dir.join(file);
+        fs::write(&path, "").map_err(|e| format!("Failed to create '{}': {}", file, e))?;
+    }
+
+    // Create context directory
+    let context_dir = char_dir.join("context");
+    fs::create_dir_all(&context_dir)
+        .map_err(|e| format!("Failed to create context directory: {}", e))?;
+
+    Ok(char_dir.to_str().unwrap_or_default().to_string())
+}
+
 // --- Main ---
 
 fn main() {
@@ -182,6 +208,7 @@ fn main() {
             load_file,
             save_file,
             list_characters,
+            create_character,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
