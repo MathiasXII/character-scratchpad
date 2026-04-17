@@ -76,7 +76,7 @@ main {
 
 /* Left Pane */
 #left-pane {
-  width: 66.67%;
+  flex: 2;
   min-width: 250px;
   background: var(--bg-secondary);
   border-right: 1px solid var(--border);
@@ -87,7 +87,7 @@ main {
 
 /* Right Pane */
 #right-pane {
-  width: 33.33%;
+  flex: 1;
   min-width: 250px;
   display: flex;
   flex-direction: column;
@@ -119,8 +119,6 @@ main {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-width: 800px;
-  margin: 0 auto;
 }
 
 /* Message Bubbles */
