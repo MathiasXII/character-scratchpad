@@ -1,0 +1,214 @@
+use std::ffi::OsStr;
+
+use git2::{IndexAddOption, Oid, ResetType, Signature, Sort, StatusOptions};
+use serde::{Deserialize, Serialize};
+use tauri::State;
+
+use crate::state::AppState;
+use crate::types::{ChatCompletionRequest, ChatMessage};
+
+#[derive(Serialize, Deserialize)]
+pub struct CommitEntry {
+    id: String,
+    message: String,
+    timestamp: i64,
+}
+
+#[tauri::command]
+pub fn git_commit(repo_path: String, message: String) -> Result<String, String> {
+    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let sig = Signature::now("LLM Chat", "app@localhost").map_err(|e| e.to_string())?;
+
+    let mut index = repo.index().map_err(|e| e.to_string())?;
+    index
+        .add_all(["."], IndexAddOption::DEFAULT, Some(&mut |path, _| {
+            if path.components().any(|component| component.as_os_str() == OsStr::new(".git")) {
+                1
+            } else {
+                0
+            }
+        }))
+        .map_err(|e| e.to_string())?;
+    index.write().map_err(|e| e.to_string())?;
+
+    let tree_id = index.write_tree().map_err(|e| e.to_string())?;
+    let tree = repo.find_tree(tree_id).map_err(|e| e.to_string())?;
+
+    let parent = repo.head().ok().and_then(|reference| reference.peel_to_commit().ok());
+    let parents = parent.iter().collect::<Vec<_>>();
+
+    let commit_id = repo
+        .commit(Some("HEAD"), &sig, &sig, &message, &tree, &parents)
+        .map_err(|e| e.to_string())?;
+
+    Ok(commit_id.to_string())
+}
+
+#[tauri::command]
+pub fn git_log(repo_path: String) -> Result<Vec<CommitEntry>, String> {
+    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
+
+    revwalk.push_head().map_err(|e| e.to_string())?;
+    revwalk.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
+
+    revwalk
+        .take(50)
+        .map(|oid| {
+            let oid = oid.map_err(|e| e.to_string())?;
+            let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
+
+            Ok(CommitEntry {
+                id: commit.id().to_string(),
+                message: commit.message().map(str::trim).unwrap_or("").to_string(),
+                timestamp: commit.time().seconds(),
+            })
+        })
+        .collect()
+}
+
+#[tauri::command]
+pub fn git_revert(repo_path: String, commit_id: String) -> Result<(), String> {
+    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let oid = Oid::from_str(&commit_id).map_err(|e| e.to_string())?;
+    let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
+
+    repo.reset(commit.as_object(), ResetType::Hard, None)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub fn git_is_dirty(repo_path: String) -> Result<bool, String> {
+    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+
+    if repo.is_empty().unwrap_or(false) {
+        return Ok(true);
+    }
+
+    let mut opts = StatusOptions::new();
+    opts.include_untracked(true).recurse_untracked_dirs(true);
+
+    let statuses_result = repo.statuses(Some(&mut opts));
+
+    match statuses_result {
+        Ok(statuses) => Ok(!statuses.is_empty()),
+        Err(e) => {
+            if repo.is_empty().unwrap_or(false) {
+                Ok(true)
+            } else {
+                Err(e.to_string())
+            }
+        }
+    }
+}
+
+#[tauri::command]
+pub fn git_diff_last(repo_path: String) -> Result<String, String> {
+    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let head = match repo.head() {
+        Ok(head) => head,
+        Err(_) => return Ok(String::new()),
+    };
+    let commit = head.peel_to_commit().map_err(|e| e.to_string())?;
+    let tree = commit.tree().map_err(|e| e.to_string())?;
+    let parent_tree = match commit.parent(0) {
+        Ok(parent) => Some(parent.tree().map_err(|e| e.to_string())?),
+        Err(_) => None,
+    };
+
+    let diff = repo
+        .diff_tree_to_tree(parent_tree.as_ref(), Some(&tree), None)
+        .map_err(|e| e.to_string())?;
+    let mut diff_text = String::new();
+    diff.print(git2::DiffFormat::Patch, |_delta, _hunk, line| {
+        diff_text.push_str(&String::from_utf8_lossy(line.content()));
+        true
+    })
+    .map_err(|e| e.to_string())?;
+
+    if diff_text.chars().count() > 4000 {
+        let mut truncated = diff_text.chars().take(4000).collect::<String>();
+        truncated.push_str("\n... (truncated)");
+        Ok(truncated)
+    } else {
+        Ok(diff_text)
+    }
+}
+
+#[tauri::command]
+pub fn git_commit_amend(repo_path: String, message: String) -> Result<(), String> {
+    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let head = repo.head().map_err(|e| e.to_string())?;
+    let commit = head.peel_to_commit().map_err(|e| e.to_string())?;
+
+    commit
+        .amend(Some("HEAD"), None, None, None, Some(&message), None)
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn generate_checkpoint_name(
+    state: State<'_, AppState>,
+    diff: String,
+) -> Result<String, String> {
+    let api_key = state.api_key.lock().map_err(|e| e.to_string())?.clone();
+    let model = state.model.lock().map_err(|e| e.to_string())?.clone();
+    let endpoint = state.endpoint.lock().map_err(|e| e.to_string())?.clone();
+
+    if api_key.is_empty() {
+        return Err("API key not set".into());
+    }
+
+    let request_body = ChatCompletionRequest {
+        model,
+        messages: vec![
+            ChatMessage {
+                role: "system".to_string(),
+                content: "You generate short checkpoint names for character file edits. Given a diff of changes, generate a concise 3-6 word descriptive name. Reply with ONLY the name, no quotes, no punctuation, no explanation.".to_string(),
+            },
+            ChatMessage {
+                role: "user".to_string(),
+                content: diff,
+            },
+        ],
+        stream: false,
+    };
+
+    let response = match state
+        .client
+        .post(&endpoint)
+        .header("Authorization", format!("Bearer {}", api_key))
+        .header("Content-Type", "application/json")
+        .json(&request_body)
+        .send()
+        .await
+    {
+        Ok(response) => response,
+        Err(_) => return Ok("Checkpoint".to_string()),
+    };
+
+    if !response.status().is_success() {
+        return Ok("Checkpoint".to_string());
+    }
+
+    let response_json = match response.json::<serde_json::Value>().await {
+        Ok(json) => json,
+        Err(_) => return Ok("Checkpoint".to_string()),
+    };
+
+    let checkpoint_name = response_json["choices"][0]["message"]["content"]
+        .as_str()
+        .map(str::trim)
+        .unwrap_or("")
+        .to_string();
+
+    if checkpoint_name.is_empty() {
+        Ok("Checkpoint".to_string())
+    } else {
+        Ok(checkpoint_name)
+    }
+}
