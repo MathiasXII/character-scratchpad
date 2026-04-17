@@ -31,6 +31,7 @@ const endpointInput = document.getElementById("endpoint");
 // --- Editor DOM ---
 const editor = document.getElementById("editor");
 const tabs = document.querySelectorAll("#tab-bar .tab");
+const tokenCounter = document.getElementById("token-counter");
 
 // --- Init ---
 async function init() {
@@ -91,6 +92,10 @@ async function init() {
   });
   // Initialize editor with default tab content
   editor.value = tabContents[activeTab];
+  updateTokenCounter();
+
+  // Update token counter on every input
+  editor.addEventListener("input", updateTokenCounter);
 }
 
 // --- Chat Logic ---
@@ -271,6 +276,13 @@ function switchTab(tabName) {
   // Load the new tab's content into the editor
   editor.value = tabContents[tabName];
   editor.focus();
+  updateTokenCounter();
+}
+
+// --- Token Counter ---
+function updateTokenCounter() {
+  const count = Math.ceil(editor.value.length / 4);
+  tokenCounter.textContent = count === 1 ? "1 token" : `${count} tokens`;
 }
 
 // --- Boot ---
