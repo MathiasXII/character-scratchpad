@@ -142,7 +142,9 @@ export async function handleCharacterSelect() {
   );
 
   for (const { key, content } of results) {
-    state.tabContents[key] = content;
+    const normalized = content.replace(/\r\n/g, "\n");
+    state.tabContents[key] = normalized;
+    state.lastSavedContent[key] = normalized;
   }
 
   setEditorValue(state.tabContents[state.activeTab]);

@@ -29,12 +29,21 @@ export async function saveCurrentTab() {
     return;
   }
 
-  state.tabContents[state.activeTab] = getEditorValue();
-  const filename = TAB_FILE_MAP[state.activeTab];
+  const content = getEditorValue();
+  const tab = state.activeTab;
+
+  // Only save if content actually changed since last load/save
+  if (content === state.lastSavedContent[tab]) {
+    return;
+  }
+
+  state.tabContents[tab] = content;
+  const filename = TAB_FILE_MAP[tab];
   const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
 
   try {
-    await invoke("save_file", { path, content: state.tabContents[state.activeTab] });
+    await invoke("save_file", { path, content });
+    state.lastSavedContent[tab] = content;
     hideSaveError();
     checkDirty();
   } catch (error) {
@@ -62,13 +71,22 @@ export function switchTab(tabName) {
   state.saveTimeout = null;
   if (state.selectedCharacter && !state.isLoadingCharacter) {
     const oldTab = state.activeTab;
-    const filename = TAB_FILE_MAP[oldTab];
-    const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
-    invoke("save_file", { path, content: state.tabContents[oldTab] })
-      .then(() => { hideSaveError(); checkDirty(); })
-      .catch((error) =>
-        showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)))
-      );
+    const content = state.tabContents[oldTab];
+
+    // Only save if content actually changed
+    if (content !== state.lastSavedContent[oldTab]) {
+      const filename = TAB_FILE_MAP[oldTab];
+      const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
+      invoke("save_file", { path, content })
+        .then(() => {
+          state.lastSavedContent[oldTab] = content;
+          hideSaveError();
+          checkDirty();
+        })
+        .catch((error) =>
+          showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)))
+        );
+    }
   }
 
   state.activeTab = tabName;
