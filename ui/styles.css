@@ -119,21 +119,36 @@ main {
 /* Editor Textarea */
 #editor {
   flex: 1;
+  min-height: 0;
   width: 100%;
   background: var(--bg-primary);
   color: var(--text-primary);
   border: none;
   outline: none;
   resize: none;
-  padding: 16px;
+  padding: 8px 12px;
   font-family: "Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", monospace;
   font-size: 14px;
   line-height: 1.6;
   tab-size: 2;
+  overflow-y: auto;
 }
 
 #editor::placeholder {
   color: var(--text-secondary);
+}
+
+#editor::-webkit-scrollbar {
+  width: 6px;
+}
+
+#editor::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#editor::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
 }
 
 /* Pane Divider */
