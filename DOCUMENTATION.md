@@ -85,7 +85,7 @@ A fully functional chat that works out of the box — no character configuration
 
 Changes to character files are reflected immediately in the chat — no reload or restart required.
 
-- Editing `instructions.md`, `prompt.md`, or context files triggers a live re-injection of the system prompt into the conversation on the next message send.
+- Editing `instructions.txt`, `system-prompt.txt`, or context files triggers a live re-injection of the system prompt into the conversation on the next message send.
 - The chat uses the latest on-disk content at the time of each API call.
 
 ### 4.3 Character File Versioning
@@ -106,10 +106,10 @@ Each character folder is backed by a local git repository.
 <work-folder>/
 └── <character-name>/
     ├── .git/                    # Local repository (commit/revert only)
-    ├── instructions.md          # Character personality, traits, behaviour rules
-    ├── prompt.md               # System prompt sent to the LLM
-    ├── description.md          # Public-facing character description (shown on Venice.ai)
-    ├── first-response.md       # The first message the character implicitly "said"
+    ├── instructions.txt        # Character personality, traits, behaviour rules
+    ├── system-prompt.txt        # System prompt sent to the LLM
+    ├── description.txt          # Public-facing character description (shown on Venice.ai)
+    ├── intro.txt               # The first message the character implicitly "said"
     └── context/                # Optional context files
         ├── lore.md
         └── ...
@@ -117,10 +117,10 @@ Each character folder is backed by a local git repository.
 
 | File | Purpose |
 |------|---------|
-| `instructions.md` | Defines the character's personality, speech patterns, traits, and behavioural constraints. This is the "who the character is" file. |
-| `prompt.md` | The system prompt injected into the LLM API call. Defines the role and instructions the model follows. |
-| `description.md` | A user-facing description of the character. Visible from the character list on Venice.ai. Must be enticing and self-contained. |
-| `first-response.md` | The opening line of the character. Implicitly included as if the LLM already produced this as its first message. |
+| `instructions.txt` | Defines the character's personality, speech patterns, traits, and behavioural constraints. This is the "who the character is" file. |
+| `system-prompt.txt` | The system prompt injected into the LLM API call. Defines the role and instructions the model follows. |
+| `description.txt` | A user-facing description of the character. Visible from the character list on Venice.ai. Must be enticing and self-contained. |
+| `intro.txt` | The opening line of the character. Implicitly included as if the LLM already produced this as its first message. |
 | `context/*.md` or `context/*.txt` | Supplementary context files the user can create and edit within the application. These are included in the prompt payload. |
 
 **Rules:**
@@ -165,10 +165,10 @@ The left pane is minimalist by design: **horizontal tabs across the top, a singl
 
 | Tab | Maps to | Description |
 |-----|---------|-------------|
-| **Instructions** | `instructions.md` | Define personality, traits, speech patterns, behavioural rules |
-| **System Prompt** | `prompt.md` | Define the AI's role and system-level instructions |
-| **Description** | `description.md` | Public-facing character description for Venice.ai listings |
-| **First Response** | `first-response.md` | The opening line the character implicitly produces |
+| **Instructions** | `instructions.txt` | Define personality, traits, speech patterns, behavioural rules |
+| **System Prompt** | `system-prompt.txt` | Define the AI's role and system-level instructions |
+| **Description** | `description.txt` | Public-facing character description for Venice.ai listings |
+| **First Response** | `intro.txt` | The opening line the character implicitly produces |
 
 **Left pane structure (top to bottom):**
 
@@ -244,12 +244,12 @@ The endpoint is configurable to support Venice.ai's API or any OpenAI-compatible
 
 ```
 1. User selects a character
-2. App loads: instructions.md + prompt.md + context/* + first-response.md
-3. App constructs system message from prompt.md + instructions.md + context/*
+2. App loads: instructions.txt + system-prompt.txt + context/* + intro.txt
+3. App constructs system message from system-prompt.txt + instructions.txt + context/*
 4. On message send:
    a. Build messages array: [system, ...history, user]
-   b. If first-response.md has content and no messages yet,
-      prepend assistant message from first-response.md
+   b. If intro.txt has content and no messages yet,
+       prepend assistant message from intro.txt
    c. Call API with streaming
 5. On character file edit (in left pane):
    a. Auto-save to disk

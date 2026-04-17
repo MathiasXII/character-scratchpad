@@ -52,10 +52,10 @@ pub fn ensure_character_files(work_folder: String, name: String) -> Result<(), S
 
     // List of essential files that should exist
     let essential_files = [
-        "instructions.md",
-        "prompt.md",
-        "description.md",
-        "first-response.md",
+        "instructions.txt",
+        "system-prompt.txt",
+        "description.txt",
+        "intro.txt",
     ];
 
     // Create missing files with empty content

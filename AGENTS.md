@@ -76,10 +76,10 @@ llm-chat/
 ```
 <work-folder>/
 └── <character-name>/
-    ├── instructions.md       # Character personality, traits, behaviour rules
-    ├── prompt.md             # System prompt for LLM
-    ├── description.md        # Public-facing description (for Venice.ai)
-    ├── first-response.md     # Opening message the character "already said"
+    ├── instructions.txt       # Character personality, traits, behaviour rules
+    ├── system-prompt.txt      # System prompt for LLM
+    ├── description.txt        # Public-facing description (for Venice.ai)
+    ├── intro.txt              # Opening message the character "already said"
     └── context/              # Optional supplementary context files
         ├── lore.md
         └── ...
