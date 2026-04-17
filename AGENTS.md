@@ -34,7 +34,8 @@ llm-chat/
 │           ├── stream_chat.rs   # send_message_stream — SSE streaming to frontend
 │           ├── settings.rs      # update_settings, get_settings
 │           ├── files.rs         # load_file, save_file
-│           └── characters.rs    # list_characters, create_character
+│           ├── characters.rs    # list_characters, create_character (git init + initial commit)
+│           └── git.rs           # git_commit, git_log, git_revert, git_is_dirty, git_diff_last, git_commit_amend, generate_checkpoint_name
 └── ui/
     ├── index.html              # SPA markup (script type="module")
     ├── styles.css              # Dark theme (CSS variables in :root)
@@ -96,7 +97,14 @@ llm-chat/
 | `load_file` | `commands/files.rs` | Read a file from disk |
 | `save_file` | `commands/files.rs` | Write content to file (creates parent dirs) |
 | `list_characters` | `commands/characters.rs` | List non-hidden directories in work folder |
-| `create_character` | `commands/characters.rs` | Create character dir + default empty files + context/ |
+| `create_character` | `commands/characters.rs` | Create character dir + default empty files + context/ + git init + initial commit |
+| `git_commit` | `commands/git.rs` | Stage all + commit with message |
+| `git_log` | `commands/git.rs` | Return last 50 commits as { id, message, timestamp } |
+| `git_revert` | `commands/git.rs` | Hard-reset to a commit's tree, reload files |
+| `git_is_dirty` | `commands/git.rs` | Check if working tree has uncommitted changes |
+| `git_diff_last` | `commands/git.rs` | Return diff of last commit (truncated to 4000 chars) |
+| `git_commit_amend` | `commands/git.rs` | Rename last commit's message |
+| `generate_checkpoint_name` | `commands/git.rs` | Call LLM to generate a 3-6 word checkpoint name from diff |
 
 ---
 
@@ -108,8 +116,9 @@ llm-chat/
 | `chat.js` | `initStreamListeners`, `handleSend`, `createMessageElement`, `addMessage`, `addErrorMessage`, `scrollToBottom`, `autoResizeInput`, `showWelcome` | `app.js` (state, dom) |
 | `settings.js` | `openSettingsModal`, `closeSettingsModal`, `loadSettingsFromStorage`, `syncSettingsToBackend`, `handleSaveSettings` | `app.js` (state, dom), `characters.js` (loadCharacters), `editor.js` (updateTokenCounter) |
 | `characters.js` | `loadCharacters`, `handleCharacterSelect`, `openNewCharacterModal`, `closeNewCharacterModal`, `handleCreateCharacter` | `app.js` (state, dom), `editor.js` (updateTokenCounter), `settings.js` (openSettingsModal) |
-| `editor.js` | `saveCurrentTab`, `showSaveError`, `hideSaveError`, `switchTab`, `updateTokenCounter` | `app.js` (state, dom) |
+| `editor.js` | `saveCurrentTab`, `showSaveError`, `hideSaveError`, `switchTab`, `updateTokenCounter` | `app.js` (state, dom), `git.js` (checkDirty) |
 | `divider.js` | `initPaneDivider` | None (uses DOM directly) |
+| `git.js` | `initGit`, `updateGitBarVisibility`, `checkDirty`, `openGitHistory`, `closeGitHistory` | `app.js` (state, dom), `editor.js` (showSaveError), `characters.js` (handleCharacterSelect) |
 
 **Circular dependency note**: `settings.js` ↔ `characters.js` — both import from each other. This works with ES modules because imports are resolved lazily (functions are called at runtime, not at module evaluation time).
 
@@ -123,7 +132,7 @@ llm-chat/
 - `serde` 1 — serialization (`features = ["derive"]`)
 - `serde_json` 1 — JSON handling
 - `futures-util` 0.3 — SSE stream processing
-- `tokio` 1 — async runtime (`features = ["full"]`)
+- `git2` 0.20 — local git operations for version control
 
 ### JS (no package.json deps at runtime)
 - `@tauri-apps/cli` — dev tool only
@@ -138,7 +147,7 @@ llm-chat/
 - ✅ A: Work folder setting + character list
 - ✅ B: New character creation
 - ✅ C: Editor ↔ file wiring (load + auto-save)
-- 🔲 D: Git versioning (commit/revert/log)
+- ✅ D: Git versioning (commit/log/revert + dirty indicator + AI checkpoint naming)
 - 🔲 E: Chat markdown rendering
 - 🔲 F: Message delete/edit/resend
 - 🔲 G: Context folder management
