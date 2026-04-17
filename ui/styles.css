@@ -16,6 +16,7 @@
   --assistant-bg: #1e1e3a;
   --border: #333355;
   --error: #ff5555;
+  --warning: #e6a817;
   --input-bg: #16162a;
   --scrollbar-thumb: #3a3a5c;
 }
@@ -135,6 +136,7 @@ main {
 
 /* Left Pane */
 #left-pane {
+  position: relative;
   width: 54.55%;
   min-width: 250px;
   background: var(--bg-secondary);
@@ -633,4 +635,168 @@ main {
 .welcome p {
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* Version Control Bar */
+#version-control-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#version-control-bar.hidden {
+  display: none;
+}
+
+#version-control-bar button {
+  padding: 4px 10px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+#version-control-bar button:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+#version-control-bar button.has-changes {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+#version-control-bar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  animation: none;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(108, 99, 255, 0); }
+  50% { box-shadow: 0 0 8px 2px rgba(108, 99, 255, 0.4); }
+}
+
+/* Dirty State Indicator */
+.git-status-indicator {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  white-space: nowrap;
+}
+
+.git-status-indicator.dirty {
+  color: var(--warning, #e6a817);
+}
+
+.git-status-indicator.clean {
+  color: #4caf50;
+}
+
+/* Save Status Toast */
+.git-save-status {
+  position: absolute;
+  bottom: 52px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  z-index: 10;
+  white-space: nowrap;
+}
+
+.git-save-status.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.git-save-status.saving {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.git-save-status.saved {
+  background: #1a3a1a;
+  color: #4caf50;
+  border: 1px solid #2d5a2d;
+}
+
+/* Git History Modal */
+#git-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.git-history-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  gap: 12px;
+}
+
+.git-entry-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.git-entry-message {
+  font-size: 13px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.git-entry-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.git-revert-btn {
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.git-revert-btn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
 }

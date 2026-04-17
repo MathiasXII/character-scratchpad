@@ -34,6 +34,12 @@
         </div>
         <textarea id="editor" placeholder="Select a tab and start editing..." spellcheck="false"></textarea>
         <div id="token-counter">0 tokens</div>
+        <div id="version-control-bar" class="hidden">
+          <button id="git-history-btn" title="View history">⏱ History</button>
+          <span id="git-status-indicator" class="git-status-indicator"></span>
+          <button id="git-commit-btn" title="Save checkpoint">💾 Save checkpoint</button>
+        </div>
+        <div id="git-save-status" class="git-save-status">✓ Saved</div>
       </div>
       <div id="pane-divider"></div>
       <div id="right-pane">
@@ -92,6 +98,19 @@
           <button id="new-character-cancel" class="btn-secondary">Cancel</button>
           <button id="new-character-create" class="btn-primary">Create</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Git History Modal -->
+  <div id="git-history-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Version History</h2>
+        <button id="git-history-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="git-history-list"></div>
       </div>
     </div>
   </div>
