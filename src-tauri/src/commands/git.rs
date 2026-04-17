@@ -128,13 +128,11 @@ pub fn git_diff_last(repo_path: String) -> Result<String, String> {
     })
     .map_err(|e| e.to_string())?;
 
-    if diff_text.chars().count() > 4000 {
-        let mut truncated = diff_text.chars().take(4000).collect::<String>();
-        truncated.push_str("\n... (truncated)");
-        Ok(truncated)
-    } else {
-        Ok(diff_text)
+    if let Some((byte_idx, _)) = diff_text.char_indices().nth(4000) {
+        diff_text.truncate(byte_idx);
+        diff_text.push_str("\n... (truncated)");
     }
+    Ok(diff_text)
 }
 
 #[tauri::command]

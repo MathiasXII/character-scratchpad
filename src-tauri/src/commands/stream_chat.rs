@@ -49,7 +49,7 @@ pub async fn send_message_stream(
 
         while let Some(pos) = buffer.find('\n') {
             let line = buffer[..pos].trim_end().to_string();
-            buffer = buffer[pos + 1..].to_string();
+            buffer.drain(..=pos);
 
             if let Some(data) = line.strip_prefix("data: ") {
                 if data == "[DONE]" {
