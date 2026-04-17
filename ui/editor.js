@@ -3,12 +3,33 @@ const { invoke } = window.__TAURI__;
 import { dom, state } from "./app.js";
 import { checkDirty } from "./git.js";
 
+function getEditorValue() {
+  return state.cmView ? state.cmView.state.doc.toString() : "";
+}
+
+function setEditorValue(text) {
+  if (state.cmView) {
+    state.cmView.dispatch({
+      changes: { from: 0, to: state.cmView.state.doc.length, insert: text }
+    });
+  }
+}
+
+function setEditorPlaceholder(text) {
+  const placeholderEl = dom.editorEl.querySelector(".cm-placeholder");
+  if (placeholderEl) {
+    placeholderEl.textContent = text;
+  }
+}
+
+export { getEditorValue, setEditorValue, setEditorPlaceholder };
+
 export async function saveCurrentTab() {
   if (!state.selectedCharacter || state.isLoadingCharacter) {
     return;
   }
 
-  state.tabContents[state.activeTab] = dom.editor.value;
+  state.tabContents[state.activeTab] = getEditorValue();
   const filename = state.activeTab + ".md";
   const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
 
@@ -35,7 +56,7 @@ export function switchTab(tabName) {
     return;
   }
 
-  state.tabContents[state.activeTab] = dom.editor.value;
+  state.tabContents[state.activeTab] = getEditorValue();
 
   clearTimeout(state.saveTimeout);
   state.saveTimeout = null;
@@ -53,12 +74,12 @@ export function switchTab(tabName) {
   state.activeTab = tabName;
   dom.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === tabName));
 
-  dom.editor.value = state.tabContents[tabName];
-  dom.editor.focus();
+  setEditorValue(state.tabContents[tabName] || "");
+  state.cmView.focus();
   updateTokenCounter();
 }
 
 export function updateTokenCounter() {
-  const count = Math.ceil(dom.editor.value.length / 4);
+  const count = Math.ceil(getEditorValue().length / 4);
   dom.tokenCounter.textContent = count === 1 ? "1 token" : `${count} tokens`;
 }

@@ -14,6 +14,7 @@ export const state = {
   selectedCharacter: "",
   saveTimeout: null,
   isLoadingCharacter: false,
+  cmView: null,
 };
 
 export const dom = {
@@ -28,7 +29,7 @@ export const dom = {
   apiKeyInput: document.getElementById("api-key"),
   modelInput: document.getElementById("model"),
   endpointInput: document.getElementById("endpoint"),
-  editor: document.getElementById("editor"),
+  editorEl: document.getElementById("editor"),
   tabs: document.querySelectorAll("#tab-bar .tab"),
   tokenCounter: document.getElementById("token-counter"),
   characterSelect: document.getElementById("character-select"),
@@ -130,16 +131,17 @@ async function init() {
     tab.addEventListener("click", () => switchTab(tab.dataset.tab));
   });
 
-  dom.editor.value = state.tabContents[state.activeTab];
-  updateTokenCounter();
-
-  dom.editor.addEventListener("input", () => {
-    updateTokenCounter();
-    if (!state.isLoadingCharacter && state.selectedCharacter) {
-      clearTimeout(state.saveTimeout);
-      state.saveTimeout = setTimeout(saveCurrentTab, 1000);
+  state.cmView = window.createCodeMirrorEditor(dom.editorEl, {
+    doc: state.tabContents[state.activeTab],
+    onChange: () => {
+      updateTokenCounter();
+      if (!state.isLoadingCharacter && state.selectedCharacter) {
+        clearTimeout(state.saveTimeout);
+        state.saveTimeout = setTimeout(saveCurrentTab, 1000);
+      }
     }
   });
+  updateTokenCounter();
 }
 
 void init();

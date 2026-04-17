@@ -4,6 +4,12 @@ target/
 # Node
 node_modules/
 
+# CodeMirror source (bundled into ui/lib/)
+ui/src/
+
 # OS
 Thumbs.db
 .DS_Store
+
+# Sisyphus agent state
+.sisyphus/
