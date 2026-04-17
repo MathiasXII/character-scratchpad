@@ -3,10 +3,20 @@ export function initPaneDivider() {
   const leftPane = document.getElementById("left-pane");
   const mainEl = document.querySelector("main");
 
-  const totalWidth = mainEl.offsetWidth;
-  const dividerWidth = divider.offsetWidth;
-  const leftWidth = Math.round((totalWidth - dividerWidth) * (6 / 11));
-  leftPane.style.width = leftWidth + "px";
+  const minPaneWidth = 250;
+
+  // Track position as a ratio (0–1) of available space so it
+  // stays proportional when the window is resized.
+  let splitRatio = 6 / 11;
+
+  function applyRatio() {
+    const availableWidth = mainEl.offsetWidth - divider.offsetWidth;
+    const leftWidth = Math.round(availableWidth * splitRatio);
+    const clampedWidth = Math.max(minPaneWidth, Math.min(availableWidth - minPaneWidth, leftWidth));
+    leftPane.style.width = clampedWidth + "px";
+  }
+
+  applyRatio();
 
   let isDragging = false;
 
@@ -24,14 +34,14 @@ export function initPaneDivider() {
     }
 
     const rect = mainEl.getBoundingClientRect();
-    const dividerWidth = divider.offsetWidth;
-    const minPaneWidth = 250;
-    const maxLeft = rect.width - dividerWidth - minPaneWidth;
+    const availableWidth = rect.width - divider.offsetWidth;
+    const maxLeft = availableWidth - minPaneWidth;
     const minLeft = minPaneWidth;
 
     let newLeftWidth = event.clientX - rect.left;
     newLeftWidth = Math.max(minLeft, Math.min(maxLeft, newLeftWidth));
 
+    splitRatio = newLeftWidth / availableWidth;
     leftPane.style.width = newLeftWidth + "px";
   });
 
@@ -45,4 +55,6 @@ export function initPaneDivider() {
     document.body.style.userSelect = "";
     document.body.style.webkitUserSelect = "";
   });
+
+  window.addEventListener("resize", applyRatio);
 }
