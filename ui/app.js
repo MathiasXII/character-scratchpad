@@ -22,6 +22,12 @@ export const state = {
   saveTimeout: null,
   isLoadingCharacter: false,
   cmView: null,
+  lastSavedContent: {
+    instructions: "",
+    prompt: "",
+    description: "",
+    "first-response": "",
+  },
 };
 
 export const dom = {
