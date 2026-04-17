@@ -39,6 +39,7 @@ const tokenCounter = document.getElementById("token-counter");
 
 // --- Character DOM ---
 const characterSelect = document.getElementById("character-select");
+const newCharacterBtn = document.getElementById("new-character-btn");
 const workFolderInput = document.getElementById("work-folder");
 const browseFolderBtn = document.getElementById("browse-folder-btn");
 
@@ -103,6 +104,9 @@ async function init() {
       workFolderInput.value = selected;
     }
   });
+
+  // --- New character ---
+  newCharacterBtn.addEventListener("click", createCharacter);
 
   // --- Tab switching ---
   tabs.forEach((tab) => {
@@ -332,6 +336,25 @@ async function loadCharacters() {
     opt.value = "";
     characterSelect.appendChild(opt);
     console.error("Failed to load characters:", e);
+  }
+}
+
+// --- New Character ---
+async function createCharacter() {
+  if (!currentWorkFolder) {
+    alert("Please set a work folder in Settings first.");
+    return;
+  }
+
+  const name = prompt("Character name:");
+  if (!name || !name.trim()) return;
+
+  try {
+    await invoke("create_character", { workFolder: currentWorkFolder, name: name.trim() });
+    await loadCharacters();
+    characterSelect.value = name.trim();
+  } catch (e) {
+    alert(typeof e === "string" ? e : String(e));
   }
 }
 
