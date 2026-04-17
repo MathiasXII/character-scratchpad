@@ -82,6 +82,24 @@ header h1 {
   cursor: not-allowed;
 }
 
+#new-character-btn {
+  padding: 4px 10px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+#new-character-btn:hover {
+  background: var(--accent-hover);
+}
+
 #settings-btn {
   background: none;
   border: none;
