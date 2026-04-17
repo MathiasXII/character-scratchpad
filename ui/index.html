@@ -11,9 +11,11 @@
     <header>
       <h1>LLM Chat</h1>
       <div id="header-center">
+        <span id="character-label">Characters</span>
         <select id="character-select" disabled>
           <option value="">No characters yet</option>
         </select>
+        <button id="new-character-btn" title="New Character">+ Create</button>
       </div>
       <button id="settings-btn" title="Settings">&#9881;</button>
     </header>
@@ -68,6 +70,24 @@
         </div>
 
         <button id="save-settings">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Character Modal -->
+  <div id="new-character-modal" class="modal hidden">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h2>New Character</h2>
+        <button id="new-character-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="new-character-name">Name</label>
+        <input type="text" id="new-character-name" placeholder="Enter character name..." autofocus />
+        <div class="modal-actions">
+          <button id="new-character-cancel" class="btn-secondary">Cancel</button>
+          <button id="new-character-create" class="btn-primary">Create</button>
+        </div>
       </div>
     </div>
   </div>
