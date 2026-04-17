@@ -1,6 +1,7 @@
 const { invoke } = window.__TAURI__;
 
 import { dom, state } from "./app.js";
+import { checkDirty } from "./git.js";
 
 export async function saveCurrentTab() {
   if (!state.selectedCharacter || state.isLoadingCharacter) {
@@ -14,6 +15,7 @@ export async function saveCurrentTab() {
   try {
     await invoke("save_file", { path, content: state.tabContents[state.activeTab] });
     hideSaveError();
+    checkDirty();
   } catch (error) {
     showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
   }
@@ -42,7 +44,7 @@ export function switchTab(tabName) {
     const filename = oldTab + ".md";
     const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
     invoke("save_file", { path, content: state.tabContents[oldTab] })
-      .then(() => hideSaveError())
+      .then(() => { hideSaveError(); checkDirty(); })
       .catch((error) =>
         showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)))
       );
