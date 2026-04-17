@@ -1,5 +1,7 @@
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
 
@@ -123,6 +125,13 @@ fn get_settings(state: State<'_, AppState>) -> Result<Settings, String> {
     })
 }
 
+// --- Filesystem Commands ---
+
+#[tauri::command]
+fn load_file(path: String) -> Result<String, String> {
+    fs::read_to_string(&path).map_err(|e| format!("Failed to read '{}': {}", path, e))
+}
+
 // --- Main ---
 
 fn main() {
@@ -137,6 +146,7 @@ fn main() {
             send_message_stream,
             update_settings,
             get_settings,
+            load_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
