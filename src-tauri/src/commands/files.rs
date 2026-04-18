@@ -23,7 +23,10 @@ fn validate_path(path: &str) -> Result<(), String> {
 #[tauri::command]
 pub fn load_file(path: String) -> Result<String, String> {
     validate_path(&path)?;
-    fs::read_to_string(&path).map_err(|e| format!("Failed to read '{}': {}", path, e))
+    let content = fs::read_to_string(&path)
+        .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
+    // Normalize line endings to LF — prevents spurious saves on Windows (CRLF vs LF)
+    Ok(content.replace("\r\n", "\n").replace('\r', "\n"))
 }
 
 #[tauri::command]
@@ -34,7 +37,9 @@ pub fn save_file(path: String, content: String) -> Result<(), String> {
         fs::create_dir_all(parent)
             .map_err(|e| format!("Failed to create directory '{}': {}", parent.display(), e))?;
     }
-    fs::write(&path, &content).map_err(|e| format!("Failed to write '{}': {}", path, e))
+    // Normalize line endings to LF — prevents CRLF/LF mismatch on Windows
+    let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
+    fs::write(&path, &normalized).map_err(|e| format!("Failed to write '{}': {}", path, e))
 }
 
 /// List all `.md` and `.txt` files in a character's `context/` directory
@@ -75,6 +80,8 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
 
         let content = fs::read_to_string(&path)
             .map_err(|e| format!("Failed to read '{}': {}", path.display(), e))?;
+        // Normalize line endings to LF for consistency
+        let content = content.replace("\r\n", "\n").replace('\r', "\n");
 
         files.push(ContextFile {
             name: file_name,

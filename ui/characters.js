@@ -124,12 +124,10 @@ export async function handleCharacterSelect() {
   }
 
   const charDir = state.currentWorkFolder + "/" + name;
-  const fileEntries = [
-    ["instructions", charDir + "/" + TAB_FILE_MAP["instructions"]],
-    ["prompt", charDir + "/" + TAB_FILE_MAP["prompt"]],
-    ["description", charDir + "/" + TAB_FILE_MAP["description"]],
-    ["first-response", charDir + "/" + TAB_FILE_MAP["first-response"]],
-  ];
+  const fileEntries = Object.entries(TAB_FILE_MAP).map(([key, filename]) => [
+    key,
+    charDir + "/" + filename,
+  ]);
 
   const results = await Promise.all(
     fileEntries.map(([key, path]) =>
@@ -143,9 +141,8 @@ export async function handleCharacterSelect() {
   );
 
   for (const { key, content } of results) {
-    const normalized = content.replace(/\r\n/g, "\n");
-    state.tabContents[key] = normalized;
-    state.lastSavedContent[key] = normalized;
+    state.tabContents[key] = content;
+    state.lastSavedContent[key] = content;
   }
 
   // Load context files from the character's context/ directory

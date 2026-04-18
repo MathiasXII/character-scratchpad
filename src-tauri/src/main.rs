@@ -6,8 +6,8 @@ mod types;
 use commands::characters::{create_character, ensure_character_files, list_characters};
 use commands::files::{list_context_files, load_file, save_file};
 use commands::git::{
-    generate_checkpoint_name, git_commit, git_commit_amend, git_diff_last, git_is_dirty,
-    git_log, git_revert,
+    generate_checkpoint_name, git_commit, git_commit_amend, git_diff_last, git_get_head_content,
+    git_is_dirty, git_log, git_revert,
 };
 use commands::settings::{get_settings, update_settings};
 use commands::stream_chat::send_message_stream;
@@ -35,6 +35,7 @@ fn main() {
             git_log,
             git_revert,
             git_is_dirty,
+            git_get_head_content,
             git_diff_last,
             git_commit_amend,
             generate_checkpoint_name,
