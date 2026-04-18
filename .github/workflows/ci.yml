@@ -17,17 +17,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Install Tauri's Linux system dependencies (WebKit, GTK, etc.)
+    # .github/workflows/ci.yml (ref: 6c0a95b13f889c46fea0cba332a35c7bf2ee025b)
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libwebkit2gtk-4.1-dev \
-            libssl-dev \
-            libgtk-3-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            patchelf
+          pkg-config \
+          libsoup2.4-dev \
+          libwebkit2gtk-4.1-dev \
+          libssl-dev \
+          libgtk-3-dev \
+          libayatana-appindicator3-dev \
+          librsvg2-dev \
+          patchelf
 
       # Use the stable Rust toolchain and cache the registry + build artifacts
       - name: Install Rust toolchain
