@@ -34,8 +34,8 @@ function getRepoPath() {
  * CRLF/LF differences as "dirty" even when the editor content matched HEAD.
  */
 export async function checkDirty() {
-  const indicator = document.getElementById("git-status-indicator");
-  const saveBtn = document.getElementById("git-commit-btn");
+  const indicator = dom.gitStatusIndicator;
+  const saveBtn = dom.gitCommitBtn;
   if (!indicator || !saveBtn) return;
 
   const repoPath = getRepoPath();
@@ -160,8 +160,8 @@ export async function checkDirty() {
 
 export function updateGitBarVisibility() {
   const historyBtn = document.getElementById("git-history-btn");
-  const saveBtn = document.getElementById("git-commit-btn");
-  const indicator = document.getElementById("git-status-indicator");
+  const saveBtn = dom.gitCommitBtn;
+  const indicator = dom.gitStatusIndicator;
 
   if (state.selectedCharacter) {
     if (historyBtn) historyBtn.classList.remove("hidden");
@@ -198,7 +198,7 @@ async function handleSaveCheckpoint() {
   const repoPath = getRepoPath();
   if (!repoPath) { isCommitting = false; return; }
 
-  const saveBtn = document.getElementById("git-commit-btn");
+  const saveBtn = dom.gitCommitBtn;
   if (saveBtn) saveBtn.disabled = true;
 
   // Generate timestamp commit message
@@ -312,7 +312,7 @@ async function handleGitRevert(commitId) {
 // --- Init ---
 
 export function initGit() {
-  const saveBtn = document.getElementById("git-commit-btn");
+  const saveBtn = dom.gitCommitBtn;
   const historyBtn = document.getElementById("git-history-btn");
   const historyClose = document.getElementById("git-history-close");
   const historyModal = document.getElementById("git-history-modal");

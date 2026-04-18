@@ -15,21 +15,28 @@ pub struct CommitEntry {
     timestamp: i64,
 }
 
+/// Stage all files in the repository, excluding .git internals.
+pub(crate) fn stage_all_excluding_git(index: &mut git2::Index) -> Result<(), git2::Error> {
+    index.add_all(
+        ["."],
+        IndexAddOption::DEFAULT,
+        Some(&mut |path: &Path, _: &[u8]| {
+            if path.components().any(|c| c.as_os_str() == OsStr::new(".git")) {
+                1 // skip
+            } else {
+                0 // include
+            }
+        }),
+    )
+}
+
 #[tauri::command]
 pub fn git_commit(repo_path: String, message: String) -> Result<String, String> {
     let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
     let sig = Signature::now("LLM Chat", "app@localhost").map_err(|e| e.to_string())?;
 
     let mut index = repo.index().map_err(|e| e.to_string())?;
-    index
-        .add_all(["."], IndexAddOption::DEFAULT, Some(&mut |path, _| {
-            if path.components().any(|component| component.as_os_str() == OsStr::new(".git")) {
-                1
-            } else {
-                0
-            }
-        }))
-        .map_err(|e| e.to_string())?;
+    stage_all_excluding_git(&mut index).map_err(|e| e.to_string())?;
     index.write().map_err(|e| e.to_string())?;
 
     let tree_id = index.write_tree().map_err(|e| e.to_string())?;
