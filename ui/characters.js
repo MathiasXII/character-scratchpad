@@ -4,6 +4,7 @@ import { dom, state, TAB_FILE_MAP } from "./app.js";
 import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder } from "./editor.js";
 import { openSettingsModal } from "./settings.js";
 import { updateGitBarVisibility, checkDirty } from "./git.js";
+import { renderContextFileList } from "./context.js";
 
 export async function loadCharacters() {
   dom.characterSelect.innerHTML = "";
@@ -100,12 +101,15 @@ export async function handleCharacterSelect() {
 
   if (!name) {
     state.selectedCharacter = "";
+    state.contextLastSaved = {};
     for (const key in state.tabContents) {
       state.tabContents[key] = "";
     }
     state.contextFiles = [];
+    state.activeContextFile = null;
     setEditorValue("");
     setEditorPlaceholder("Select a character to start editing...");
+    renderContextFileList();
     updateTokenCounter();
     updateGitBarVisibility();
     checkDirty();
@@ -152,6 +156,10 @@ export async function handleCharacterSelect() {
     console.error("Failed to load context files:", error);
     state.contextFiles = [];
   }
+
+  state.activeContextFile = null;
+  state.contextLastSaved = {};
+  renderContextFileList();
 
   setEditorValue(state.tabContents[state.activeTab]);
   setEditorPlaceholder("Start editing...");
