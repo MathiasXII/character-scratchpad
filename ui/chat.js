@@ -21,6 +21,12 @@ import { dom, state } from "./app.js";
  *   3. CONVERSATION HISTORY — the actual user/assistant messages as-is.
  */
 function buildMessagesArray() {
+  // Sync current editor content to state so we always use what's on screen,
+  // even if the debounced save hasn't fired yet
+  if (state.cmView) {
+    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
+  }
+
   const messages = [];
 
   // 1. System message: system-prompt.txt with %%CHARACTER_INSTRUCTIONS%% replaced
