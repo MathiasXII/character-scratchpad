@@ -126,6 +126,30 @@ export async function checkDirty() {
       }
     }
 
+    // 2b. Check for deleted context files: files that exist at HEAD but are missing from state
+    if (!hasPendingChanges) {
+      for (const folderConfig of TRACKED_FOLDERS) {
+        const headFiles = await invoke("git_list_head_folder", {
+          repoPath,
+          folderPath: folderConfig.path,
+        });
+        // Filter by tracked extensions (scope controlled by config)
+        const trackedHeadFiles = headFiles.filter(name => {
+          const ext = "." + name.split(".").pop();
+          return folderConfig.extensions.includes(ext);
+        });
+        const currentNames = (state.contextFiles || []).map(f => f.name);
+        for (const headName of trackedHeadFiles) {
+          if (!currentNames.includes(headName)) {
+            // File existed at HEAD but was deleted → pending change
+            hasPendingChanges = true;
+            break;
+          }
+        }
+        if (hasPendingChanges) break;
+      }
+    }
+
     if (hasPendingChanges) {
       indicator.textContent = "Pending changes";
       indicator.className = "git-status-indicator dirty";
