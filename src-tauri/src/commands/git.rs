@@ -167,13 +167,18 @@ pub async fn generate_checkpoint_name(
             ChatMessage {
                 role: "system".to_string(),
                 content: "You generate short checkpoint names for character file edits. Given a diff of changes, generate a concise 3-6 word descriptive name. Reply with ONLY the name, no quotes, no punctuation, no explanation.".to_string(),
+                is_file: None,
             },
             ChatMessage {
                 role: "user".to_string(),
                 content: diff,
+                is_file: None,
             },
         ],
         stream: false,
+        max_tokens: None,
+        temperature: None,
+        top_p: None,
     };
 
     let response = match state

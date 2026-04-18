@@ -103,6 +103,7 @@ export async function handleCharacterSelect() {
     for (const key in state.tabContents) {
       state.tabContents[key] = "";
     }
+    state.contextFiles = [];
     setEditorValue("");
     setEditorPlaceholder("Select a character to start editing...");
     updateTokenCounter();
@@ -145,6 +146,14 @@ export async function handleCharacterSelect() {
     const normalized = content.replace(/\r\n/g, "\n");
     state.tabContents[key] = normalized;
     state.lastSavedContent[key] = normalized;
+  }
+
+  // Load context files from the character's context/ directory
+  try {
+    state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
+  } catch (error) {
+    console.error("Failed to load context files:", error);
+    state.contextFiles = [];
   }
 
   setEditorValue(state.tabContents[state.activeTab]);

@@ -9,6 +9,9 @@ pub async fn send_message_stream(
     app: AppHandle,
     state: State<'_, AppState>,
     messages: Vec<ChatMessage>,
+    max_tokens: Option<u32>,
+    temperature: Option<f32>,
+    top_p: Option<f32>,
 ) -> Result<(), String> {
     let api_key = state.api_key.lock().map_err(|e| e.to_string())?.clone();
     let model = state.model.lock().map_err(|e| e.to_string())?.clone();
@@ -22,6 +25,9 @@ pub async fn send_message_stream(
         model,
         messages,
         stream: true,
+        max_tokens,
+        temperature,
+        top_p,
     };
 
     let response = state
