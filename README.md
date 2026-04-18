@@ -136,7 +136,7 @@ llm-chat/
 │       └── commands/
 │           ├── stream_chat.rs   # Streaming chat completions (SSE → Tauri events)
 │           ├── settings.rs      # update_settings / get_settings
-│           ├── files.rs         # load_file, save_file, list_context_files
+│           ├── files.rs         # load_file, save_file, list_context_files, create_context_file, delete_context_file
 │           ├── characters.rs    # list_characters, create_character
 │           └── git.rs           # git_commit, git_log, git_revert, checkpoints
 └── ui/
@@ -146,6 +146,7 @@ llm-chat/
     ├── chat.js               # Send, stream listeners, message DOM
     ├── editor.js             # Tab switching, auto-save, token counter
     ├── characters.js         # Character list, select, create
+    ├── context.js              # Context file sidebar: list, select, add, delete
     ├── settings.js           # Settings modal load/save/sync
     ├── git.js                # Checkpoint bar, history modal
     └── divider.js            # Pane divider drag logic
@@ -162,5 +163,5 @@ llm-chat/
 | v0.3 | Filesystem commands, auto-save, character CRUD | ✅ Done |
 | v0.4 | Git-backed versioning (commit / revert / AI checkpoint naming) | ✅ Done |
 | v0.5 | Markdown rendering in chat, message edit / delete / resend | ✅ Done |
-| v0.6 | Context folder management, first-response injection | 🔲 Planned |
+| v0.6 | Context folder management, first-response injection | 🔲 In progress |
 | v1.0 | Venice.ai API compatibility & polish | 🔲 Planned |

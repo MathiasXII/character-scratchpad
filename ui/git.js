@@ -54,6 +54,13 @@ export async function checkDirty() {
   try {
     let hasPendingChanges = false;
 
+    // Sync active context file content from editor before dirty check
+    if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
+      const editorContent = state.cmView.state.doc.toString();
+      const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+      if (file) file.content = editorContent;
+    }
+
     // 1. Check tab files: compare editor content (for active tab) or in-memory content
     //    against the committed version at HEAD
     for (const [tabKey, filename] of Object.entries(TAB_FILE_MAP)) {
@@ -111,6 +118,30 @@ export async function checkDirty() {
 
           // Context file content comes from list_context_files (already LF-normalized by Rust)
           if (file.content !== headContent) {
+            hasPendingChanges = true;
+            break;
+          }
+        }
+        if (hasPendingChanges) break;
+      }
+    }
+
+    // 2b. Check for deleted context files: files that exist at HEAD but are missing from state
+    if (!hasPendingChanges) {
+      for (const folderConfig of TRACKED_FOLDERS) {
+        const headFiles = await invoke("git_list_head_folder", {
+          repoPath,
+          folderPath: folderConfig.path,
+        });
+        // Filter by tracked extensions (scope controlled by config)
+        const trackedHeadFiles = headFiles.filter(name => {
+          const ext = "." + name.split(".").pop();
+          return folderConfig.extensions.includes(ext);
+        });
+        const currentNames = (state.contextFiles || []).map(f => f.name);
+        for (const headName of trackedHeadFiles) {
+          if (!currentNames.includes(headName)) {
+            // File existed at HEAD but was deleted → pending change
             hasPendingChanges = true;
             break;
           }

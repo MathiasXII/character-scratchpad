@@ -20,6 +20,20 @@ fn validate_path(path: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Validate a context filename: reject empty, path separators, traversal, and hidden files.
+fn validate_filename(filename: &str) -> Result<(), String> {
+    if filename.is_empty() {
+        return Err("Filename cannot be empty".to_string());
+    }
+    if filename.starts_with('.') {
+        return Err(format!("Invalid filename (cannot start with '.'): '{}'", filename));
+    }
+    if filename.contains("..") || filename.contains('/') || filename.contains('\\') {
+        return Err(format!("Invalid filename: '{}'", filename));
+    }
+    Ok(())
+}
+
 #[tauri::command]
 pub fn load_file(path: String) -> Result<String, String> {
     validate_path(&path)?;
@@ -93,4 +107,64 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
     files.sort_by(|a, b| a.name.cmp(&b.name));
 
     Ok(files)
+}
+
+/// Create a new empty context file in a character's context directory.
+#[tauri::command]
+pub fn create_context_file(character_dir: String, filename: String) -> Result<String, String> {
+    validate_filename(&filename)?;
+
+    // Auto-append .txt extension if no .txt or .md extension
+    let ext = Path::new(&filename).extension().and_then(|e| e.to_str()).unwrap_or("");
+    let filename_with_ext = if ext != "txt" && ext != "md" {
+        format!("{}.txt", filename)
+    } else {
+        filename
+    };
+
+    let context_dir = Path::new(&character_dir).join("context");
+    let file_path = context_dir.join(&filename_with_ext);
+
+    // Ensure context directory exists
+    fs::create_dir_all(&context_dir)
+        .map_err(|e| format!("Failed to create context directory: {}", e))?;
+
+    // Check if file already exists
+    if file_path.exists() {
+        return Err(format!("'{}' already exists", filename_with_ext));
+    }
+
+    // Write empty file
+    fs::write(&file_path, "")
+        .map_err(|e| format!("Failed to create file '{}': {}", file_path.display(), e))?;
+
+    file_path
+        .to_str()
+        .map(|p| p.to_string())
+        .ok_or_else(|| "Failed to convert path to string".to_string())
+}
+
+/// Delete a context file from a character's context directory.
+#[tauri::command]
+pub fn delete_context_file(character_dir: String, filename: String) -> Result<(), String> {
+    validate_filename(&filename)?;
+
+    let context_dir = Path::new(&character_dir).join("context");
+    let file_path = context_dir.join(&filename);
+
+    // Verify the resolved path is inside the context directory (path traversal protection)
+    let canonical_context = context_dir
+        .canonicalize()
+        .map_err(|e| format!("Failed to resolve context directory: {}", e))?;
+    let canonical_file = file_path
+        .canonicalize()
+        .map_err(|_| format!("File not found: {}", filename))?;
+
+    if !canonical_file.starts_with(&canonical_context) {
+        return Err("Invalid path: file is not inside context directory".to_string());
+    }
+
+    // Delete the file
+    fs::remove_file(&canonical_file)
+        .map_err(|e| format!("Failed to delete '{}': {}", filename, e))
 }

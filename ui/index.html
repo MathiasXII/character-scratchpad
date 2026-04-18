@@ -22,24 +22,34 @@
 
     <main>
       <div id="left-pane">
-        <div id="save-error-banner" class="error-banner hidden">
-          <span id="save-error-text">Error saving file</span>
-          <button id="save-error-dismiss" title="Dismiss">&times;</button>
+        <div id="context-sidebar" class="context-sidebar">
+          <div class="context-sidebar-header">
+            <span id="context-sidebar-title">Files</span>
+            <button id="context-add-btn" class="context-add-btn" title="Add context file">+</button>
+          </div>
+          <div id="context-file-list" class="context-file-list"></div>
         </div>
-        <div id="tab-bar">
-          <button class="tab active" data-tab="instructions">Instructions</button>
-          <button class="tab" data-tab="prompt">System Prompt</button>
-          <button class="tab" data-tab="description">Description</button>
-          <button class="tab" data-tab="first-response">First Response</button>
+        <div id="left-pane-content">
+          <div id="save-error-banner" class="error-banner hidden">
+            <span id="save-error-text">Error saving file</span>
+            <button id="save-error-dismiss" title="Dismiss">&times;</button>
+          </div>
+          <div id="tab-bar">
+            <button class="tab active" data-tab="instructions">Instructions</button>
+            <button class="tab" data-tab="prompt">System Prompt</button>
+            <button class="tab" data-tab="description">Description</button>
+            <button class="tab" data-tab="first-response">First Response</button>
+            <button class="tab" data-tab="context">Context</button>
+          </div>
+          <div id="editor" data-placeholder="Select a tab and start editing..."></div>
+          <div id="token-counter">0 tokens</div>
+          <div id="version-control-bar">
+            <button id="git-history-btn" class="git-bar-control" title="View history">⏱ History</button>
+            <span id="git-status-indicator" class="git-status-indicator"></span>
+            <button id="git-commit-btn" class="git-bar-control" title="Save checkpoint" disabled>💾 Save checkpoint</button>
+          </div>
+          <div id="git-save-status" class="git-save-status">✓ Saved</div>
         </div>
-        <div id="editor" data-placeholder="Select a tab and start editing..."></div>
-        <div id="token-counter">0 tokens</div>
-<div id="version-control-bar">
-          <button id="git-history-btn" class="git-bar-control" title="View history">⏱ History</button>
-          <span id="git-status-indicator" class="git-status-indicator"></span>
-          <button id="git-commit-btn" class="git-bar-control" title="Save checkpoint" disabled>💾 Save checkpoint</button>
-        </div>
-        <div id="git-save-status" class="git-save-status">✓ Saved</div>
       </div>
       <div id="pane-divider"></div>
       <div id="right-pane">
@@ -112,6 +122,23 @@
       </div>
       <div class="modal-body">
         <div id="git-history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Context File Modal -->
+  <div id="delete-context-modal" class="modal hidden">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h2>Delete File</h2>
+        <button id="delete-context-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="delete-context-message" style="font-size:14px; color:var(--text-secondary); line-height:1.5;"></p>
+        <div class="modal-actions">
+          <button id="delete-context-cancel" class="btn-secondary">Cancel</button>
+          <button id="delete-context-confirm" class="btn-primary" style="background:var(--error);">Delete</button>
+        </div>
       </div>
     </div>
   </div>
