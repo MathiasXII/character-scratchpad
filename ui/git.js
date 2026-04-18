@@ -54,6 +54,13 @@ export async function checkDirty() {
   try {
     let hasPendingChanges = false;
 
+    // Sync active context file content from editor before dirty check
+    if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
+      const editorContent = state.cmView.state.doc.toString();
+      const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+      if (file) file.content = editorContent;
+    }
+
     // 1. Check tab files: compare editor content (for active tab) or in-memory content
     //    against the committed version at HEAD
     for (const [tabKey, filename] of Object.entries(TAB_FILE_MAP)) {
