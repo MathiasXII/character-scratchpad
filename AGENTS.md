@@ -96,6 +96,7 @@ llm-chat/
 | `get_settings` | `commands/settings.rs` | Read current settings from Rust state |
 | `load_file` | `commands/files.rs` | Read a file from disk |
 | `save_file` | `commands/files.rs` | Write content to file (creates parent dirs) |
+| `list_context_files` | `commands/files.rs` | List `.md`/`.txt` files in a character's `context/` dir, return name + content |
 | `list_characters` | `commands/characters.rs` | List non-hidden directories in work folder |
 | `create_character` | `commands/characters.rs` | Create character dir + delegate to `ensure_character_files` |
 | `ensure_character_files` | `commands/characters.rs` | Ensure all essential files, context dir, and git repo exist for a character; create missing ones and make initial commit if repo is empty |

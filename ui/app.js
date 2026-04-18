@@ -17,6 +17,7 @@ export const state = {
     description: "",
     "first-response": "",
   },
+  contextFiles: [],
   activeTab: "instructions",
   currentWorkFolder: "",
   selectedCharacter: "",

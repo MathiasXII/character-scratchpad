@@ -235,23 +235,89 @@ The endpoint is configurable to support Venice.ai's API or any OpenAI-compatible
 | `git_commit` | Stage all changes and commit with a user-provided message |
 | `git_revert` | Revert character files to a specified commit |
 | `git_log` | Return the commit history for the current character |
-| `list_context_files` | Return all `.md`/`.txt` files in a character's `context/` folder |
+| `list_context_files` | Return all `.md`/`.txt` files in a character's `context/` folder (name + content) |
 | `create_context_file` | Create a new context file in the `context/` folder |
 
 ---
 
-## 8. Data Flow — Character-Aware Chat (Target)
+## 8. Data Flow — Character-Aware Chat
+
+### Message Structure Sent to LLM API
+
+The messages array sent to the API follows this structure:
+
+```
+messages: [
+  1. SYSTEM message (if system-prompt.txt or instructions.txt is non-empty)
+     - Content: system-prompt.txt with %%CHARACTER_INSTRUCTIONS%% replaced by instructions.txt
+     - If system-prompt.txt is empty but instructions.txt has content:
+       %%CHARACTER_INSTRUCTIONS%% is still replaced (just instructions injected into empty string)
+     - If BOTH are empty: no system message is sent
+
+  2. CONTEXT FILE messages (one per file in context/ directory)
+     - Role: "user"
+     - Content: "The following information is provided as background context for
+       this character. It is not always relevant. Only refer to it if it's relevant
+       to the discussion: <file content>"
+     - isFile: true (non-standard flag, marks these as file attachments)
+     - Only included if the file has non-empty content
+     - Sorted alphabetically by filename
+
+  3. CONVERSATION HISTORY (user/assistant messages as-is)
+     - { role: "user", content: "..." }
+     - { role: "assistant", content: "..." }
+     - ...
+]
+```
+
+### Example API Request
+
+```json
+{
+  "model": "zai-org/glm-5",
+  "max_tokens": 2048,
+  "temperature": 1,
+  "top_p": 0.95,
+  "stream": true,
+  "messages": [
+    {
+      "role": "system",
+      "content": "# ROLE\nYou are a game master...\n%%CHARACTER_INSTRUCTIONS%%\n→ replaced with instructions.txt content\n..."
+    },
+    {
+      "role": "user",
+      "content": "The following information is provided as background context...",
+      "isFile": true
+    },
+    {
+      "role": "user",
+      "content": "Hello"
+    }
+  ]
+}
+```
+
+### Key Behaviors
+
+- **Empty system prompt + empty instructions** → No system message is included
+- **%%CHARACTER_INSTRUCTIONS%% placeholder** → Replaced with instructions.txt content verbatim
+- **%%CHARACTER_INSTRUCTIONS%% not present** → Instructions are NOT injected (user controls placement)
+- **Context files** → Each becomes a separate user message with `isFile: true`
+- **Context files are reloaded** on character select, edits to context files require re-selecting character
+- **conversationHistory** stores only user/assistant messages (no system/context) — these are prepended at send time
+
+### Data Flow
 
 ```
 1. User selects a character
-2. App loads: instructions.txt + system-prompt.txt + context/* + intro.txt
-3. App constructs system message from system-prompt.txt + instructions.txt + context/*
-4. On message send:
-   a. Build messages array: [system, ...history, user]
-   b. If intro.txt has content and no messages yet,
-       prepend assistant message from intro.txt
-   c. Call API with streaming
-5. On character file edit (in left pane):
+2. App loads: instructions.txt + system-prompt.txt + description.txt + intro.txt + context/*
+3. On message send:
+   a. Build messages array:
+      - System message (if prompt/instructions non-empty)
+      - Context file messages (if context files exist)
+      - Conversation history
+   b. Call API with streaming
+4. On character file edit (in left pane):
    a. Auto-save to disk
    b. Next message send picks up updated file content automatically
 ```

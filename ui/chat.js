@@ -3,6 +3,61 @@ const { listen } = window.__TAURI__.event;
 
 import { dom, state } from "./app.js";
 
+/**
+ * Build the full messages array to send to the LLM API.
+ *
+ * Message structure (matches Venice.ai / SillyTavern convention):
+ *
+ *   1. SYSTEM message — system-prompt.txt with %%CHARACTER_INSTRUCTIONS%% replaced
+ *      by instructions.txt content. Only included if system-prompt.txt is non-empty
+ *      OR instructions.txt is non-empty.
+ *
+ *   2. CONTEXT FILE messages — each file from context/ becomes a user message
+ *      with { isFile: true } and an intro sentence prepended:
+ *      "The following information is provided as background context for this character.
+ *       It is not always relevant. Only refer to it if it's relevant to the discussion: "
+ *      Only included if context files exist.
+ *
+ *   3. CONVERSATION HISTORY — the actual user/assistant messages as-is.
+ */
+function buildMessagesArray() {
+  const messages = [];
+
+  // 1. System message: system-prompt.txt with %%CHARACTER_INSTRUCTIONS%% replaced
+  const systemPrompt = state.tabContents.prompt || "";
+  const instructions = state.tabContents.instructions || "";
+
+  if (systemPrompt.trim() || instructions.trim()) {
+    const systemContent = systemPrompt.replace(
+      "%%CHARACTER_INSTRUCTIONS%%",
+      instructions
+    );
+    messages.push({ role: "system", content: systemContent });
+  }
+
+  // 2. Context files as user messages with isFile flag
+  const CONTEXT_INTRO =
+    "The following information is provided as background context for this character. " +
+    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
+
+  for (const file of state.contextFiles) {
+    if (file.content && file.content.trim()) {
+      messages.push({
+        role: "user",
+        content: CONTEXT_INTRO + file.content,
+        isFile: true,
+      });
+    }
+  }
+
+  // 3. Conversation history
+  for (const msg of state.conversationHistory) {
+    messages.push({ role: msg.role, content: msg.content });
+  }
+
+  return messages;
+}
+
 export function initStreamListeners() {
   listen("stream-token", (event) => {
     state.currentAssistantContent += event.payload;
@@ -61,7 +116,8 @@ export async function handleSend() {
   scrollToBottom();
 
   try {
-    await invoke("send_message_stream", { messages: state.conversationHistory });
+    const messages = buildMessagesArray();
+    await invoke("send_message_stream", { messages });
   } catch (err) {
     if (state.currentAssistantEl) {
       state.currentAssistantEl.remove();
@@ -311,7 +367,8 @@ export async function handleResend() {
   scrollToBottom();
 
   try {
-    await invoke('send_message_stream', { messages: state.conversationHistory });
+    const messages = buildMessagesArray();
+    await invoke('send_message_stream', { messages });
   } catch (err) {
     if (state.currentAssistantEl) {
       state.currentAssistantEl.remove();
