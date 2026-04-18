@@ -5,7 +5,7 @@ mod state;
 mod types;
 
 use commands::characters::{create_character, ensure_character_files, list_characters};
-use commands::files::{list_context_files, load_file, save_file};
+use commands::files::{create_context_file, delete_context_file, list_context_files, load_file, save_file};
 use commands::git::{
     generate_checkpoint_name, git_commit, git_commit_amend, git_diff_last, git_get_head_content,
     git_is_dirty, git_log, git_revert,
@@ -32,6 +32,8 @@ fn main() {
             load_file,
             save_file,
             list_context_files,
+            create_context_file,
+            delete_context_file,
             list_characters,
             create_character,
             ensure_character_files,
