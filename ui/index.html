@@ -126,6 +126,23 @@
     </div>
   </div>
 
+  <!-- Delete Context File Modal -->
+  <div id="delete-context-modal" class="modal hidden">
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h2>Delete File</h2>
+        <button id="delete-context-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="delete-context-message" style="font-size:14px; color:var(--text-secondary); line-height:1.5;"></p>
+        <div class="modal-actions">
+          <button id="delete-context-cancel" class="btn-secondary">Cancel</button>
+          <button id="delete-context-confirm" class="btn-primary" style="background:var(--error);">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="lib/dompurify.min.js"></script>
   <script src="lib/marked.min.js"></script>
   <script src="lib/editor-cm.bundle.js"></script>
