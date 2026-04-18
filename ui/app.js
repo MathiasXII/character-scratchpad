@@ -18,6 +18,8 @@ export const state = {
   currentAssistantContent: "",
   tabContents: initialTabContents,
   contextFiles: [],
+  activeContextFile: null,
+  contextLastSaved: {},
   activeTab: Object.keys(TAB_FILE_MAP)[0] || "instructions",
   currentWorkFolder: "",
   selectedCharacter: "",
@@ -55,8 +57,13 @@ export const dom = {
   saveErrorBanner: document.getElementById("save-error-banner"),
   saveErrorText: document.getElementById("save-error-text"),
   saveErrorDismiss: document.getElementById("save-error-dismiss"),
+  leftPane: document.getElementById("left-pane"),
   gitStatusIndicator: document.getElementById("git-status-indicator"),
   gitCommitBtn: document.getElementById("git-commit-btn"),
+  contextSidebar: document.getElementById("context-sidebar"),
+  contextSidebarTitle: document.getElementById("context-sidebar-title"),
+  contextFileList: document.getElementById("context-file-list"),
+  contextAddBtn: document.getElementById("context-add-btn"),
 };
 
 import {
@@ -85,6 +92,7 @@ import {
   openSettingsModal,
   syncSettingsToBackend,
 } from "./settings.js";
+import { initContext } from "./context.js";
 
 const { open } = window.__TAURI__.dialog;
 
@@ -94,6 +102,7 @@ async function init() {
   showWelcome();
   initPaneDivider();
   initGit();
+  initContext();
   await loadCharacters();
   initStreamListeners();
 
