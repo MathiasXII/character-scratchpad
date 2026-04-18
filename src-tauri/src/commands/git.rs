@@ -141,6 +141,44 @@ pub fn git_get_head_content(repo_path: String, file_path: String) -> Result<Opti
     Ok(Some(content.replace("\r\n", "\n").replace('\r', "\n")))
 }
 
+/// List all non-hidden filenames in a folder at the HEAD commit.
+/// Returns an empty Vec if the repo is empty or the folder doesn't exist at HEAD.
+/// Extension filtering is left to the caller (JS side) so scope is controlled by config.
+#[tauri::command]
+pub fn git_list_head_folder(repo_path: String, folder_path: String) -> Result<Vec<String>, String> {
+    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+
+    if repo.is_empty().unwrap_or(true) {
+        return Ok(Vec::new());
+    }
+
+    let head = repo.head().map_err(|e| e.to_string())?;
+    let commit = head.peel_to_commit().map_err(|e| e.to_string())?;
+    let tree = commit.tree().map_err(|e| e.to_string())?;
+
+    let folder_tree = match tree.get_path(Path::new(&folder_path)) {
+        Ok(entry) => {
+            let obj = entry.to_object(&repo).map_err(|e| e.to_string())?;
+            match obj.as_tree() {
+                Some(t) => t.clone(),
+                None => return Ok(Vec::new()), // not a directory
+            }
+        }
+        Err(_) => return Ok(Vec::new()), // folder doesn't exist at HEAD
+    };
+
+    let mut names = Vec::new();
+    for entry in folder_tree.iter() {
+        if let Some(name) = entry.name() {
+            if !name.starts_with('.') {
+                names.push(name.to_string());
+            }
+        }
+    }
+
+    Ok(names)
+}
+
 #[tauri::command]
 pub fn git_diff_last(repo_path: String) -> Result<String, String> {
     let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
