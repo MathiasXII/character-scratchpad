@@ -13,3 +13,4 @@ Thumbs.db
 
 # Sisyphus agent state
 .sisyphus/
+miscdev/
