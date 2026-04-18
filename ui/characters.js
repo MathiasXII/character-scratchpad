@@ -27,7 +27,7 @@ export async function loadCharacters() {
       dom.characterSelect.appendChild(opt);
     } else {
       const placeholder = document.createElement("option");
-      placeholder.textContent = "Select a character...";
+      placeholder.textContent = "Scratchpad (no save)";
       placeholder.value = "";
       dom.characterSelect.appendChild(placeholder);
 
