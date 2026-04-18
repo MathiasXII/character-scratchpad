@@ -25,19 +25,22 @@ function setEditorPlaceholder(text) {
 export { getEditorValue, setEditorValue, setEditorPlaceholder };
 
 export async function saveCurrentTab() {
+  const content = getEditorValue();
+  const tab = state.activeTab;
+
+  // Always sync editor content to state (chat reads from state)
+  state.tabContents[tab] = content;
+
+  // Only persist to disk when a character is selected
   if (!state.selectedCharacter || state.isLoadingCharacter) {
     return;
   }
 
-  const content = getEditorValue();
-  const tab = state.activeTab;
-
-  // Only save if content actually changed since last load/save
+  // Only save to disk if content actually changed since last load/save
   if (content === state.lastSavedContent[tab]) {
     return;
   }
 
-  state.tabContents[tab] = content;
   const filename = TAB_FILE_MAP[tab];
   const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
 

@@ -151,7 +151,7 @@ async function init() {
     doc: state.tabContents[state.activeTab],
     onChange: () => {
       updateTokenCounter();
-      if (!state.isLoadingCharacter && state.selectedCharacter) {
+      if (!state.isLoadingCharacter) {
         clearTimeout(state.saveTimeout);
         state.saveTimeout = setTimeout(saveCurrentTab, 1000);
       }
