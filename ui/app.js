@@ -64,6 +64,11 @@ export const dom = {
   contextSidebarTitle: document.getElementById("context-sidebar-title"),
   contextFileList: document.getElementById("context-file-list"),
   contextAddBtn: document.getElementById("context-add-btn"),
+  deleteContextModal: document.getElementById("delete-context-modal"),
+  deleteContextClose: document.getElementById("delete-context-close"),
+  deleteContextMessage: document.getElementById("delete-context-message"),
+  deleteContextCancel: document.getElementById("delete-context-cancel"),
+  deleteContextConfirm: document.getElementById("delete-context-confirm"),
 };
 
 import {

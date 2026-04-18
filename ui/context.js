@@ -149,64 +149,47 @@ export async function handleAddContextFile() {
   } catch (error) {
     const message = typeof error === "string" ? error : String(error);
     console.error("Failed to create context file:", message);
-    // Show error as a transient toast in the sidebar
-    const toast = document.createElement("div");
-    toast.className = "context-delete-toast visible";
-    toast.style.color = "var(--error)";
-    toast.innerHTML = `<span>${message}</span>`;
-    dom.contextFileList.appendChild(toast);
-    setTimeout(() => {
-      toast.classList.remove("visible");
-      setTimeout(() => toast.remove(), 300);
-    }, 3000);
   }
 }
 
 /**
- * Show toast confirmation and delete a context file.
+ * Show modal confirmation to delete a context file.
  * @param {string} filename
  */
 export function handleDeleteContextFile(filename) {
-  // Create toast
-  const toast = document.createElement("div");
-  toast.className = "context-delete-toast";
-  toast.innerHTML = `
-    <span>Delete ${filename}?</span>
-    <div class="toast-actions">
-      <button class="confirm-btn">✓</button>
-      <button class="cancel-btn">✗</button>
-    </div>
-  `;
+  dom.deleteContextMessage.textContent = `Are you sure you want to delete "${filename}"? This cannot be undone.`;
+  dom.deleteContextModal.classList.remove("hidden");
 
-  // Remove any existing toast
-  const existing = document.querySelector(".context-delete-toast");
-  if (existing) existing.remove();
+  // Remove previous listeners by cloning buttons
+  const newConfirm = dom.deleteContextConfirm.cloneNode(true);
+  const newCancel = dom.deleteContextCancel.cloneNode(true);
+  const newClose = dom.deleteContextClose.cloneNode(true);
+  dom.deleteContextConfirm.replaceWith(newConfirm);
+  dom.deleteContextCancel.replaceWith(newCancel);
+  dom.deleteContextClose.replaceWith(newClose);
+  // Update dom refs
+  dom.deleteContextConfirm = newConfirm;
+  dom.deleteContextCancel = newCancel;
+  dom.deleteContextClose = newClose;
 
-  dom.contextFileList.appendChild(toast);
-  // Force reflow for animation
-  void toast.offsetWidth;
-  toast.classList.add("visible");
-
-  const confirmBtn = toast.querySelector(".confirm-btn");
-  const cancelBtn = toast.querySelector(".cancel-btn");
-
-  let autoDismissTimer;
-
-  const dismiss = () => {
-    clearTimeout(autoDismissTimer);
-    toast.classList.remove("visible");
-    setTimeout(() => toast.remove(), 300);
+  const close = () => {
+    dom.deleteContextModal.classList.add("hidden");
   };
 
-  confirmBtn.addEventListener("click", async () => {
-    dismiss();
+  newConfirm.addEventListener("click", async () => {
+    close();
     await performDelete(filename);
   });
 
-  cancelBtn.addEventListener("click", dismiss);
+  newCancel.addEventListener("click", close);
+  newClose.addEventListener("click", close);
 
-  // Auto-dismiss after 5 seconds
-  autoDismissTimer = setTimeout(dismiss, 5000);
+  dom.deleteContextModal.addEventListener("click", function handler(e) {
+    if (e.target === dom.deleteContextModal) {
+      close();
+      dom.deleteContextModal.removeEventListener("click", handler);
+    }
+  });
 }
 
 /**

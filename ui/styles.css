@@ -398,62 +398,6 @@ main {
   font-size: 13px;
 }
 
-/* Delete Confirmation Toast */
-.context-delete-toast {
-  position: absolute;
-  bottom: 60px;
-  left: 50%;
-  transform: translateX(-50%) translateY(8px);
-  padding: 8px 12px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-primary);
-  opacity: 0;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  pointer-events: none;
-  z-index: 100;
-  white-space: nowrap;
-}
-
-.context-delete-toast.visible {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0);
-}
-
-.context-delete-toast button {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.context-delete-toast .confirm-btn {
-  background: var(--error);
-  color: white;
-  border: none;
-}
-
-.context-delete-toast .confirm-btn:hover {
-  background: #ff6b6b;
-}
-
-.context-delete-toast .cancel-btn {
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  border: 1px solid var(--border);
-}
-
-.context-delete-toast .cancel-btn:hover {
-  background: var(--border);
-}
-
 /* Pane Divider */
 #pane-divider {
   width: 5px;
