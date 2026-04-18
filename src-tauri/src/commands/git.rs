@@ -1,4 +1,5 @@
 use std::ffi::OsStr;
+use std::path::Path;
 
 use git2::{IndexAddOption, Oid, ResetType, Signature, Sort, StatusOptions};
 use serde::{Deserialize, Serialize};
@@ -102,6 +103,35 @@ pub fn git_is_dirty(repo_path: String) -> Result<bool, String> {
             }
         }
     }
+}
+
+/// Read the content of a file as it exists in the HEAD commit.
+/// Returns `None` if the repo is empty or the file doesn't exist at HEAD.
+#[tauri::command]
+pub fn git_get_head_content(repo_path: String, file_path: String) -> Result<Option<String>, String> {
+    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+
+    // If the repo has no commits, no HEAD content exists
+    if repo.is_empty().unwrap_or(true) {
+        return Ok(None);
+    }
+
+    let head = repo.head().map_err(|e| e.to_string())?;
+    let commit = head.peel_to_commit().map_err(|e| e.to_string())?;
+    let tree = commit.tree().map_err(|e| e.to_string())?;
+
+    // file_path is relative to the repo root (e.g. "instructions.txt")
+    let entry = match tree.get_path(Path::new(&file_path)) {
+        Ok(entry) => entry,
+        Err(_) => return Ok(None), // File doesn't exist at HEAD
+    };
+
+    let blob = repo.find_blob(entry.id()).map_err(|e| e.to_string())?;
+    let content = std::str::from_utf8(blob.content())
+        .map_err(|e| format!("File content is not valid UTF-8: {}", e))?;
+
+    // Normalize line endings to LF for consistent comparison with editor content
+    Ok(Some(content.replace("\r\n", "\n").replace('\r', "\n")))
 }
 
 #[tauri::command]

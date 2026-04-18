@@ -1,8 +1,9 @@
 const { invoke } = window.__TAURI__;
 
-import { dom, state } from "./app.js";
+import { dom, state, TAB_FILE_MAP, TRACKED_FOLDERS } from "./app.js";
 import { showSaveError } from "./editor.js";
 import { handleCharacterSelect } from "./characters.js";
+import { getEditorValue } from "./editor.js";
 
 let isCommitting = false;
 
@@ -24,6 +25,14 @@ function getRepoPath() {
 
 // --- Dirty state indicator ---
 
+/**
+ * Compare current file contents against the last git commit (HEAD) to determine
+ * whether there are pending changes. Only checks files defined in TRACKED_TAB_FILES
+ * and TRACKED_FOLDERS — invisible files are ignored.
+ *
+ * This replaces the old git_is_dirty approach which flagged untracked files and
+ * CRLF/LF differences as "dirty" even when the editor content matched HEAD.
+ */
 export async function checkDirty() {
   const indicator = document.getElementById("git-status-indicator");
   const saveBtn = document.getElementById("git-commit-btn");
@@ -43,9 +52,75 @@ export async function checkDirty() {
   saveBtn.classList.remove("hidden");
 
   try {
-    const dirty = await invoke("git_is_dirty", { repoPath });
-    if (dirty) {
-      indicator.textContent = "Unsaved changes";
+    let hasPendingChanges = false;
+
+    // 1. Check tab files: compare editor content (for active tab) or in-memory content
+    //    against the committed version at HEAD
+    for (const [tabKey, filename] of Object.entries(TAB_FILE_MAP)) {
+      let currentContent;
+
+      if (tabKey === state.activeTab && state.cmView) {
+        // Active tab: use live editor content
+        currentContent = getEditorValue();
+      } else {
+        // Inactive tab: use cached in-memory content
+        currentContent = state.tabContents[tabKey] ?? "";
+      }
+
+      const headContent = await invoke("git_get_head_content", {
+        repoPath,
+        filePath: filename,
+      });
+
+      // If the file doesn't exist at HEAD, it's a new file → pending change
+      if (headContent === null) {
+        if (currentContent.trim() !== "") {
+          hasPendingChanges = true;
+          break;
+        }
+        continue;
+      }
+
+      if (currentContent !== headContent) {
+        hasPendingChanges = true;
+        break;
+      }
+    }
+
+    // 2. If tab files are clean, check context folder files against HEAD
+    if (!hasPendingChanges && state.contextFiles && state.contextFiles.length > 0) {
+      for (const folderConfig of TRACKED_FOLDERS) {
+        for (const file of state.contextFiles) {
+          // Only check files whose extension is tracked
+          const ext = "." + file.name.split(".").pop();
+          if (!folderConfig.extensions.includes(ext)) continue;
+
+          const headContent = await invoke("git_get_head_content", {
+            repoPath,
+            filePath: folderConfig.path + "/" + file.name,
+          });
+
+          if (headContent === null) {
+            // New context file not in HEAD → pending change
+            if (file.content.trim() !== "") {
+              hasPendingChanges = true;
+              break;
+            }
+            continue;
+          }
+
+          // Context file content comes from list_context_files (already LF-normalized by Rust)
+          if (file.content !== headContent) {
+            hasPendingChanges = true;
+            break;
+          }
+        }
+        if (hasPendingChanges) break;
+      }
+    }
+
+    if (hasPendingChanges) {
+      indicator.textContent = "Pending changes";
       indicator.className = "git-status-indicator dirty";
       saveBtn.classList.add("has-changes");
       saveBtn.disabled = false;
@@ -55,12 +130,29 @@ export async function checkDirty() {
       saveBtn.classList.remove("has-changes");
       saveBtn.disabled = true;
     }
-  } catch {
-    // If git_is_dirty fails (e.g. no git repo yet), just leave the indicator empty
-    indicator.textContent = "";
-    indicator.className = "git-status-indicator";
-    saveBtn.classList.remove("has-changes");
-    saveBtn.disabled = true;
+  } catch (error) {
+    // If the repo is empty or git commands fail, fall back to git_is_dirty
+    // (e.g. brand-new character with no commits yet)
+    try {
+      const dirty = await invoke("git_is_dirty", { repoPath });
+      if (dirty) {
+        indicator.textContent = "Pending changes";
+        indicator.className = "git-status-indicator dirty";
+        saveBtn.classList.add("has-changes");
+        saveBtn.disabled = false;
+      } else {
+        indicator.textContent = "All saved";
+        indicator.className = "git-status-indicator clean";
+        saveBtn.classList.remove("has-changes");
+        saveBtn.disabled = true;
+      }
+    } catch {
+      // If both approaches fail (e.g. no git repo yet), just leave the indicator empty
+      indicator.textContent = "";
+      indicator.className = "git-status-indicator";
+      saveBtn.classList.remove("has-changes");
+      saveBtn.disabled = true;
+    }
   }
 }
 

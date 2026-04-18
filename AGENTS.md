@@ -103,7 +103,8 @@ llm-chat/
 | `git_commit` | `commands/git.rs` | Stage all + commit with message |
 | `git_log` | `commands/git.rs` | Return last 50 commits as { id, message, timestamp } |
 | `git_revert` | `commands/git.rs` | Hard-reset to a commit's tree, reload files |
-| `git_is_dirty` | `commands/git.rs` | Check if working tree has uncommitted changes |
+| `git_is_dirty` | `commands/git.rs` | Check if working tree has uncommitted changes (used as fallback for empty repos) |
+| `git_get_head_content` | `commands/git.rs` | Read a file's content at HEAD commit; returns `null` if file doesn't exist at HEAD or repo is empty |
 | `git_diff_last` | `commands/git.rs` | Return diff of last commit (truncated to 4000 chars) |
 | `git_commit_amend` | `commands/git.rs` | Rename last commit's message |
 | `generate_checkpoint_name` | `commands/git.rs` | Call LLM to generate a 3-6 word checkpoint name from diff |
@@ -114,13 +115,14 @@ llm-chat/
 
 | Module | Exports | Depends On |
 |--------|---------|-------------|
-| `app.js` | `state`, `dom` | All other modules (imports them) |
+| `app.js` | `state`, `dom`, `TAB_FILE_MAP`, `TRACKED_FOLDERS` | All other modules (imports them), `tracked-paths.js` |
 | `chat.js` | `initStreamListeners`, `handleSend`, `createMessageElement`, `addMessage`, `addErrorMessage`, `scrollToBottom`, `autoResizeInput`, `showWelcome` | `app.js` (state, dom) |
 | `settings.js` | `openSettingsModal`, `closeSettingsModal`, `loadSettingsFromStorage`, `syncSettingsToBackend`, `handleSaveSettings` | `app.js` (state, dom), `characters.js` (loadCharacters), `editor.js` (updateTokenCounter) |
 | `characters.js` | `loadCharacters`, `handleCharacterSelect`, `openNewCharacterModal`, `closeNewCharacterModal`, `handleCreateCharacter` | `app.js` (state, dom), `editor.js` (updateTokenCounter), `settings.js` (openSettingsModal) |
 | `editor.js` | `saveCurrentTab`, `showSaveError`, `hideSaveError`, `switchTab`, `updateTokenCounter` | `app.js` (state, dom), `git.js` (checkDirty) |
 | `divider.js` | `initPaneDivider` | None (uses DOM directly) |
-| `git.js` | `initGit`, `updateGitBarVisibility`, `checkDirty`, `openGitHistory`, `closeGitHistory` | `app.js` (state, dom), `editor.js` (showSaveError), `characters.js` (handleCharacterSelect) |
+| `git.js` | `initGit`, `updateGitBarVisibility`, `checkDirty`, `openGitHistory`, `closeGitHistory` | `app.js` (state, dom, TAB_FILE_MAP, TRACKED_FOLDERS), `editor.js` (showSaveError, getEditorValue), `characters.js` (handleCharacterSelect) |
+| `tracked-paths.js` | `TRACKED_TAB_FILES`, `TRACKED_FOLDERS` | None (config module) |
 
 **Circular dependency note**: `settings.js` ↔ `characters.js` — both import from each other. This works with ES modules because imports are resolved lazily (functions are called at runtime, not at module evaluation time).
 

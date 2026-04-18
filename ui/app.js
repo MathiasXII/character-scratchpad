@@ -1,9 +1,14 @@
-export const TAB_FILE_MAP = {
-  instructions: "instructions.txt",
-  prompt: "system-prompt.txt",
-  description: "description.txt",
-  "first-response": "intro.txt",
-};
+import { TRACKED_TAB_FILES as TAB_FILE_MAP, TRACKED_FOLDERS } from "./tracked-paths.js";
+
+export { TAB_FILE_MAP, TRACKED_FOLDERS };
+
+// Derive initial tab state from the tracked files config
+const initialTabContents = {};
+const initialLastSaved = {};
+for (const key of Object.keys(TAB_FILE_MAP)) {
+  initialTabContents[key] = "";
+  initialLastSaved[key] = "";
+}
 
 export const state = {
   conversationHistory: [],
@@ -11,25 +16,15 @@ export const state = {
   editingIndex: null,
   currentAssistantEl: null,
   currentAssistantContent: "",
-  tabContents: {
-    instructions: "",
-    prompt: "",
-    description: "",
-    "first-response": "",
-  },
+  tabContents: initialTabContents,
   contextFiles: [],
-  activeTab: "instructions",
+  activeTab: Object.keys(TAB_FILE_MAP)[0] || "instructions",
   currentWorkFolder: "",
   selectedCharacter: "",
   saveTimeout: null,
   isLoadingCharacter: false,
   cmView: null,
-  lastSavedContent: {
-    instructions: "",
-    prompt: "",
-    description: "",
-    "first-response": "",
-  },
+  lastSavedContent: initialLastSaved,
 };
 
 export const dom = {
