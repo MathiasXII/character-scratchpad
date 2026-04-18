@@ -237,6 +237,7 @@ The endpoint is configurable to support Venice.ai's API or any OpenAI-compatible
 | `git_log` | Return the commit history for the current character |
 | `list_context_files` | Return all `.md`/`.txt` files in a character's `context/` folder (name + content) |
 | `create_context_file` | Create a new context file in the `context/` folder |
+| `delete_context_file` | Delete a context file from the `context/` folder |
 
 ---
 
@@ -362,6 +363,6 @@ npm run build
 | **v0.2** | Two-pane UI, character file editor tabs | 🔲 Planned |
 | **v0.3** | Filesystem commands, auto-save, character CRUD | 🔲 Planned |
 | **v0.4** | Git-backed versioning (commit/revert) | 🔲 Planned |
-| **v0.5** | Markdown rendering in chat, message edit/delete/resend | 🔲 Planned |
-| **v0.6** | Context folder management, first-response injection | 🔲 Planned |
+| **v0.5** | Markdown rendering in chat, message edit/delete/resend | ✅ Done |
+| **v0.6** | Context folder management, first-response injection | 🔲 In progress |
 | **v1.0** | Venice.ai API compatibility, polish, testing | 🔲 Planned |
