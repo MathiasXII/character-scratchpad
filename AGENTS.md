@@ -33,9 +33,9 @@ llm-chat/
 │           ├── mod.rs           # Pub mod declarations
 │           ├── stream_chat.rs   # send_message_stream — SSE streaming to frontend
 │           ├── settings.rs      # update_settings, get_settings
-│           ├── files.rs         # load_file, save_file
+│           ├── files.rs         # load_file, save_file, list_context_files, create_context_file, delete_context_file
 │           ├── characters.rs    # list_characters, create_character, ensure_character_files (file integrity + git init)
-│           └── git.rs           # git_commit, git_log, git_revert, git_is_dirty, git_diff_last, git_commit_amend, generate_checkpoint_name
+│           └── git.rs           # git_commit, git_log, git_revert, git_is_dirty, git_diff_last, git_commit_amend, generate_checkpoint_name, git_list_head_folder
 └── ui/
     ├── index.html              # SPA markup (script type="module")
     ├── styles.css              # Dark theme (CSS variables in :root)
@@ -43,7 +43,10 @@ llm-chat/
     ├── chat.js                 # Send, stream listeners, message DOM helpers
     ├── settings.js             # Settings load/sync/save, modal open/close
     ├── characters.js           # Character list, select, create, file loading
+    ├── context.js              # Context file sidebar: list, select, add, delete
     ├── editor.js               # Tab switching, auto-save, token counter, error banner
+    ├── git.js                  # Git bar, history modal, dirty check
+    ├── tracked-paths.js        # Tracked file/folder config constants
     └── divider.js              # Pane divider drag logic
 ```
 
@@ -97,6 +100,8 @@ llm-chat/
 | `load_file` | `commands/files.rs` | Read a file from disk |
 | `save_file` | `commands/files.rs` | Write content to file (creates parent dirs) |
 | `list_context_files` | `commands/files.rs` | List `.md`/`.txt` files in a character's `context/` dir, return name + content |
+| `create_context_file` | `commands/files.rs` | Create a new empty file in a character's `context/` dir |
+| `delete_context_file` | `commands/files.rs` | Delete a file from a character's `context/` dir |
 | `list_characters` | `commands/characters.rs` | List non-hidden directories in work folder |
 | `create_character` | `commands/characters.rs` | Create character dir + delegate to `ensure_character_files` |
 | `ensure_character_files` | `commands/characters.rs` | Ensure all essential files, context dir, and git repo exist for a character; create missing ones and make initial commit if repo is empty |
@@ -105,6 +110,7 @@ llm-chat/
 | `git_revert` | `commands/git.rs` | Hard-reset to a commit's tree, reload files |
 | `git_is_dirty` | `commands/git.rs` | Check if working tree has uncommitted changes (used as fallback for empty repos) |
 | `git_get_head_content` | `commands/git.rs` | Read a file's content at HEAD commit; returns `null` if file doesn't exist at HEAD or repo is empty |
+| `git_list_head_folder` | `commands/git.rs` | List files in a folder at HEAD commit; used to detect context file deletions in dirty check |
 | `git_diff_last` | `commands/git.rs` | Return diff of last commit (truncated to 4000 chars) |
 | `git_commit_amend` | `commands/git.rs` | Rename last commit's message |
 | `generate_checkpoint_name` | `commands/git.rs` | Call LLM to generate a 3-6 word checkpoint name from diff |
@@ -119,9 +125,11 @@ llm-chat/
 | `chat.js` | `initStreamListeners`, `handleSend`, `createMessageElement`, `addMessage`, `addErrorMessage`, `scrollToBottom`, `autoResizeInput`, `showWelcome` | `app.js` (state, dom) |
 | `settings.js` | `openSettingsModal`, `closeSettingsModal`, `loadSettingsFromStorage`, `syncSettingsToBackend`, `handleSaveSettings` | `app.js` (state, dom), `characters.js` (loadCharacters), `editor.js` (updateTokenCounter) |
 | `characters.js` | `loadCharacters`, `handleCharacterSelect`, `openNewCharacterModal`, `closeNewCharacterModal`, `handleCreateCharacter` | `app.js` (state, dom), `editor.js` (updateTokenCounter), `settings.js` (openSettingsModal) |
+| `context.js` | `renderContextFileList`, `loadContextFiles`, `selectContextFile`, `addContextFile`, `deleteContextFile`, `clearContextSelection` | `app.js` (state, dom), `editor.js` (setEditorValue, setEditorPlaceholder, getEditorValue), `git.js` (checkDirty) |
 | `editor.js` | `saveCurrentTab`, `showSaveError`, `hideSaveError`, `switchTab`, `updateTokenCounter` | `app.js` (state, dom), `git.js` (checkDirty) |
 | `divider.js` | `initPaneDivider` | None (uses DOM directly) |
 | `git.js` | `initGit`, `updateGitBarVisibility`, `checkDirty`, `openGitHistory`, `closeGitHistory` | `app.js` (state, dom, TAB_FILE_MAP, TRACKED_FOLDERS), `editor.js` (showSaveError, getEditorValue), `characters.js` (handleCharacterSelect) |
+| `tracked-paths.js` | `TRACKED_TAB_FILES`, `TRACKED_FOLDERS` | None (config module) |
 | `tracked-paths.js` | `TRACKED_TAB_FILES`, `TRACKED_FOLDERS` | None (config module) |
 
 **Circular dependency note**: `settings.js` ↔ `characters.js` — both import from each other. This works with ES modules because imports are resolved lazily (functions are called at runtime, not at module evaluation time).
@@ -154,7 +162,7 @@ llm-chat/
 - ✅ D: Git versioning (commit/log/revert + dirty indicator + AI checkpoint naming)
 - 🔲 E: Chat markdown rendering
 - 🔲 F: Message delete/edit/resend
-- 🔲 G: Context folder management
+- ✅ G: Context folder management
 - 🔲 H: First response injection
 - 🔲 I: Venice.ai compatibility & polish
 

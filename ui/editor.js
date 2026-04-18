@@ -2,6 +2,7 @@ const { invoke } = window.__TAURI__;
 
 import { dom, state, TAB_FILE_MAP } from "./app.js";
 import { checkDirty } from "./git.js";
+import { renderContextFileList } from "./context.js";
 
 function getEditorValue() {
   return state.cmView ? state.cmView.state.doc.toString() : "";
@@ -25,8 +26,28 @@ function setEditorPlaceholder(text) {
 export { getEditorValue, setEditorValue, setEditorPlaceholder };
 
 export async function saveCurrentTab() {
-  const content = getEditorValue();
   const tab = state.activeTab;
+
+  if (tab === "context") {
+    if (!state.activeContextFile || !state.selectedCharacter || state.isLoadingCharacter) return;
+    const content = getEditorValue();
+    if (content === state.contextLastSaved[state.activeContextFile]) return;
+    const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/context/" + state.activeContextFile;
+    try {
+      await invoke("save_file", { path, content });
+      state.contextLastSaved[state.activeContextFile] = content;
+      // Sync back to state.contextFiles
+      const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+      if (file) file.content = content;
+      hideSaveError();
+      checkDirty();
+    } catch (error) {
+      showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
+    }
+    return; // IMPORTANT: return early
+  }
+
+  const content = getEditorValue();
 
   // Always sync editor content to state (chat reads from state)
   state.tabContents[tab] = content;
@@ -63,7 +84,7 @@ export function hideSaveError() {
   dom.saveErrorBanner.classList.add("hidden");
 }
 
-export function switchTab(tabName) {
+export async function switchTab(tabName) {
   if (tabName === state.activeTab) {
     return;
   }
@@ -72,7 +93,25 @@ export function switchTab(tabName) {
 
   clearTimeout(state.saveTimeout);
   state.saveTimeout = null;
-  if (state.selectedCharacter && !state.isLoadingCharacter) {
+
+  // If leaving Context tab, save current context file first
+  if (state.activeTab === "context" && state.activeContextFile && state.selectedCharacter && !state.isLoadingCharacter) {
+    const content = getEditorValue();
+    if (content !== state.contextLastSaved[state.activeContextFile]) {
+      const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/context/" + state.activeContextFile;
+      try {
+        await invoke("save_file", { path, content });
+        state.contextLastSaved[state.activeContextFile] = content;
+        const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+        if (file) file.content = content;
+        hideSaveError();
+      } catch (error) {
+        showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
+      }
+    }
+  }
+
+  if (state.selectedCharacter && !state.isLoadingCharacter && state.activeTab !== "context") {
     const oldTab = state.activeTab;
     const content = state.tabContents[oldTab];
 
@@ -95,7 +134,21 @@ export function switchTab(tabName) {
   state.activeTab = tabName;
   dom.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === tabName));
 
-  setEditorValue(state.tabContents[tabName] || "");
+  if (tabName === "context") {
+    renderContextFileList();
+    if (state.activeContextFile) {
+      const file = state.contextFiles.find((f) => f.name === state.activeContextFile);
+      setEditorValue(file ? file.content : "");
+      setEditorPlaceholder(file ? "Start editing..." : "Select a context file...");
+    } else {
+      setEditorValue("");
+      setEditorPlaceholder("Select a context file...");
+    }
+  } else {
+    renderContextFileList();
+    setEditorValue(state.tabContents[tabName] || "");
+    setEditorPlaceholder("Start editing...");
+  }
   state.cmView.focus();
   updateTokenCounter();
 }
