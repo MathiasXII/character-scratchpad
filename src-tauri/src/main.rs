@@ -1,4 +1,5 @@
 use std::sync::Mutex;
+use std::time::Duration;
 mod commands;
 mod state;
 mod types;
@@ -19,7 +20,10 @@ fn main() {
             api_key: Mutex::new(String::new()),
             model: Mutex::new("gpt-4o-mini".to_string()),
             endpoint: Mutex::new("https://api.openai.com/v1/chat/completions".to_string()),
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .connect_timeout(Duration::from_secs(30))
+                .build()
+                .expect("Failed to build HTTP client"),
         })
         .invoke_handler(tauri::generate_handler![
             send_message_stream,

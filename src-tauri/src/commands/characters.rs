@@ -1,8 +1,9 @@
 use std::fs;
-use std::ffi::OsStr;
 use std::path::Path;
 
-use git2::{IndexAddOption, Signature};
+use git2::Signature;
+
+use crate::commands::git::stage_all_excluding_git;
 
 /// Validate that a character name is safe (no path traversal, no separators)
 fn validate_character_name(name: &str) -> Result<(), String> {
@@ -89,18 +90,7 @@ pub fn ensure_character_files(work_folder: String, name: String) -> Result<(), S
         let sig = Signature::now("LLM Chat", "app@localhost").map_err(|e| e.to_string())?;
         let mut index = repo.index().map_err(|e| e.to_string())?;
 
-        index
-            .add_all(["."], IndexAddOption::DEFAULT, Some(&mut |path, _| {
-                if path
-                    .components()
-                    .any(|component| component.as_os_str() == OsStr::new(".git"))
-                {
-                    1
-                } else {
-                    0
-                }
-            }))
-            .map_err(|e| e.to_string())?;
+        stage_all_excluding_git(&mut index).map_err(|e| e.to_string())?;
         index.write().map_err(|e| e.to_string())?;
 
         let tree_id = index.write_tree().map_err(|e| e.to_string())?;

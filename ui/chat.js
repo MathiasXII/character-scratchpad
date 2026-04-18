@@ -3,6 +3,11 @@ const { listen } = window.__TAURI__.event;
 
 import { dom, state } from "./app.js";
 
+const DOMPURIFY_CONFIG = {
+  ADD_TAGS: ["details", "summary"],
+  ADD_ATTR: ["checked", "disabled"],
+};
+
 /**
  * Build the full messages array to send to the LLM API.
  *
@@ -65,18 +70,29 @@ function buildMessagesArray() {
 }
 
 export function initStreamListeners() {
+  let rafPending = false;
+
   listen("stream-token", (event) => {
-    state.currentAssistantContent += event.payload;
-    if (state.currentAssistantEl) {
-      state.currentAssistantEl.querySelector(".content").innerHTML = marked.parse(state.currentAssistantContent);
-      scrollToBottom();
+    state.currentAssistantContent += event.payload;  // always synchronous
+    if (state.currentAssistantEl && !rafPending) {
+      rafPending = true;
+      requestAnimationFrame(() => {
+        if (state.currentAssistantEl) {
+          state.currentAssistantEl.querySelector(".content").innerHTML = DOMPurify.sanitize(marked.parse(state.currentAssistantContent), DOMPURIFY_CONFIG);
+          scrollToBottom();
+        }
+        rafPending = false;
+      });
     }
   });
 
   listen("stream-end", () => {
+    // Flush any pending rAF render synchronously before clearing state
     if (state.currentAssistantEl) {
+      state.currentAssistantEl.querySelector(".content").innerHTML = DOMPurify.sanitize(marked.parse(state.currentAssistantContent), DOMPURIFY_CONFIG);
       state.currentAssistantEl.classList.remove("streaming");
     }
+    rafPending = false;
     state.conversationHistory.push({ role: "assistant", content: state.currentAssistantContent });
     state.isStreaming = false;
     dom.sendBtn.disabled = false;
@@ -149,7 +165,7 @@ export function createMessageElement(role, content, index) {
 
   const body = document.createElement("div");
   body.className = "content";
-  body.innerHTML = marked.parse(content);
+  body.innerHTML = DOMPurify.sanitize(marked.parse(content), DOMPURIFY_CONFIG);
 
   // Add action buttons (edit and delete)
   const actionsDiv = document.createElement("div");
@@ -317,7 +333,7 @@ export function saveEdit(index) {
 
   // Update the rendered content in the message element
   const contentDiv = el.querySelector('.content');
-  contentDiv.innerHTML = marked.parse(newContent);
+  contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(newContent), DOMPURIFY_CONFIG);
   contentDiv.style.display = '';
 
   // Remove textarea and Save/Cancel

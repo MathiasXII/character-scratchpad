@@ -55,6 +55,8 @@ export const dom = {
   saveErrorBanner: document.getElementById("save-error-banner"),
   saveErrorText: document.getElementById("save-error-text"),
   saveErrorDismiss: document.getElementById("save-error-dismiss"),
+  gitStatusIndicator: document.getElementById("git-status-indicator"),
+  gitCommitBtn: document.getElementById("git-commit-btn"),
 };
 
 import {
