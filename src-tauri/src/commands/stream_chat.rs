@@ -1,5 +1,5 @@
 use futures_util::StreamExt;
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 
 use crate::state::AppState;
 use crate::types::{ChatCompletionRequest, ChatMessage};
@@ -59,14 +59,14 @@ pub async fn send_message_stream(
 
             if let Some(data) = line.strip_prefix("data: ") {
                 if data == "[DONE]" {
-                    app.emit_all("stream-end", ())
+                    app.emit("stream-end", ())
                         .map_err(|e| format!("Event error: {}", e))?;
                     return Ok(());
                 }
 
                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(data) {
                     if let Some(content) = parsed["choices"][0]["delta"]["content"].as_str() {
-                        app.emit_all("stream-token", content)
+                        app.emit("stream-token", content)
                             .map_err(|e| format!("Event error: {}", e))?;
                     }
                 }
@@ -74,7 +74,7 @@ pub async fn send_message_stream(
         }
     }
 
-    app.emit_all("stream-end", ())
+    app.emit("stream-end", ())
         .map_err(|e| format!("Event error: {}", e))?;
     Ok(())
 }
