@@ -160,8 +160,8 @@ llm-chat/
 - ✅ B: New character creation
 - ✅ C: Editor ↔ file wiring (load + auto-save)
 - ✅ D: Git versioning (commit/log/revert + dirty indicator + AI checkpoint naming)
-- 🔲 E: Chat markdown rendering
-- 🔲 F: Message delete/edit/resend
+- ✅ E: Chat markdown rendering
+- ✅ F: Message delete/edit/resend
 - ✅ G: Context folder management
 - 🔲 H: First response injection
 - 🔲 I: Venice.ai compatibility & polish
