@@ -49,7 +49,7 @@
 - [x] **D. Git Versioning (full stack)**
   Add `git2` crate to `Cargo.toml`. Add Tauri commands: `git_commit` (stages all + commits with message), `git_log` (returns last 50 commits), `git_revert` (hard-checkout a commit's tree), `git_is_dirty` (checks for uncommitted changes), `git_diff_last` (returns diff of last commit), `git_commit_amend` (renames last commit message), `generate_checkpoint_name` (LLM-generated checkpoint name from diff). Update `create_character` to `git2::Repository::init()` + initial commit after creating files. Version control bar at bottom of left pane: [⏱ History] ··· status indicator ··· [💾 Save checkpoint]. One-click checkpoint with timestamp message, background LLM rename via amend. "Unsaved changes" / "All saved" dirty indicator. "Saving..." → "✓ Saved" toast with fade animation. Save checkpoint disabled when no changes. History modal lists commits with "Restore this version" buttons.
 
-- [ ] **E. Chat: Markdown Rendering**
+- [x] **E. Chat: Markdown Rendering**
   Add `marked.js` (via CDN or bundled). Render assistant message bubbles as markdown (`body.innerHTML = marked.parse(content)`). Render user message bubbles as markdown too. The edit input box (item F) shows raw text, not rendered markdown.
 
 - [x] **F. Chat: Delete, Edit, Resend**
