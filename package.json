@@ -17,7 +17,7 @@
     "@codemirror/view": "^6.41.0",
     "@lezer/markdown": "^1.6.3",
     "@rollup/plugin-node-resolve": "^16.0.3",
-    "@tauri-apps/cli": "^1",
+    "@tauri-apps/cli": "^2.10.1",
     "rollup": "^4.60.1"
   }
 }
