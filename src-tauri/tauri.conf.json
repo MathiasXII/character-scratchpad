@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "identifier": "com.llm-chat.app",
   "build": {
-    "beforeDevCommand": "",
-    "beforeBuildCommand": "",
+    "beforeDevCommand": "npm run bundle",
+    "beforeBuildCommand": "npm run bundle",
     "frontendDist": "../ui"
   },
   "app": {
@@ -26,7 +26,6 @@
   },
   "bundle": {
     "active": true,
-    "identifier": "com.llm-chat.app",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
