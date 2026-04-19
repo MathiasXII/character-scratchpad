@@ -1,4 +1,4 @@
-const { invoke } = window.__TAURI__;
+const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP } from "./app.js";
 import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder } from "./editor.js";
