@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "tauri": "tauri",
-    "dev": "npm run bundle && tauri dev",
-    "build": "npm run bundle && tauri build",
+    "dev": "tauri dev",
+    "build": "tauri build",
     "bundle": "rollup ui/src/editor-cm.mjs -f iife -o ui/lib/editor-cm.bundle.js -p @rollup/plugin-node-resolve"
   },
   "devDependencies": {
