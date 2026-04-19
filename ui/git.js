@@ -1,4 +1,4 @@
-const { invoke } = window.__TAURI__;
+const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP, TRACKED_FOLDERS } from "./app.js";
 import { showSaveError } from "./editor.js";

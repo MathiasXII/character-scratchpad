@@ -1,4 +1,4 @@
-const { invoke } = window.__TAURI__;
+const { invoke } = window.__TAURI__.core;
 
 import { dom, state } from "./app.js";
 import { getEditorValue, setEditorValue, setEditorPlaceholder } from "./editor.js";
