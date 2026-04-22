@@ -5,6 +5,10 @@ description = "A lightweight LLM chat application"
 authors = ["MathiasXII"]
 edition = "2021"
 
+[lib]
+name = "llm_chat_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
