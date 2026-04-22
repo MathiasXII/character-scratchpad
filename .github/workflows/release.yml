@@ -29,9 +29,6 @@ jobs:
             target: ''
             args: '--no-bundle'
             plain_binary: true
-          - platform: macos-latest
-            target: 'aarch64-apple-darwin, x86_64-apple-darwin'
-            args: '--target universal-apple-darwin'
           - platform: ubuntu-22.04
             target: ''
             args: '--bundles appimage'
@@ -93,11 +90,7 @@ jobs:
             - **MSI Installer** - Enterprise deployment
             - **Portable EXE** - No installation required
 
-            ### macOS
-            - **DMG** - Universal disk image (Intel & Apple Silicon)
-
             ### Linux
-            - **.deb** - Debian/Ubuntu package
             - **.AppImage** - Universal Linux package
           releaseDraft: true
           prerelease: false
