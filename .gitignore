@@ -5,7 +5,6 @@ target/
 node_modules/
 
 # CodeMirror source (bundled into ui/lib/) and generated bundle
-ui/src/
 ui/lib/editor-cm.bundle.js
 
 # OS
