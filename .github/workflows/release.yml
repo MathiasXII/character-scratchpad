@@ -34,7 +34,7 @@ jobs:
             args: '--target universal-apple-darwin'
           - platform: ubuntu-22.04
             target: ''
-            args: ''
+            args: '--bundles appimage'
 
     runs-on: ${{ matrix.platform }}
 
