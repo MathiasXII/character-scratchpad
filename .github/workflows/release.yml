@@ -6,15 +6,37 @@ on:
       - 'v*'
   workflow_dispatch:
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  release-windows:
+  release:
     permissions:
       contents: write
 
-    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: ''
+            args: ''
+          - platform: windows-latest
+            target: ''
+            args: '--no-bundle'
+            plain_binary: true
+          - platform: macos-latest
+            target: 'universal-apple-darwin'
+            args: '--target universal-apple-darwin'
+          - platform: ubuntu-22.04
+            target: ''
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
 
     steps:
       - name: Checkout repository
@@ -22,6 +44,8 @@ jobs:
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
@@ -33,11 +57,26 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install JS dependencies
+      - name: Install frontend dependencies
         run: npm install
 
-      - name: Build Tauri application
-        uses: tauri-apps/tauri-action@v0
+      - name: Install system dependencies (Linux only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            pkg-config \
+            libsoup2.4-dev \
+            libwebkit2gtk-4.1-dev \
+            libjavascriptcoregtk-4.1-dev \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Build and release
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -54,171 +93,12 @@ jobs:
             - **Portable EXE** - No installation required
 
             ### macOS
-            - **DMG** - Disk image (Intel & Apple Silicon)
-            - **.app** - Application bundle
+            - **DMG** - Universal disk image (Intel & Apple Silicon)
 
             ### Linux
             - **.deb** - Debian/Ubuntu package
             - **.AppImage** - Universal Linux package
           releaseDraft: true
           prerelease: false
-          args: --bundles nsis,msi
-
-      - name: Upload portable exe
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.tauri.outputs.upload_url }}
-          asset_path: src-tauri/target/release/llm-chat.exe
-          asset_name: llm-chat-portable.exe
-          asset_content_type: application/x-msdownload
-
-  release-macos:
-    permissions:
-      contents: write
-
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install JS dependencies
-        run: npm install
-
-      - name: Build Tauri application (Apple Silicon)
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'LLM Chat ${{ github.ref_name }}'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
-          prerelease: false
-          args: --target aarch64-apple-darwin --bundles dmg
-
-      - name: Build Tauri application (Intel)
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'LLM Chat ${{ github.ref_name }}'
-          releaseBody: 'See the assets to download this version and install.'
-          releaseDraft: true
-          prerelease: false
-          args: --target x86_64-apple-darwin --bundles app
-
-      - name: Create universal binary
-        run: |
-          # Get the two .app bundles
-          ARM64_APP=$(find . -name "llm-chat*.app" -path "*aarch64*" | head -1)
-          X86_APP=$(find . -name "llm-chat*.app" -path "*x86_64*" | head -1)
-
-          echo "ARM64: $ARM64_APP"
-          echo "X86: $X86_APP"
-
-          # Copy arm64 as base
-          cp -r "$ARM64_APP" "llm-chat-universal.app"
-
-          # Replace with universal binary
-          lipo "$ARM64_APP/Contents/MacOS/llm-chat" \
-                "$X86_APP/Contents/MacOS/llm-chat" \
-                -output "llm-chat-universal.app/Contents/MacOS/llm-chat"
-
-      - name: Create DMG from universal app
-        uses: create-dmg@v1
-        with:
-          output-file: llm-chat-universal.dmg
-          dmg-name: LLM Chat
-          contents-dir: llm-chat-universal.app
-          window-pos: '100, 100'
-          window-size: '540, 380'
-
-      - name: Upload universal DMG
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.tauri.outputs.upload_url }}
-          asset_path: llm-chat-universal.dmg
-          asset_name: llm-chat-universal.dmg
-          asset_content_type: application/x-apple-diskimage
-
-  release-linux:
-    permissions:
-      contents: write
-
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            pkg-config \
-            libsoup2.4-dev \
-            libwebkit2gtk-4.1-dev \
-            libjavascriptcoregtk-4.1-dev \
-            libssl-dev \
-            libgtk-3-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            patchelf
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri -> target
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install JS dependencies
-        run: npm install
-
-      - name: Build Tauri application
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'LLM Chat ${{ github.ref_name }}'
-          releaseBody: |
-            ## Downloads
-
-            ### Linux
-            - **.deb** - Debian/Ubuntu package
-            - **.AppImage** - Universal Linux package (runs on most distros)
-          releaseDraft: true
-          prerelease: false
-          args: --bundles deb,appimage
+          args: ${{ matrix.args }}
+          uploadPlainBinary: ${{ matrix.plain_binary || false }}

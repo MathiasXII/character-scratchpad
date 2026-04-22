@@ -17,7 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-    # .github/workflows/ci.yml (ref: 6c0a95b13f889c46fea0cba332a35c7bf2ee025b)
       - name: Install system dependencies
         run: |
           sudo apt-get update
