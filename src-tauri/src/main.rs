@@ -1,3 +1,6 @@
+// Prevents additional console window on Windows in release
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use std::sync::Mutex;
 use std::time::Duration;
 mod commands;
@@ -20,8 +23,8 @@ fn main() {
         .plugin(tauri_plugin_shell::init())
         .manage(AppState {
             api_key: Mutex::new(String::new()),
-            model: Mutex::new("gpt-4o-mini".to_string()),
-            endpoint: Mutex::new("https://api.openai.com/v1/chat/completions".to_string()),
+            model: Mutex::new("zai-org-glm-4.6".to_string()),
+            endpoint: Mutex::new("https://api.venice.ai/api/v1/chat/completions".to_string()),
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(30))
                 .build()
