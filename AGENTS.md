@@ -6,9 +6,9 @@ Purpose: Help any AI assistant quickly understand this project's structure, conv
 
 ## What This Project Is
 
-**LLM Chat** — a Tauri 1.x desktop app for developing and testing AI characters (targeting Venice.ai compatibility). Two-pane layout: left pane edits character files, right pane is a chat interface that streams from OpenAI-compatible APIs.
+**LLM Chat** — a Tauri v2 desktop app for developing and testing AI characters (targeting Venice.ai compatibility). Two-pane layout: left pane edits character files, right pane is a chat interface that streams from OpenAI-compatible APIs.
 
-- **Stack**: Rust backend (Tauri v1), vanilla HTML/CSS/JS frontend (no framework, no bundler)
+- **Stack**: Rust backend (Tauri v2), vanilla HTML/CSS/JS frontend (no framework, no bundler)
 - **Runtime**: Desktop app, no Node server at runtime
 - **Dev command**: `npm run dev` (from project root)
 
@@ -26,9 +26,10 @@ llm-chat/
 │   ├── Cargo.toml              # Rust dependencies
 │   ├── tauri.conf.json         # Tauri window config, CSP, allowlist
 │   └── src/
-│       ├── main.rs             # Entry point: tauri::Builder, AppState init, invoke_handler
+│       ├── main.rs             # Entry point: windows_subsystem, calls lib
+│       ├── lib.rs              # tauri::Builder, AppState init, invoke_handler, plugin registration
 │       ├── state.rs            # AppState struct (api_key, model, endpoint, client)
-│       ├── types.rs            # ChatMessage, Settings, ChatCompletionRequest
+│       ├── types.rs            # ChatMessage, Settings, ChatCompletionRequest, ContextFile
 │       └── commands/
 │           ├── mod.rs           # Pub mod declarations
 │           ├── stream_chat.rs   # send_message_stream — SSE streaming to frontend
@@ -64,7 +65,7 @@ llm-chat/
 - Tauri commands are `#[tauri::command]` functions in `commands/` modules
 - Each command module is focused on one domain (streaming, settings, files, characters)
 - `AppState` holds runtime config (api_key, model, endpoint) behind `Mutex<String>`
-- New commands must be registered in `main.rs` `invoke_handler![]`
+- New commands must be registered in `lib.rs` `invoke_handler![]`
 - Frontend calls Rust via `window.__TAURI__.invoke("command_name", { args })`
 
 ### Frontend
@@ -130,7 +131,6 @@ llm-chat/
 | `divider.js` | `initPaneDivider` | None (uses DOM directly) |
 | `git.js` | `initGit`, `updateGitBarVisibility`, `checkDirty`, `openGitHistory`, `closeGitHistory` | `app.js` (state, dom, TAB_FILE_MAP, TRACKED_FOLDERS), `editor.js` (showSaveError, getEditorValue), `characters.js` (handleCharacterSelect) |
 | `tracked-paths.js` | `TRACKED_TAB_FILES`, `TRACKED_FOLDERS` | None (config module) |
-| `tracked-paths.js` | `TRACKED_TAB_FILES`, `TRACKED_FOLDERS` | None (config module) |
 
 **Circular dependency note**: `settings.js` ↔ `characters.js` — both import from each other. This works with ES modules because imports are resolved lazily (functions are called at runtime, not at module evaluation time).
 
@@ -139,11 +139,13 @@ llm-chat/
 ## Dependencies
 
 ### Rust (src-tauri/Cargo.toml)
-- `tauri` 1.x — desktop framework, IPC, events (`features = ["dialog-open", "shell-open"]`)
-- `reqwest` 0.11 — HTTP client with streaming (`features = ["json", "stream"]`)
+- `tauri` 2.x — desktop framework, IPC, events (no extra features required)
+- `tauri-plugin-dialog` 2.x — native file/message dialogs
+- `tauri-plugin-shell` 2.x — shell open utility
+- `reqwest` 0.13 — HTTP client with streaming (`features = ["json", "stream"]`)
 - `serde` 1 — serialization (`features = ["derive"]`)
 - `serde_json` 1 — JSON handling
-- `futures-util` 0.3 — SSE stream processing
+- `futures-util` 0.3 — SSE stream processing (`StreamExt`)
 - `git2` 0.20 — local git operations for version control
 
 ### JS (no package.json deps at runtime)
@@ -168,6 +170,11 @@ llm-chat/
 
 ---
 
+## Dependency Policy
+- NEVER assume a dependency version from memory
+- ALWAYS verify the latest stable version via web search or Context7 before writing it
+- If a dependency has a major version bump since the model's training, use the new major version and adapt the API accordingly
+- 
 ## Quick Reference
 
 - **Start dev**: `cd llm-chat && npm run dev`
