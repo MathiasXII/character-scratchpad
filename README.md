@@ -3,7 +3,7 @@
 A desktop application for developing and testing AI characters compatible with [Venice.ai](https://venice.ai). Write prompts, iterate on personalities, and validate behaviour through live conversation — all in one place.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
-![Tauri](https://img.shields.io/badge/Tauri-v1-orange)
+![Tauri](https://img.shields.io/badge/Tauri-v2-orange)
 ![Rust](https://img.shields.io/badge/Rust-stable-brown)
 
 > **Transparency notice:** The majority of this codebase was generated through AI-assisted development (vibe coding). The architecture, feature design, and direction are human-authored; the implementation was largely produced with AI pair programming tools.
@@ -25,7 +25,7 @@ A desktop application for developing and testing AI characters compatible with [
 
 | Layer | Technology |
 |-------|-----------|
-| Desktop shell | [Tauri v1](https://tauri.app) (Rust) |
+| Desktop shell | [Tauri v2](https://v2.tauri.app) (Rust) |
 | Backend | Rust — filesystem, git, HTTP streaming |
 | Frontend | Vanilla HTML / CSS / JS (no framework, no bundler at runtime) |
 
@@ -36,11 +36,11 @@ No Electron. No Node server at runtime. Lightweight native window with a Rust co
 ## Prerequisites
 
 - [Rust](https://www.rust-lang.org/tools/install) (stable toolchain)
-- [Node.js](https://nodejs.org) (LTS recommended, used only for the Tauri CLI and JS bundling)
-- Platform dependencies for Tauri v1:
+- [Node.js](https://nodejs.org) (LTS recommended, used only for the Tauri CLI and Rollup bundling)
+- Platform dependencies for Tauri v2:
   - **Windows**: Microsoft Visual C++ Build Tools or Visual Studio
   - **macOS**: Xcode Command Line Tools (`xcode-select --install`)
-  - **Linux**: `libwebkit2gtk-4.0-dev`, `libssl-dev`, `libgtk-3-dev` — see [Tauri prerequisites](https://tauri.app/v1/guides/getting-started/prerequisites)
+  - **Linux**: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `libgtk-3-dev` — see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ---
 
