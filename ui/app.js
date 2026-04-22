@@ -57,6 +57,7 @@ export const dom = {
   saveErrorBanner: document.getElementById("save-error-banner"),
   saveErrorText: document.getElementById("save-error-text"),
   saveErrorDismiss: document.getElementById("save-error-dismiss"),
+  headerLeft: document.getElementById("header-left"),
   leftPane: document.getElementById("left-pane"),
   gitStatusIndicator: document.getElementById("git-status-indicator"),
   gitCommitBtn: document.getElementById("git-commit-btn"),
@@ -106,6 +107,16 @@ async function init() {
   await syncSettingsToBackend();
   showWelcome();
   initPaneDivider();
+  // Sync header-left width with left-pane width
+  const headerLeft = dom.headerLeft;
+  const leftPane = dom.leftPane;
+  if (headerLeft && leftPane) {
+    const syncHeaderWidth = () => {
+      headerLeft.style.width = leftPane.offsetWidth + "px";
+    };
+    syncHeaderWidth();
+    new ResizeObserver(syncHeaderWidth).observe(leftPane);
+  }
   initGit();
   initContext();
   await loadCharacters();
