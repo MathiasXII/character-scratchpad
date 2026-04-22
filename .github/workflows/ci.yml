@@ -37,6 +37,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+          shared-key: "ubuntu-22.04-v2"
 
       # cargo check — verifies the crate compiles without producing a binary
       - name: cargo check

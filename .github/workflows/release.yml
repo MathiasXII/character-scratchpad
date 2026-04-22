@@ -51,6 +51,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri -> target
+          shared-key: "${{ matrix.platform }}-v2"
 
       - name: Install Node.js
         uses: actions/setup-node@v4
