@@ -43,11 +43,17 @@ html, body {
 header {
   display: flex;
   align-items: center;
-  padding: 12px 20px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+#header-left {
+  display: flex;
+  align-items: center;
   gap: 16px;
+  padding: 12px 20px;
+  overflow: hidden;
 }
 
 header h1 {
@@ -60,8 +66,23 @@ header h1 {
 #header-center {
   flex: 1;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+#header-divider {
+  width: 5px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+#header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  flex: 1;
 }
 
 #character-select {
