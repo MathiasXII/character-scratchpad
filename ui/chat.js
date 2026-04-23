@@ -119,6 +119,8 @@ export function initStreamListeners() {
 }
 
 export async function handleSend() {
+  if (state.chatDisabled) return;
+
   const text = dom.userInput.value.trim();
   if (!text || state.isStreaming) {
     return;
@@ -235,6 +237,15 @@ export function scrollToBottom() {
 export function autoResizeInput() {
   dom.userInput.style.height = "auto";
   dom.userInput.style.height = Math.min(dom.userInput.scrollHeight, 120) + "px";
+}
+
+export function handleClearChat() {
+  if (state.chatDisabled) return;
+  if (state.isStreaming) return;
+  state.conversationHistory = [];
+  dom.messagesEl.innerHTML = "";
+  dom.resendBtn.disabled = true;
+  showWelcome();
 }
 
 export function showWelcome() {
@@ -354,6 +365,7 @@ export function saveEdit(index) {
 }
 
 export async function handleResend() {
+  if (state.chatDisabled) return;
   if (state.isStreaming) return;
 
   // Find the last user message in conversationHistory

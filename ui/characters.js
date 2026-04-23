@@ -1,6 +1,6 @@
 const { invoke } = window.__TAURI__.core;
 
-import { dom, state, TAB_FILE_MAP } from "./app.js";
+import { dom, state, TAB_FILE_MAP, updateUIState } from "./app.js";
 import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder } from "./editor.js";
 import { openSettingsModal } from "./settings.js";
 import { updateGitBarVisibility, checkDirty } from "./git.js";
@@ -113,6 +113,7 @@ export async function handleCharacterSelect() {
     updateTokenCounter();
     updateGitBarVisibility();
     checkDirty();
+    updateUIState();
     return;
   }
 
@@ -167,4 +168,5 @@ export async function handleCharacterSelect() {
   state.isLoadingCharacter = false;
   updateGitBarVisibility();
   checkDirty();
+  updateUIState();
 }
