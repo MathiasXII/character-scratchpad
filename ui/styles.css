@@ -1199,19 +1199,15 @@ main {
 .message-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   margin-bottom: 4px;
 }
 
-.message.user .message-header {
-  flex-direction: row-reverse;
-}
-
 .message-actions {
   display: flex;
-  gap: 4px;
+  justify-content: space-between;
   visibility: hidden;
+  margin-top: 4px;
 }
 
 .message:hover .message-actions {

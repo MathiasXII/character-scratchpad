@@ -104,6 +104,7 @@ export function initStreamListeners() {
     state.isStreaming = false;
     dom.sendBtn.disabled = false;
     dom.resendBtn.disabled = state.conversationHistory.length === 0;
+    dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = "";
   });
@@ -113,6 +114,7 @@ export function initStreamListeners() {
     state.isStreaming = false;
     dom.sendBtn.disabled = false;
     dom.resendBtn.disabled = state.conversationHistory.length === 0;
+    dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = "";
   });
@@ -202,16 +204,16 @@ export function createMessageElement(role, content, index) {
     }
   });
   
-  actionsDiv.appendChild(editBtn);
   actionsDiv.appendChild(deleteBtn);
+  actionsDiv.appendChild(editBtn);
 
   const header = document.createElement("div");
   header.className = "message-header";
   header.appendChild(label);
-  header.appendChild(actionsDiv);
 
   el.appendChild(header);
   el.appendChild(body);
+  el.appendChild(actionsDiv);
   return el;
 }
 
@@ -245,6 +247,7 @@ export function handleClearChat() {
   state.conversationHistory = [];
   dom.messagesEl.innerHTML = "";
   dom.resendBtn.disabled = true;
+  dom.clearChatBtn.disabled = true;
   showWelcome();
 }
 
@@ -362,6 +365,7 @@ export function saveEdit(index) {
 
   state.editingIndex = null;
   dom.resendBtn.disabled = state.conversationHistory.length === 0;
+  dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
 }
 
 export async function handleResend() {
@@ -399,6 +403,7 @@ export async function handleResend() {
   state.isStreaming = true;
   dom.sendBtn.disabled = true;
   dom.resendBtn.disabled = true;
+  dom.clearChatBtn.disabled = true;
 
   const assistantIndex = state.conversationHistory.length;
   state.currentAssistantEl = createMessageElement('assistant', '', assistantIndex);
@@ -418,6 +423,7 @@ export async function handleResend() {
     state.isStreaming = false;
     dom.sendBtn.disabled = false;
     dom.resendBtn.disabled = state.conversationHistory.length === 0;
+    dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = '';
   }
