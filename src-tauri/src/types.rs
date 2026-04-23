@@ -1,5 +1,13 @@
 use serde::{Deserialize, Serialize};
 
+fn default_temperature() -> f32 {
+    0.7
+}
+
+fn default_top_p() -> f32 {
+    1.0
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatMessage {
     pub role: String,
@@ -27,6 +35,10 @@ pub struct Settings {
     pub api_key: String,
     pub model: String,
     pub endpoint: String,
+    #[serde(default = "default_temperature")]
+    pub temperature: f32,
+    #[serde(default = "default_top_p")]
+    pub top_p: f32,
 }
 
 /// A single file from a character's context/ directory.

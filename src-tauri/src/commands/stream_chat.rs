@@ -10,12 +10,12 @@ pub async fn send_message_stream(
     state: State<'_, AppState>,
     messages: Vec<ChatMessage>,
     max_tokens: Option<u32>,
-    temperature: Option<f32>,
-    top_p: Option<f32>,
 ) -> Result<(), String> {
     let api_key = state.api_key.lock().map_err(|e| e.to_string())?.clone();
     let model = state.model.lock().map_err(|e| e.to_string())?.clone();
     let endpoint = state.endpoint.lock().map_err(|e| e.to_string())?.clone();
+    let temperature = *state.temperature.lock().map_err(|e| e.to_string())?;
+    let top_p_val = *state.top_p.lock().map_err(|e| e.to_string())?;
 
     if api_key.is_empty() {
         return Err("API key not set. Open Settings (gear icon) and configure your API key.".into());
@@ -26,8 +26,8 @@ pub async fn send_message_stream(
         messages,
         stream: true,
         max_tokens,
-        temperature,
-        top_p,
+        temperature: Some(temperature),
+        top_p: Some(top_p_val),
     };
 
     let response = state

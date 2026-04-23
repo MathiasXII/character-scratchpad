@@ -17,6 +17,10 @@ export function loadSettingsFromStorage() {
   dom.modelInput.value = localStorage.getItem("llm-model") || "gpt-4o-mini";
   dom.endpointInput.value =
     localStorage.getItem("llm-endpoint") || "https://api.openai.com/v1/chat/completions";
+  dom.temperatureInput.value = localStorage.getItem("llm-temperature") || "0.7";
+  dom.topPInput.value = localStorage.getItem("llm-top-p") || "1.0";
+  dom.temperatureValue.textContent = dom.temperatureInput.value;
+  dom.topPValue.textContent = dom.topPInput.value;
   dom.workFolderInput.value = localStorage.getItem("llm-work-folder") || "";
   state.currentWorkFolder = dom.workFolderInput.value;
 }
@@ -26,6 +30,8 @@ export async function syncSettingsToBackend() {
     apiKey: dom.apiKeyInput.value,
     model: dom.modelInput.value,
     endpoint: dom.endpointInput.value,
+    temperature: parseFloat(dom.temperatureInput.value),
+    topP: parseFloat(dom.topPInput.value),
   };
 
   try {
@@ -39,6 +45,8 @@ export async function handleSaveSettings() {
   localStorage.setItem("llm-api-key", dom.apiKeyInput.value);
   localStorage.setItem("llm-model", dom.modelInput.value);
   localStorage.setItem("llm-endpoint", dom.endpointInput.value);
+  localStorage.setItem("llm-temperature", dom.temperatureInput.value);
+  localStorage.setItem("llm-top-p", dom.topPInput.value);
   localStorage.setItem("llm-work-folder", dom.workFolderInput.value);
 
   await syncSettingsToBackend();

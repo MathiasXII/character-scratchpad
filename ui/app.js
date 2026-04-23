@@ -44,6 +44,10 @@ export const dom = {
   apiKeyInput: document.getElementById("api-key"),
   modelInput: document.getElementById("model"),
   endpointInput: document.getElementById("endpoint"),
+  temperatureInput: document.getElementById("temperature"),
+  temperatureValue: document.getElementById("temperature-value"),
+  topPInput: document.getElementById("top-p"),
+  topPValue: document.getElementById("top-p-value"),
   editorEl: document.getElementById("editor"),
   tabs: document.querySelectorAll("#tab-bar .tab"),
   tokenCounter: document.getElementById("token-counter"),
@@ -213,6 +217,12 @@ async function init() {
     }
   });
   dom.saveSettingsBtn.addEventListener("click", handleSaveSettings);
+  dom.temperatureInput.addEventListener("input", () => {
+    dom.temperatureValue.textContent = dom.temperatureInput.value;
+  });
+  dom.topPInput.addEventListener("input", () => {
+    dom.topPValue.textContent = dom.topPInput.value;
+  });
 
   dom.browseFolderBtn.addEventListener("click", async () => {
     const selected = await open({ directory: true, multiple: false });

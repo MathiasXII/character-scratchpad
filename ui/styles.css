@@ -758,6 +758,16 @@ main {
   transition: border-color 0.2s;
 }
 
+.modal-body input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  margin-top: 4px;
+}
+
+.setting-row {
+  margin-bottom: 12px;
+}
+
 .modal-body input:focus {
   border-color: var(--accent);
 }
