@@ -526,28 +526,38 @@ main {
   display: flex;
   flex-direction: column;
   max-width: 80%;
-  padding: 12px 16px;
-  border-radius: 16px;
-  line-height: 1.5;
   font-size: 14px;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
 
-.message .content {
-  white-space: normal;
-}
-
 .message.user {
   align-self: flex-end;
-  background: var(--user-bg);
-  border-bottom-right-radius: 4px;
 }
 
 .message.assistant {
   align-self: flex-start;
+}
+
+.message-bubble {
+  padding: 12px 16px;
+  border-radius: 16px;
+  position: relative;
+}
+
+.message.user .message-bubble {
+  background: var(--user-bg);
+  border-bottom-right-radius: 4px;
+}
+
+.message.assistant .message-bubble {
   background: var(--assistant-bg);
   border-bottom-left-radius: 4px;
+}
+
+.message .content {
+  white-space: normal;
 }
 
 .message.error {
@@ -557,6 +567,8 @@ main {
   border: 1px solid rgba(255, 85, 85, 0.3);
   max-width: 90%;
   font-size: 13px;
+  padding: 12px 16px;
+  border-radius: 16px;
 }
 
 .message .role-label {
@@ -567,11 +579,7 @@ main {
   color: var(--text-secondary);
 }
 
-.message.streaming {
-  position: relative;
-}
-
-.message.streaming::after {
+.message.streaming .content::after {
   content: "\25AE";
   animation: blink 1s step-end infinite;
   color: var(--accent);
@@ -1201,6 +1209,7 @@ main {
 
 .message .content em {
   font-style: italic;
+  color: var(--text-secondary);
 }
 
 .message .content img {
@@ -1214,13 +1223,17 @@ main {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  padding: 0 4px;
+}
+
+.message-header .role-label {
+  flex: 1;
 }
 
 .message-actions {
   display: flex;
-  justify-content: space-between;
+  gap: 2px;
   visibility: hidden;
-  margin-top: 4px;
 }
 
 .message:hover .message-actions {
