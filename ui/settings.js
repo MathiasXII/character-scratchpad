@@ -1,6 +1,6 @@
 const { invoke } = window.__TAURI__.core;
 
-import { dom, state } from "./app.js";
+import { dom, state, updateUIState } from "./app.js";
 import { loadCharacters } from "./characters.js";
 import { setEditorValue, setEditorPlaceholder, updateTokenCounter } from "./editor.js";
 
@@ -42,6 +42,7 @@ export async function handleSaveSettings() {
   localStorage.setItem("llm-work-folder", dom.workFolderInput.value);
 
   await syncSettingsToBackend();
+  updateUIState();
   closeSettingsModal();
 
   if (dom.workFolderInput.value !== state.currentWorkFolder) {

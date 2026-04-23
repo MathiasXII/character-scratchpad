@@ -27,6 +27,7 @@ export const state = {
   isLoadingCharacter: false,
   cmView: null,
   lastSavedContent: initialLastSaved,
+  chatDisabled: false,
 };
 
 export const dom = {
@@ -35,6 +36,7 @@ export const dom = {
   userInput: document.getElementById("user-input"),
   sendBtn: document.getElementById("send-btn"),
   resendBtn: document.getElementById("resend-btn"),
+  clearChatBtn: document.getElementById("clear-chat-btn"),
   settingsBtn: document.getElementById("settings-btn"),
   settingsModal: document.getElementById("settings-modal"),
   settingsClose: document.getElementById("settings-close"),
@@ -70,6 +72,8 @@ export const dom = {
   deleteContextMessage: document.getElementById("delete-context-message"),
   deleteContextCancel: document.getElementById("delete-context-cancel"),
   deleteContextConfirm: document.getElementById("delete-context-confirm"),
+  chatDisabledOverlay: document.getElementById("chat-disabled-overlay"),
+  chatDisabledSettingsBtn: document.getElementById("chat-disabled-settings-btn"),
 };
 
 import {
@@ -77,6 +81,7 @@ import {
   autoResizeInput,
   handleSend,
   handleResend,
+  handleClearChat,
   initStreamListeners,
   scrollToBottom,
   showWelcome,
@@ -102,9 +107,72 @@ import { initContext } from "./context.js";
 
 const { open } = window.__TAURI__.dialog;
 
+/**
+ * Check settings and update UI accordingly:
+ * - If API key, model, or endpoint is missing → disable chat panel (overlay)
+ * - If no workspace folder → disable Create Character, hide Context tab
+ */
+export function updateUIState() {
+  const apiKey = dom.apiKeyInput.value.trim();
+  const model = dom.modelInput.value.trim();
+  const endpoint = dom.endpointInput.value.trim();
+  const workFolder = dom.workFolderInput.value.trim();
+
+  // Chat panel: disabled if any of API key, model, or endpoint is missing
+  const chatSettingsMissing = !apiKey || !model || !endpoint;
+  state.chatDisabled = chatSettingsMissing;
+
+  if (chatSettingsMissing) {
+    dom.chatDisabledOverlay.classList.remove("hidden");
+    dom.sendBtn.disabled = true;
+    dom.resendBtn.disabled = true;
+    dom.clearChatBtn.disabled = true;
+    dom.userInput.disabled = true;
+    dom.userInput.placeholder = "Configure settings to start chatting...";
+  } else {
+    dom.chatDisabledOverlay.classList.add("hidden");
+    dom.userInput.disabled = false;
+    dom.userInput.placeholder = "Type a message...";
+    // Restore send/resend state based on streaming + conversation
+    if (!state.isStreaming) {
+      dom.sendBtn.disabled = false;
+    }
+    if (!state.isStreaming && state.conversationHistory.length > 0) {
+      dom.resendBtn.disabled = false;
+    }
+    dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
+  }
+
+  // Workspace folder: disable Create Character, hide Context tab
+  const noWorkFolder = !workFolder;
+
+  if (noWorkFolder) {
+    dom.newCharacterBtn.disabled = true;
+  } else {
+    dom.newCharacterBtn.disabled = false;
+  }
+
+  // Hide/show Context tab — only visible when a character is selected
+  const contextTab = document.querySelector('#tab-bar .tab[data-tab="context"]');
+  if (contextTab) {
+    if (!state.selectedCharacter) {
+      contextTab.classList.add("tab-hidden");
+      if (state.activeTab === "context") {
+        const firstTab = document.querySelector('#tab-bar .tab:not(.tab-hidden)');
+        if (firstTab) {
+          switchTab(firstTab.dataset.tab);
+        }
+      }
+    } else {
+      contextTab.classList.remove("tab-hidden");
+    }
+  }
+}
+
 async function init() {
   loadSettingsFromStorage();
   await syncSettingsToBackend();
+  updateUIState();
   showWelcome();
   initPaneDivider();
   // Sync header-left width with left-pane width
@@ -127,6 +195,7 @@ async function init() {
 
   dom.sendBtn.addEventListener("click", handleSend);
   dom.resendBtn.addEventListener("click", handleResend);
+  dom.clearChatBtn.addEventListener("click", handleClearChat);
   dom.userInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -136,6 +205,7 @@ async function init() {
   dom.userInput.addEventListener("input", autoResizeInput);
 
   dom.settingsBtn.addEventListener("click", openSettingsModal);
+  dom.chatDisabledSettingsBtn.addEventListener("click", openSettingsModal);
   dom.settingsClose.addEventListener("click", closeSettingsModal);
   dom.settingsModal.addEventListener("click", (event) => {
     if (event.target === dom.settingsModal) {

@@ -67,7 +67,7 @@ header h1 {
   flex: 1;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   min-width: 0;
 }
 
@@ -80,9 +80,34 @@ header h1 {
 #header-right {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 12px 20px;
   flex: 1;
+}
+
+#clear-chat-btn {
+  padding: 6px 12px;
+  background: #8b2252;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+  line-height: 1;
+  align-self: stretch;
+}
+
+#clear-chat-btn:hover {
+  background: var(--error);
+}
+
+#clear-chat-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 #character-select {
@@ -134,6 +159,29 @@ header h1 {
 
 #new-character-btn:hover {
   background: var(--accent-hover);
+}
+
+#clear-chat-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: inherit;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+#clear-chat-btn:hover {
+  background: var(--error);
+  color: white;
+  border-color: var(--error);
+}
+
+#clear-chat-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 #settings-btn {
@@ -443,6 +491,7 @@ main {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 /* Chat Container */
@@ -1208,4 +1257,73 @@ main {
 
 .edit-textarea:focus {
   border-color: var(--accent);
+}
+
+/* Chat Disabled Overlay */
+.chat-disabled-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 15, 26, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+.chat-disabled-overlay.hidden {
+  display: none !important;
+}
+
+.chat-disabled-content {
+  text-align: center;
+  padding: 32px;
+  max-width: 320px;
+}
+
+.chat-disabled-content h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.chat-disabled-content p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.chat-disabled-content strong {
+  color: var(--text-primary);
+}
+
+#chat-disabled-settings-btn {
+  padding: 8px 20px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#chat-disabled-settings-btn:hover {
+  background: var(--accent-hover);
+}
+
+/* Disabled Create Character button */
+#new-character-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Context tab hidden state */
+#tab-bar .tab.tab-hidden {
+  display: none;
 }
