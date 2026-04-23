@@ -49,6 +49,8 @@ fn load_settings_from_file() -> Settings {
         api_key: String::new(),
         model: "gpt-4o-mini".to_string(),
         endpoint: "https://api.openai.com/v1/chat/completions".to_string(),
+        temperature: 0.7,
+        top_p: 1.0,
     }
 }
 
@@ -74,6 +76,8 @@ pub fn update_settings(state: State<'_, AppState>, settings: Settings) -> Result
     *state.api_key.lock().map_err(|e| e.to_string())? = settings.api_key.clone();
     *state.model.lock().map_err(|e| e.to_string())? = settings.model.clone();
     *state.endpoint.lock().map_err(|e| e.to_string())? = settings.endpoint.clone();
+    *state.temperature.lock().map_err(|e| e.to_string())? = settings.temperature;
+    *state.top_p.lock().map_err(|e| e.to_string())? = settings.top_p;
 
     // Persist to file
     save_settings_to_file(&settings)
@@ -88,11 +92,15 @@ pub fn get_settings(state: State<'_, AppState>) -> Result<Settings, String> {
     *state.api_key.lock().map_err(|e| e.to_string())? = file_settings.api_key.clone();
     *state.model.lock().map_err(|e| e.to_string())? = file_settings.model.clone();
     *state.endpoint.lock().map_err(|e| e.to_string())? = file_settings.endpoint.clone();
+    *state.temperature.lock().map_err(|e| e.to_string())? = file_settings.temperature;
+    *state.top_p.lock().map_err(|e| e.to_string())? = file_settings.top_p;
 
     // Return the settings
     Ok(Settings {
         api_key: file_settings.api_key,
         model: file_settings.model,
         endpoint: file_settings.endpoint,
+        temperature: file_settings.temperature,
+        top_p: file_settings.top_p,
     })
 }

@@ -25,6 +25,8 @@ pub fn run() {
             api_key: Mutex::new(String::new()),
             model: Mutex::new("zai-org-glm-4.6".to_string()),
             endpoint: Mutex::new("https://api.venice.ai/api/v1/chat/completions".to_string()),
+            temperature: Mutex::new(0.7f32),
+            top_p: Mutex::new(1.0f32),
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(30))
                 .build()

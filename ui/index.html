@@ -96,6 +96,16 @@
         <label for="endpoint">API Endpoint</label>
         <input type="text" id="endpoint" placeholder="https://api.openai.com/v1/chat/completions" />
 
+        <div class="setting-row">
+          <label for="temperature">Temperature <span id="temperature-value">0.7</span></label>
+          <input type="range" id="temperature" min="0" max="2" step="0.05" value="0.7" />
+        </div>
+
+        <div class="setting-row">
+          <label for="top-p">Top P <span id="top-p-value">1.0</span></label>
+          <input type="range" id="top-p" min="0" max="1" step="0.05" value="1.0" />
+        </div>
+
         <label for="work-folder">Work Folder</label>
         <div id="work-folder-row">
           <input type="text" id="work-folder" placeholder="Path to characters folder..." readonly />
