@@ -1,4 +1,4 @@
-# LLM Chat — Venice.ai Character Workbench
+# Character Scratch Pad — Venice.ai Character Workbench
 
 A desktop application for developing and testing AI characters compatible with [Venice.ai](https://venice.ai). Write prompts, iterate on personalities, and validate behaviour through live conversation — all in one place.
 

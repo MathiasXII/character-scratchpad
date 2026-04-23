@@ -6,7 +6,7 @@ Purpose: Help any AI assistant quickly understand this project's structure, conv
 
 ## What This Project Is
 
-**LLM Chat** — a Tauri v2 desktop app for developing and testing AI characters (targeting Venice.ai compatibility). Two-pane layout: left pane edits character files, right pane is a chat interface that streams from OpenAI-compatible APIs.
+**Character Scratch Pad** — a Tauri v2 desktop app for developing and testing AI characters (targeting Venice.ai compatibility). Two-pane layout: left pane edits character files, right pane is a chat interface that streams from OpenAI-compatible APIs.
 
 - **Stack**: Rust backend (Tauri v2), vanilla HTML/CSS/JS frontend (no framework, no bundler)
 - **Runtime**: Desktop app, no Node server at runtime

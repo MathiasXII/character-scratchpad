@@ -33,7 +33,7 @@ pub(crate) fn stage_all_excluding_git(index: &mut git2::Index) -> Result<(), git
 #[tauri::command]
 pub fn git_commit(repo_path: String, message: String) -> Result<String, String> {
     let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
-    let sig = Signature::now("LLM Chat", "app@localhost").map_err(|e| e.to_string())?;
+    let sig = Signature::now("Character Scratch Pad", "app@localhost").map_err(|e| e.to_string())?;
 
     let mut index = repo.index().map_err(|e| e.to_string())?;
     stage_all_excluding_git(&mut index).map_err(|e| e.to_string())?;

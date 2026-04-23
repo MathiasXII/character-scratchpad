@@ -616,6 +616,19 @@ main {
   border-color: var(--accent);
 }
 
+#user-input::-webkit-scrollbar {
+  width: 4px;
+}
+
+#user-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#user-input::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 2px;
+}
+
 #user-input::placeholder {
   color: var(--text-secondary);
 }

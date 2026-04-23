@@ -1,8 +1,8 @@
-# LLM Chat — Venice.ai Character Workbench
+# Character Scratch Pad — Venice.ai Character Workbench
 
 ## 1. Project Overview
 
-**LLM Chat** is a desktop application built to develop, test, and refine AI characters compatible with [Venice.ai](https://venice.ai). It provides a local workbench where character creators can write prompts, iterate on personalities, and validate behaviour through live conversation — all within a single interface.
+**Character Scratch Pad** is a desktop application built to develop, test, and refine AI characters compatible with [Venice.ai](https://venice.ai). It provides a local workbench where character creators can write prompts, iterate on personalities, and validate behaviour through live conversation — all within a single interface.
 
 ### Goal
 
@@ -67,7 +67,7 @@ llm-chat/
 
 ## 4. Target Features
 
-### 4.1 LLM Chat
+### 4.1 Character Scratch Pad
 
 A fully functional chat that works out of the box — no character configuration required.
 
