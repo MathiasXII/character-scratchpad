@@ -172,11 +172,7 @@ export function createMessageElement(role, content, index) {
 
   const label = document.createElement("div");
   label.className = "role-label";
-  label.textContent = role === "user" ? "You" : "Assistant";
-
-  const body = document.createElement("div");
-  body.className = "content";
-  body.innerHTML = DOMPurify.sanitize(marked.parse(content), DOMPURIFY_CONFIG);
+  label.textContent = role === "user" ? "You" : (state.selectedCharacter || "Assistant");
 
   // Add action buttons (edit and delete)
   const actionsDiv = document.createElement("div");
@@ -210,10 +206,19 @@ export function createMessageElement(role, content, index) {
   const header = document.createElement("div");
   header.className = "message-header";
   header.appendChild(label);
+  header.appendChild(actionsDiv);
+
+  const bubble = document.createElement("div");
+  bubble.className = "message-bubble";
+
+  const body = document.createElement("div");
+  body.className = "content";
+  body.innerHTML = DOMPurify.sanitize(marked.parse(content), DOMPURIFY_CONFIG);
+
+  bubble.appendChild(body);
 
   el.appendChild(header);
-  el.appendChild(body);
-  el.appendChild(actionsDiv);
+  el.appendChild(bubble);
   return el;
 }
 
@@ -305,7 +310,7 @@ export function startEdit(index) {
   const textarea = document.createElement('textarea');
   textarea.className = 'edit-textarea';
   textarea.value = rawText;
-  el.appendChild(textarea);
+  el.querySelector('.message-bubble').appendChild(textarea);
   
   // Add Save/Cancel buttons
   const actionsDiv = el.querySelector('.message-actions');
