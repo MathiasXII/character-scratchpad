@@ -1,4 +1,4 @@
-# TODO — LLM Chat → Venice.ai Character Workbench
+# TODO — Character Scratch Pad → Venice.ai Character Workbench
 
 **RULE: For every unchecked item, follow this workflow IN ORDER:**
 

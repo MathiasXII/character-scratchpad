@@ -87,7 +87,7 @@ pub fn ensure_character_files(work_folder: String, name: String) -> Result<(), S
     // If the repo has no commits yet, make an initial commit with all current files
     let needs_initial_commit = repo.is_empty().unwrap_or(true);
     if needs_initial_commit {
-        let sig = Signature::now("LLM Chat", "app@localhost").map_err(|e| e.to_string())?;
+        let sig = Signature::now("Character Scratch Pad", "app@localhost").map_err(|e| e.to_string())?;
         let mut index = repo.index().map_err(|e| e.to_string())?;
 
         stage_all_excluding_git(&mut index).map_err(|e| e.to_string())?;

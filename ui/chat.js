@@ -255,7 +255,7 @@ export function showWelcome() {
   const el = document.createElement("div");
   el.className = "welcome";
   el.innerHTML = `
-    <h2>Welcome to LLM Chat</h2>
+    <h2>Welcome to Character Scratch Pad</h2>
     <p>Click the gear icon to configure your API key and endpoint,<br>then start chatting.</p>
   `;
   dom.messagesEl.appendChild(el);
