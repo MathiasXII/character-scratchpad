@@ -1,4 +1,5 @@
 const { invoke } = window.__TAURI__.core;
+const { getCurrentWebview } = window.__TAURI__.webview;
 
 import { dom, state } from "./app.js";
 import { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly } from "./editor.js";
@@ -241,8 +242,98 @@ async function performDelete(filename) {
 }
 
 /**
+ * Show the drop overlay and highlight the sidebar.
+ */
+function showDropOverlay() {
+  dom.contextSidebar.classList.add("drag-active");
+  dom.dropOverlay.classList.remove("hidden");
+}
+
+/**
+ * Hide the drop overlay and remove sidebar highlight.
+ */
+function hideDropOverlay() {
+  dom.contextSidebar.classList.remove("drag-active");
+  dom.dropOverlay.classList.add("hidden");
+}
+
+/**
+ * Handle files dropped into the context sidebar via Tauri's native drag & drop.
+ * Copies each valid file into the character's context/ directory.
+ * @param {string[]} paths - Absolute file paths from the Tauri drop event.
+ */
+async function handleDroppedFiles(paths) {
+  if (!state.selectedCharacter || !state.currentWorkFolder) {
+    return;
+  }
+
+  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const allowedExtensions = ["txt", "md", "pdf"];
+  let copiedCount = 0;
+  const errors = [];
+
+  for (const filePath of paths) {
+    const ext = filePath.split(".").pop().toLowerCase();
+    if (!allowedExtensions.includes(ext)) {
+      errors.push(`${filePath.split(/[/\\]/).pop()}: unsupported type (.${ext})`);
+      continue;
+    }
+
+    try {
+      await invoke("copy_file_to_context", {
+        sourcePath: filePath,
+        characterDir: charDir,
+      });
+      copiedCount++;
+    } catch (error) {
+      const msg = typeof error === "string" ? error : String(error);
+      const fileName = filePath.split(/[/\\]/).pop();
+      errors.push(`${fileName}: ${msg}`);
+    }
+  }
+
+  // Refresh the file list if any files were copied
+  if (copiedCount > 0) {
+    state.contextFiles = await invoke("list_context_files", {
+      characterDir: charDir,
+    });
+    renderContextFileList();
+    checkDirty();
+  }
+
+  // Report errors if any
+  if (errors.length > 0) {
+    console.warn("Drop errors:", errors.join("\n"));
+  }
+}
+
+/**
  * Initialize context tab - wire up event listeners.
  */
 export function initContext() {
   dom.contextAddBtn.addEventListener("click", handleAddContextFile);
+
+  // Set up Tauri native drag & drop handling
+  const webview = getCurrentWebview();
+
+  webview.onDragDropEvent((event) => {
+    const payload = event.payload;
+
+    if (payload.type === "enter") {
+      // Files dragged into the window — show overlay if a character is selected
+      if (state.selectedCharacter) {
+        showDropOverlay();
+      }
+    } else if (payload.type === "over") {
+      // Drag is moving over the window — overlay already visible
+    } else if (payload.type === "leave") {
+      hideDropOverlay();
+    } else if (payload.type === "drop") {
+      hideDropOverlay();
+
+      if (payload.paths && payload.paths.length > 0) {
+        handleDroppedFiles(payload.paths);
+      }
+    }
+  });
 }

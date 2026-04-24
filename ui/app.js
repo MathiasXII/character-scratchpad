@@ -78,6 +78,7 @@ export const dom = {
   deleteContextConfirm: document.getElementById("delete-context-confirm"),
   chatDisabledOverlay: document.getElementById("chat-disabled-overlay"),
   chatDisabledSettingsBtn: document.getElementById("chat-disabled-settings-btn"),
+  dropOverlay: document.getElementById("drop-overlay"),
 };
 
 import {
