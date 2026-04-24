@@ -1,8 +1,9 @@
 use std::fs;
 use std::path::Path;
 
-use crate::types::ContextFile;
 use lopdf::Document;
+
+use crate::types::ContextFile;
 
 /// Reject paths that contain traversal components (e.g. ".." or "." segments).
 fn validate_path(path: &str) -> Result<(), String> {
@@ -27,7 +28,10 @@ fn validate_filename(filename: &str) -> Result<(), String> {
         return Err("Filename cannot be empty".to_string());
     }
     if filename.starts_with('.') {
-        return Err(format!("Invalid filename (cannot start with '.'): '{}'", filename));
+        return Err(format!(
+            "Invalid filename (cannot start with '.'): '{}'",
+            filename
+        ));
     }
     if filename.contains("..") || filename.contains('/') || filename.contains('\\') {
         return Err(format!("Invalid filename: '{}'", filename));
@@ -38,8 +42,8 @@ fn validate_filename(filename: &str) -> Result<(), String> {
 #[tauri::command]
 pub fn load_file(path: String) -> Result<String, String> {
     validate_path(&path)?;
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
+    let content =
+        fs::read_to_string(&path).map_err(|e| format!("Failed to read '{}': {}", path, e))?;
     // Normalize line endings to LF — prevents spurious saves on Windows (CRLF vs LF)
     Ok(content.replace("\r\n", "\n").replace('\r', "\n"))
 }
@@ -69,8 +73,8 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
     }
 
     let mut files = Vec::new();
-    let entries = fs::read_dir(&context_dir)
-        .map_err(|e| format!("Failed to read context dir: {}", e))?;
+    let entries =
+        fs::read_dir(&context_dir).map_err(|e| format!("Failed to read context dir: {}", e))?;
 
     for entry in entries {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
@@ -126,9 +130,12 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
 pub fn create_context_file(character_dir: String, filename: String) -> Result<String, String> {
     validate_filename(&filename)?;
 
-    // Auto-append .txt extension if no .txt or .md extension
-    let ext = Path::new(&filename).extension().and_then(|e| e.to_str()).unwrap_or("");
-    let filename_with_ext = if ext != "txt" && ext != "md" {
+    // Auto-append .txt extension if no recognized extension (.txt, .md, .pdf)
+    let ext = Path::new(&filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    let filename_with_ext = if ext != "txt" && ext != "md" && ext != "pdf" {
         format!("{}.txt", filename)
     } else {
         filename
@@ -177,8 +184,7 @@ pub fn delete_context_file(character_dir: String, filename: String) -> Result<()
     }
 
     // Delete the file
-    fs::remove_file(&canonical_file)
-        .map_err(|e| format!("Failed to delete '{}': {}", filename, e))
+    fs::remove_file(&canonical_file).map_err(|e| format!("Failed to delete '{}': {}", filename, e))
 }
 
 /// Copy an external file into a character's context/ directory.
@@ -246,16 +252,62 @@ pub fn copy_file_to_context(source_path: String, character_dir: String) -> Resul
     }
 
     let target_path = context_dir.join(&target_filename);
-    fs::copy(source, &target_path)
-        .map_err(|e| format!("Failed to copy file: {}", e))?;
+    fs::copy(source, &target_path).map_err(|e| format!("Failed to copy file: {}", e))?;
 
     Ok(target_filename)
 }
 
 /// Extract text content from a PDF file using lopdf.
 fn extract_pdf_text(path: &Path) -> Result<String, String> {
-    let bytes = fs::read(path).map_err(|e| format!("Failed to read PDF '{}': {}", path.display(), e))?;
+    let bytes =
+        fs::read(path).map_err(|e| format!("Failed to read PDF '{}': {}", path.display(), e))?;
     let doc = Document::load_mem(&bytes).map_err(|e| format!("{}", e))?;
     let pages: Vec<u32> = doc.get_pages().keys().cloned().collect();
     doc.extract_text(&pages).map_err(|e| format!("{}", e))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{validate_filename, validate_path};
+
+    #[test]
+    fn test_validate_path_rejects_parent_dir() {
+        assert!(validate_path("../etc/passwd").is_err());
+    }
+
+    #[test]
+    fn test_validate_path_rejects_cur_dir() {
+        assert!(validate_path("./foo").is_err());
+    }
+
+    #[test]
+    fn test_validate_path_allows_normal() {
+        assert!(validate_path("some/path/file.txt").is_ok());
+    }
+
+    #[test]
+    fn test_validate_filename_rejects_empty() {
+        assert!(validate_filename("").is_err());
+    }
+
+    #[test]
+    fn test_validate_filename_rejects_hidden() {
+        assert!(validate_filename(".hidden").is_err());
+    }
+
+    #[test]
+    fn test_validate_filename_rejects_path_separators() {
+        assert!(validate_filename("foo/bar").is_err());
+        assert!(validate_filename("foo\\bar").is_err());
+    }
+
+    #[test]
+    fn test_validate_filename_rejects_double_dot() {
+        assert!(validate_filename("foo..bar").is_err());
+    }
+
+    #[test]
+    fn test_validate_filename_allows_normal() {
+        assert!(validate_filename("notes.md").is_ok());
+    }
 }
