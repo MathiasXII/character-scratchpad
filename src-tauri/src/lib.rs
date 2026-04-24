@@ -1,8 +1,8 @@
 use std::sync::Mutex;
 use std::time::Duration;
-mod commands;
-mod state;
-mod types;
+pub mod commands;
+pub mod state;
+pub mod types;
 
 use commands::characters::{create_character, ensure_character_files, list_characters};
 use commands::files::{
