@@ -1054,6 +1054,26 @@ main {
   border-color: var(--accent);
 }
 
+.git-history-entry.current {
+  border-left: 3px solid var(--accent);
+  background: rgba(108, 99, 255, 0.08);
+}
+
+.git-history-entry.current .git-revert-btn {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+.git-history-entry.current .git-revert-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
 /* Markdown Rendering in Chat Messages */
 .message .content p {
   margin-bottom: 8px;

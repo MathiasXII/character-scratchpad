@@ -290,21 +290,36 @@ export async function openGitHistory() {
       for (const entry of commits) {
         const el = document.createElement("div");
         el.className = "git-history-entry";
+        if (entry.is_current) {
+          el.classList.add("current");
+        }
+
+        const isCurrent = !!entry.is_current;
+        const buttonLabel = isCurrent ? "Current version" : "Restore this version";
         el.innerHTML = `
           <div class="git-entry-info">
             <span class="git-entry-message">${escapeHtml(entry.message)}</span>
             <span class="git-entry-time">${formatTimestamp(entry.timestamp)}</span>
           </div>
-          <button class="git-revert-btn" data-commit-id="${escapeHtml(entry.id)}">Restore this version</button>
+          <button class="git-revert-btn" data-commit-id="${escapeHtml(entry.id)}"${isCurrent ? " disabled" : ""}>${buttonLabel}</button>
         `;
-        el.querySelector(".git-revert-btn").addEventListener("click", () => {
-          handleGitRevert(entry.id);
-        });
+        if (!isCurrent) {
+          el.querySelector(".git-revert-btn").addEventListener("click", () => {
+            handleGitRevert(entry.id);
+          });
+        }
         historyList.appendChild(el);
       }
     }
 
     historyModal.classList.remove("hidden");
+
+    requestAnimationFrame(() => {
+      const currentEntry = historyList.querySelector(".git-history-entry.current");
+      if (currentEntry) {
+        currentEntry.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    });
   } catch (error) {
     showSaveError("Failed to load history: " + (typeof error === "string" ? error : String(error)));
   }
