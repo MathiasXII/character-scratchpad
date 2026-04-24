@@ -4,6 +4,7 @@ const mockInvoke = vi.fn();
 const mockGetEditorValue = vi.fn();
 const mockSetEditorValue = vi.fn();
 const mockSetEditorPlaceholder = vi.fn();
+const mockSetEditorReadOnly = vi.fn();
 const mockCheckDirty = vi.fn();
 
 const mockDom = {};
@@ -46,6 +47,7 @@ vi.mock('./editor.js', () => ({
   getEditorValue: mockGetEditorValue,
   setEditorValue: mockSetEditorValue,
   setEditorPlaceholder: mockSetEditorPlaceholder,
+  setEditorReadOnly: mockSetEditorReadOnly,
 }));
 
 vi.mock('./git.js', () => ({
@@ -55,6 +57,11 @@ vi.mock('./git.js', () => ({
 globalThis.window.__TAURI__ = {
   core: {
     invoke: mockInvoke,
+  },
+  webview: {
+    getCurrentWebview: vi.fn(() => ({
+      onDragDropEvent: vi.fn(),
+    })),
   },
 };
 
@@ -71,6 +78,7 @@ beforeEach(() => {
   mockGetEditorValue.mockReset();
   mockSetEditorValue.mockReset();
   mockSetEditorPlaceholder.mockReset();
+  mockSetEditorReadOnly.mockReset();
   mockCheckDirty.mockReset();
   globalThis.prompt.mockReset();
   resetDom();
