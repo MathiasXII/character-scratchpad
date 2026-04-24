@@ -6,7 +6,8 @@ pub mod types;
 
 use commands::characters::{create_character, ensure_character_files, list_characters};
 use commands::files::{
-    create_context_file, delete_context_file, list_context_files, load_file, save_file,
+    copy_file_to_context, create_context_file, delete_context_file, list_context_files, load_file,
+    save_file,
 };
 use commands::git::{
     generate_checkpoint_name, git_commit, git_commit_amend, git_diff_last, git_get_head_content,
@@ -40,6 +41,7 @@ pub fn run() {
             save_file,
             list_context_files,
             create_context_file,
+            copy_file_to_context,
             delete_context_file,
             list_characters,
             create_character,

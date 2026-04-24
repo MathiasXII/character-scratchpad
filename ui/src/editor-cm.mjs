@@ -1,5 +1,5 @@
 import { EditorView, keymap, placeholder as cmPlaceholder } from "@codemirror/view";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { syntaxHighlighting, HighlightStyle } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
@@ -94,6 +94,8 @@ const markdownHighlight = HighlightStyle.define([
   { tag: tags.changed, color: "#c8c8e0" },
 ]);
 
+const readOnlyCompartment = new Compartment();
+
 function createEditor(parent, options = {}) {
   const extensions = [
     darkTheme,
@@ -102,7 +104,8 @@ function createEditor(parent, options = {}) {
     markdown({ base: markdownLanguage }),
     syntaxHighlighting(markdownHighlight),
     EditorView.lineWrapping,
-    EditorState.allowMultipleSelections.of(false)
+    EditorState.allowMultipleSelections.of(false),
+    readOnlyCompartment.of(EditorState.readOnly.of(false))
   ];
 
   if (options.placeholder) {
@@ -125,6 +128,10 @@ function createEditor(parent, options = {}) {
   const view = new EditorView({
     state,
     parent
+  });
+
+  view.setReadOnly = (val) => view.dispatch({
+    effects: readOnlyCompartment.reconfigure(EditorState.readOnly.of(val))
   });
 
   return view;
