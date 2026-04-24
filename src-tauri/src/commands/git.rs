@@ -116,7 +116,7 @@ pub fn git_log(repo_path: String) -> Result<Vec<CommitEntry>, String> {
     }
 
     // Sort all entries by timestamp descending (newest first)
-    entries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    entries.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
 
     // Limit to 50 entries total
     entries.truncate(50);
@@ -183,8 +183,10 @@ pub fn git_get_head_content(repo_path: String, file_path: String) -> Result<Opti
     };
 
     let blob = repo.find_blob(entry.id()).map_err(|e| e.to_string())?;
-    let content = std::str::from_utf8(blob.content())
-        .map_err(|e| format!("File content is not valid UTF-8: {}", e))?;
+    let content = match std::str::from_utf8(blob.content()) {
+        Ok(c) => c,
+        Err(_) => return Ok(None),
+    };
 
     // Normalize line endings to LF for consistent comparison with editor content
     Ok(Some(content.replace("\r\n", "\n").replace('\r', "\n")))
