@@ -116,7 +116,7 @@ pub fn git_log(repo_path: String) -> Result<Vec<CommitEntry>, String> {
     }
 
     // Sort all entries by timestamp descending (newest first)
-    entries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+    entries.sort_by_key(|b| std::cmp::Reverse(b.timestamp));
 
     // Limit to 50 entries total
     entries.truncate(50);

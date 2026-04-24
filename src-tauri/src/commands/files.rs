@@ -246,7 +246,7 @@ pub fn copy_file_to_context(source_path: String, character_dir: String) -> Resul
     }
 
     let target_path = context_dir.join(&target_filename);
-    fs::copy(&source, &target_path)
+    fs::copy(source, &target_path)
         .map_err(|e| format!("Failed to copy file: {}", e))?;
 
     Ok(target_filename)
