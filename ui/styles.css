@@ -1379,3 +1379,14 @@ main {
 #tab-bar .tab.tab-hidden {
   display: none;
 }
+
+.context-file-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--accent, #6c63ff);
+  color: #fff;
+  margin-left: 6px;
+  opacity: 0.7;
+  vertical-align: middle;
+}

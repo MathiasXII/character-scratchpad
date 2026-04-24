@@ -1,7 +1,7 @@
 const { invoke } = window.__TAURI__.core;
 
 import { dom, state } from "./app.js";
-import { getEditorValue, setEditorValue, setEditorPlaceholder } from "./editor.js";
+import { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly } from "./editor.js";
 import { checkDirty } from "./git.js";
 
 /**
@@ -48,6 +48,14 @@ export function renderContextFileList() {
       nameSpan.textContent = file.name;
       nameSpan.title = file.name;
 
+      if (file.isReadOnly) {
+        item.classList.add("context-file-item--readonly");
+        const badge = document.createElement("span");
+        badge.className = "context-file-badge";
+        badge.textContent = "PDF";
+        nameSpan.appendChild(badge);
+      }
+
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "context-file-delete";
       deleteBtn.textContent = "×";
@@ -79,18 +87,21 @@ export function renderContextFileList() {
 export async function selectContextFile(filename) {
   // Save current context file before switching
   if (state.activeContextFile && state.activeContextFile !== filename) {
-    const currentContent = getEditorValue();
-    if (currentContent !== state.contextLastSaved[state.activeContextFile]) {
-      const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
-      const path = charDir + "/context/" + state.activeContextFile;
-      try {
-        await invoke("save_file", { path, content: currentContent });
-        state.contextLastSaved[state.activeContextFile] = currentContent;
-        // Sync back to state.contextFiles
-        const file = state.contextFiles.find((f) => f.name === state.activeContextFile);
-        if (file) file.content = currentContent;
-      } catch (error) {
-        console.error("Failed to save context file:", error);
+    const currentFile = state.contextFiles.find((f) => f.name === state.activeContextFile);
+    if (!currentFile?.isReadOnly) {
+      const currentContent = getEditorValue();
+      if (currentContent !== state.contextLastSaved[state.activeContextFile]) {
+        const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+        const path = charDir + "/context/" + state.activeContextFile;
+        try {
+          await invoke("save_file", { path, content: currentContent });
+          state.contextLastSaved[state.activeContextFile] = currentContent;
+          // Sync back to state.contextFiles
+          const file = state.contextFiles.find((f) => f.name === state.activeContextFile);
+          if (file) file.content = currentContent;
+        } catch (error) {
+          console.error("Failed to save context file:", error);
+        }
       }
     }
   }
@@ -101,11 +112,13 @@ export async function selectContextFile(filename) {
   const file = state.contextFiles.find((f) => f.name === filename);
   if (file) {
     setEditorValue(file.content);
-    setEditorPlaceholder("Start editing...");
+    setEditorReadOnly(!!file.isReadOnly);
+    setEditorPlaceholder(file.isReadOnly ? "Read-only PDF — extracted text" : "Start editing...");
     state.tabContents["context"] = file.content;
     state.contextLastSaved[filename] = file.content;
   } else {
     setEditorValue("");
+    setEditorReadOnly(false);
     setEditorPlaceholder("Select a context file...");
     state.tabContents["context"] = "";
   }
@@ -217,6 +230,7 @@ async function performDelete(filename) {
       delete state.contextLastSaved[filename];
       setEditorValue("");
       setEditorPlaceholder("Select a context file...");
+      setEditorReadOnly(false);
     }
 
     renderContextFileList();
