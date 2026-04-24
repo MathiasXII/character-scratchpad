@@ -21,6 +21,7 @@ serde_json = "1"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "json", "stream"] }
 futures-util = "0.3"
 git2 = "0.20"
+lopdf = "0.34"
 
 [features]
 default = ["custom-protocol"]

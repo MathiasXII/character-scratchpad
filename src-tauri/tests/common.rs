@@ -12,7 +12,12 @@ impl TempTestDir {
             .duration_since(UNIX_EPOCH)
             .expect("system clock before UNIX_EPOCH")
             .as_nanos();
-        path.push(format!("llm-chat-{}-{}-{}", prefix, std::process::id(), unique));
+        path.push(format!(
+            "llm-chat-{}-{}-{}",
+            prefix,
+            std::process::id(),
+            unique
+        ));
         std::fs::create_dir_all(&path).expect("failed to create temp test dir");
         Self { path }
     }
