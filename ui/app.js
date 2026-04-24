@@ -104,6 +104,7 @@ import { initGit, updateGitBarVisibility, checkDirty } from "./git.js";
 import {
   closeSettingsModal,
   handleSaveSettings,
+  loadSettingsFromFile,
   loadSettingsFromStorage,
   openSettingsModal,
   syncSettingsToBackend,
@@ -175,7 +176,9 @@ export function updateUIState() {
 }
 
 async function init() {
-  loadSettingsFromStorage();
+  // Order matters: load from settings.json first, fall back to localStorage,
+  // then save — so a missing settings.json gets created with the defaults.
+  try { await loadSettingsFromFile(); } catch { loadSettingsFromStorage(); }
   await syncSettingsToBackend();
   updateUIState();
   showWelcome();
