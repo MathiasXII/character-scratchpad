@@ -23,13 +23,19 @@ function setEditorPlaceholder(text) {
   }
 }
 
-export { getEditorValue, setEditorValue, setEditorPlaceholder };
+function setEditorReadOnly(readOnly) {
+  if (state.cmView?.setReadOnly) state.cmView.setReadOnly(readOnly);
+}
+
+export { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly };
 
 export async function saveCurrentTab() {
   const tab = state.activeTab;
 
   if (tab === "context") {
     if (!state.activeContextFile || !state.selectedCharacter || state.isLoadingCharacter) return;
+    const activeFile = state.contextFiles.find(f => f.name === state.activeContextFile);
+    if (activeFile?.isReadOnly) return;
     const content = getEditorValue();
     if (content === state.contextLastSaved[state.activeContextFile]) return;
     const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/context/" + state.activeContextFile;
@@ -96,17 +102,20 @@ export async function switchTab(tabName) {
 
   // If leaving Context tab, save current context file first
   if (state.activeTab === "context" && state.activeContextFile && state.selectedCharacter && !state.isLoadingCharacter) {
-    const content = getEditorValue();
-    if (content !== state.contextLastSaved[state.activeContextFile]) {
-      const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/context/" + state.activeContextFile;
-      try {
-        await invoke("save_file", { path, content });
-        state.contextLastSaved[state.activeContextFile] = content;
-        const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-        if (file) file.content = content;
-        hideSaveError();
-      } catch (error) {
-        showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
+    const leavingFile = state.contextFiles.find(f => f.name === state.activeContextFile);
+    if (!leavingFile?.isReadOnly) {
+      const content = getEditorValue();
+      if (content !== state.contextLastSaved[state.activeContextFile]) {
+        const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/context/" + state.activeContextFile;
+        try {
+          await invoke("save_file", { path, content });
+          state.contextLastSaved[state.activeContextFile] = content;
+          const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+          if (file) file.content = content;
+          hideSaveError();
+        } catch (error) {
+          showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
+        }
       }
     }
   }
@@ -139,13 +148,14 @@ export async function switchTab(tabName) {
     if (state.activeContextFile) {
       const file = state.contextFiles.find((f) => f.name === state.activeContextFile);
       setEditorValue(file ? file.content : "");
-      setEditorPlaceholder(file ? "Start editing..." : "Select a context file...");
+      setEditorPlaceholder(file?.isReadOnly ? "Read-only PDF — extracted text" : "Start editing...");
     } else {
       setEditorValue("");
       setEditorPlaceholder("Select a context file...");
     }
   } else {
     renderContextFileList();
+    setEditorReadOnly(false);
     setEditorValue(state.tabContents[tabName] || "");
     setEditorPlaceholder("Start editing...");
   }
