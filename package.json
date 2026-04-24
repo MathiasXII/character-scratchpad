@@ -6,7 +6,9 @@
     "tauri": "tauri",
     "dev": "tauri dev",
     "build": "tauri build",
-    "bundle": "rollup ui/src/editor-cm.mjs -f iife -o ui/lib/editor-cm.bundle.js -p @rollup/plugin-node-resolve"
+    "bundle": "rollup ui/src/editor-cm.mjs -f iife -o ui/lib/editor-cm.bundle.js -p @rollup/plugin-node-resolve",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@codemirror/commands": "^6.10.3",
@@ -17,7 +19,10 @@
     "@codemirror/view": "^6.41.0",
     "@lezer/markdown": "^1.6.3",
     "@rollup/plugin-node-resolve": "^16.0.3",
+    "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/cli": "^2.10.1",
-    "rollup": "^4.60.1"
+    "jsdom": "^29.0.2",
+    "rollup": "^4.60.1",
+    "vitest": "^4.1.5"
   }
 }

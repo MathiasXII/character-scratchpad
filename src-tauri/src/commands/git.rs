@@ -11,10 +11,10 @@ use crate::types::{ChatCompletionRequest, ChatMessage};
 
 #[derive(Serialize, Deserialize)]
 pub struct CommitEntry {
-    id: String,
-    message: String,
-    timestamp: i64,
-    is_current: bool,
+    pub id: String,
+    pub message: String,
+    pub timestamp: i64,
+    pub is_current: bool,
 }
 
 /// Stage all files in the repository, excluding .git internals.

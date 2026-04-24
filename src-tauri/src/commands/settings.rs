@@ -104,3 +104,100 @@ pub fn get_settings(state: State<'_, AppState>) -> Result<Settings, String> {
         top_p: file_settings.top_p,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{get_settings_path, load_settings_from_file, save_settings_to_file};
+    use crate::types::Settings;
+    use std::fs;
+    use std::sync::{Mutex, OnceLock};
+
+    fn settings_lock() -> std::sync::MutexGuard<'static, ()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+            .lock()
+            .expect("settings test lock should succeed")
+    }
+
+    fn with_clean_settings_file(test: impl FnOnce(&std::path::Path)) {
+        let _guard = settings_lock();
+        let path = get_settings_path().expect("settings path should resolve");
+        let backup = fs::read(&path).ok();
+
+        if path.exists() {
+            fs::remove_file(&path).expect("existing settings file should be removable");
+        }
+
+        test(&path);
+
+        if let Some(bytes) = backup {
+            fs::write(&path, bytes).expect("settings backup should be restored");
+        } else if path.exists() {
+            fs::remove_file(&path).expect("temporary settings file should be removed");
+        }
+    }
+
+    #[test]
+    fn load_settings_returns_defaults_when_file_is_missing() {
+        with_clean_settings_file(|_| {
+            let settings = load_settings_from_file();
+
+            assert_eq!(settings.api_key, "");
+            assert_eq!(settings.model, "gpt-4o-mini");
+            assert_eq!(
+                settings.endpoint,
+                "https://api.openai.com/v1/chat/completions"
+            );
+            assert_eq!(settings.temperature, 0.7);
+            assert_eq!(settings.top_p, 1.0);
+        });
+    }
+
+    #[test]
+    fn save_settings_round_trips_through_the_settings_file() {
+        with_clean_settings_file(|path| {
+            let settings = Settings {
+                api_key: "secret".to_string(),
+                model: "gpt-4.1-mini".to_string(),
+                endpoint: "https://example.test/chat".to_string(),
+                temperature: 0.25,
+                top_p: 0.9,
+            };
+
+            save_settings_to_file(&settings).expect("settings should save");
+
+            let raw = fs::read_to_string(path).expect("settings file should exist");
+            let loaded = load_settings_from_file();
+
+            assert!(raw.contains("gpt-4.1-mini"));
+            assert_eq!(loaded.api_key, "secret");
+            assert_eq!(loaded.model, "gpt-4.1-mini");
+            assert_eq!(loaded.endpoint, "https://example.test/chat");
+            assert_eq!(loaded.temperature, 0.25);
+            assert_eq!(loaded.top_p, 0.9);
+        });
+    }
+
+    #[test]
+    fn load_settings_uses_default_numeric_values_for_partial_json() {
+        with_clean_settings_file(|path| {
+            fs::write(
+                path,
+                r#"{
+  "apiKey": "partial",
+  "model": "model-x",
+  "endpoint": "https://example.test/chat"
+}"#,
+            )
+            .expect("partial settings file should be written");
+
+            let loaded = load_settings_from_file();
+
+            assert_eq!(loaded.api_key, "partial");
+            assert_eq!(loaded.model, "model-x");
+            assert_eq!(loaded.endpoint, "https://example.test/chat");
+            assert_eq!(loaded.temperature, 0.7);
+            assert_eq!(loaded.top_p, 1.0);
+        });
+    }
+}
