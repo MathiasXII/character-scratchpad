@@ -46,4 +46,7 @@ pub struct Settings {
 pub struct ContextFile {
     pub name: String,
     pub content: String,
+    #[serde(default)]
+    #[serde(rename = "isReadOnly")]
+    pub is_read_only: bool,
 }
