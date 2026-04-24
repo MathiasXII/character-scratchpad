@@ -124,3 +124,29 @@ pub fn create_character(work_folder: String, name: String) -> Result<String, Str
         .map(|path| path.to_string())
         .ok_or_else(|| "Failed to convert character path to string".to_string())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::validate_character_name;
+
+    #[test]
+    fn test_validate_character_name_rejects_empty() {
+        assert!(validate_character_name("").is_err());
+    }
+
+    #[test]
+    fn test_validate_character_name_rejects_path_traversal() {
+        assert!(validate_character_name("../etc").is_err());
+    }
+
+    #[test]
+    fn test_validate_character_name_rejects_slashes() {
+        assert!(validate_character_name("foo/bar").is_err());
+        assert!(validate_character_name("foo\\bar").is_err());
+    }
+
+    #[test]
+    fn test_validate_character_name_allows_normal() {
+        assert!(validate_character_name("my-character").is_ok());
+    }
+}
