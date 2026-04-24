@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::path::Path;
 
@@ -13,6 +14,7 @@ pub struct CommitEntry {
     id: String,
     message: String,
     timestamp: i64,
+    is_current: bool,
 }
 
 /// Stage all files in the repository, excluding .git internals.
@@ -55,24 +57,71 @@ pub fn git_commit(repo_path: String, message: String) -> Result<String, String> 
 #[tauri::command]
 pub fn git_log(repo_path: String) -> Result<Vec<CommitEntry>, String> {
     let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
-    let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
 
+    // Empty repo — nothing to list
+    if repo.is_empty().unwrap_or(true) {
+        return Ok(Vec::new());
+    }
+
+    // Resolve current HEAD OID for is_current marking
+    let head_oid = repo
+        .head()
+        .ok()
+        .and_then(|r| r.peel_to_commit().ok())
+        .map(|c| c.id());
+
+    // Collect OIDs reachable from HEAD via revwalk
+    let mut revwalk = repo.revwalk().map_err(|e| e.to_string())?;
     revwalk.push_head().map_err(|e| e.to_string())?;
     revwalk.set_sorting(Sort::TIME).map_err(|e| e.to_string())?;
 
-    revwalk
-        .take(50)
-        .map(|oid| {
-            let oid = oid.map_err(|e| e.to_string())?;
-            let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
+    let mut seen_oids: HashSet<Oid> = HashSet::new();
+    let mut entries: Vec<CommitEntry> = Vec::new();
 
-            Ok(CommitEntry {
+    for oid_result in revwalk {
+        let oid = oid_result.map_err(|e| e.to_string())?;
+        seen_oids.insert(oid);
+        let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
+        entries.push(CommitEntry {
+            id: commit.id().to_string(),
+            message: commit.message().map(str::trim).unwrap_or("").to_string(),
+            timestamp: commit.time().seconds(),
+            is_current: head_oid == Some(commit.id()),
+        });
+    }
+
+    // Also include commits reachable via reflog that aren't in the revwalk
+    if let Ok(reflog) = repo.reflog("HEAD") {
+        for entry in reflog.iter() {
+            let oid = entry.id_new();
+            if seen_oids.contains(&oid) {
+                continue;
+            }
+            // Skip the zero OID (indicates a birth entry with no prior commit)
+            if oid.is_zero() {
+                continue;
+            }
+            seen_oids.insert(oid);
+            let commit = match repo.find_commit(oid) {
+                Ok(c) => c,
+                Err(_) => continue, // OID no longer resolvable (e.g. garbage-collected)
+            };
+            entries.push(CommitEntry {
                 id: commit.id().to_string(),
                 message: commit.message().map(str::trim).unwrap_or("").to_string(),
                 timestamp: commit.time().seconds(),
-            })
-        })
-        .collect()
+                is_current: head_oid == Some(commit.id()),
+            });
+        }
+    }
+
+    // Sort all entries by timestamp descending (newest first)
+    entries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+
+    // Limit to 50 entries total
+    entries.truncate(50);
+
+    Ok(entries)
 }
 
 #[tauri::command]
