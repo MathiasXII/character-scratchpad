@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::Path;
 
+use lopdf::Document;
+
 use crate::types::ContextFile;
 
 /// Reject paths that contain traversal components (e.g. ".." or "." segments).
@@ -26,7 +28,10 @@ fn validate_filename(filename: &str) -> Result<(), String> {
         return Err("Filename cannot be empty".to_string());
     }
     if filename.starts_with('.') {
-        return Err(format!("Invalid filename (cannot start with '.'): '{}'", filename));
+        return Err(format!(
+            "Invalid filename (cannot start with '.'): '{}'",
+            filename
+        ));
     }
     if filename.contains("..") || filename.contains('/') || filename.contains('\\') {
         return Err(format!("Invalid filename: '{}'", filename));
@@ -37,8 +42,8 @@ fn validate_filename(filename: &str) -> Result<(), String> {
 #[tauri::command]
 pub fn load_file(path: String) -> Result<String, String> {
     validate_path(&path)?;
-    let content = fs::read_to_string(&path)
-        .map_err(|e| format!("Failed to read '{}': {}", path, e))?;
+    let content =
+        fs::read_to_string(&path).map_err(|e| format!("Failed to read '{}': {}", path, e))?;
     // Normalize line endings to LF — prevents spurious saves on Windows (CRLF vs LF)
     Ok(content.replace("\r\n", "\n").replace('\r', "\n"))
 }
@@ -68,16 +73,16 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
     }
 
     let mut files = Vec::new();
-    let entries = fs::read_dir(&context_dir)
-        .map_err(|e| format!("Failed to read context dir: {}", e))?;
+    let entries =
+        fs::read_dir(&context_dir).map_err(|e| format!("Failed to read context dir: {}", e))?;
 
     for entry in entries {
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
         let path = entry.path();
 
-        // Only include .txt and .md files (non-hidden)
+        // Only include .txt, .md, and .pdf files (non-hidden)
         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-        if ext != "txt" && ext != "md" {
+        if ext != "txt" && ext != "md" && ext != "pdf" {
             continue;
         }
 
@@ -92,10 +97,14 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
             continue;
         }
 
-        let content = fs::read_to_string(&path)
-            .map_err(|e| format!("Failed to read '{}': {}", path.display(), e))?;
-        // Normalize line endings to LF for consistency
-        let content = content.replace("\r\n", "\n").replace('\r', "\n");
+        let content = if ext == "pdf" {
+            extract_pdf_text(&path)?
+        } else {
+            let raw = fs::read_to_string(&path)
+                .map_err(|e| format!("Failed to read '{}': {}", path.display(), e))?;
+            // Normalize line endings to LF for consistency
+            raw.replace("\r\n", "\n").replace('\r', "\n")
+        };
 
         files.push(ContextFile {
             name: file_name,
@@ -114,9 +123,12 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
 pub fn create_context_file(character_dir: String, filename: String) -> Result<String, String> {
     validate_filename(&filename)?;
 
-    // Auto-append .txt extension if no .txt or .md extension
-    let ext = Path::new(&filename).extension().and_then(|e| e.to_str()).unwrap_or("");
-    let filename_with_ext = if ext != "txt" && ext != "md" {
+    // Auto-append .txt extension if no recognized extension (.txt, .md, .pdf)
+    let ext = Path::new(&filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    let filename_with_ext = if ext != "txt" && ext != "md" && ext != "pdf" {
         format!("{}.txt", filename)
     } else {
         filename
@@ -165,8 +177,7 @@ pub fn delete_context_file(character_dir: String, filename: String) -> Result<()
     }
 
     // Delete the file
-    fs::remove_file(&canonical_file)
-        .map_err(|e| format!("Failed to delete '{}': {}", filename, e))
+    fs::remove_file(&canonical_file).map_err(|e| format!("Failed to delete '{}': {}", filename, e))
 }
 
 /// Copy an external file into a character's context/ directory.
@@ -234,15 +245,15 @@ pub fn copy_file_to_context(source_path: String, character_dir: String) -> Resul
     }
 
     let target_path = context_dir.join(&target_filename);
-    fs::copy(source, &target_path)
-        .map_err(|e| format!("Failed to copy file: {}", e))?;
+    fs::copy(source, &target_path).map_err(|e| format!("Failed to copy file: {}", e))?;
 
     Ok(target_filename)
 }
 
 /// Extract text content from a PDF file using lopdf.
 fn extract_pdf_text(path: &Path) -> Result<String, String> {
-    let bytes = fs::read(path).map_err(|e| format!("Failed to read PDF '{}': {}", path.display(), e))?;
+    let bytes =
+        fs::read(path).map_err(|e| format!("Failed to read PDF '{}': {}", path.display(), e))?;
     let doc = Document::load_mem(&bytes).map_err(|e| format!("{}", e))?;
     let pages: Vec<u32> = doc.get_pages().keys().cloned().collect();
     doc.extract_text(&pages).map_err(|e| format!("{}", e))
