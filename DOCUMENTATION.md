@@ -14,8 +14,8 @@ Create an environment to develop and test characters that are compatible with Ve
 
 | Layer | Technology | Role |
 |-------|-----------|------|
-| Native shell | **Tauri v1** (Rust) | Desktop window, filesystem access, git operations, HTTP client |
-| Backend | **Rust** (`src-tauri/src/main.rs`) | API proxy with streaming, app state management, Tauri commands |
+| Native shell | **Tauri v2** (Rust) | Desktop window, filesystem access, git operations, HTTP client |
+| Backend | **Rust** (`src-tauri/src/`) | API proxy with streaming, app state management, Tauri commands |
 | Frontend | **Vanilla HTML/CSS/JS** (`ui/`) | UI rendering, user interaction, markdown display |
 
 ### Why Tauri?
@@ -57,11 +57,13 @@ llm-chat/
 
 | Crate | Purpose |
 |-------|---------|
-| `tauri` 1.x | Desktop framework, IPC, event system |
-| `reqwest` 0.11 | HTTP client with streaming support |
+| `tauri` 2.x | Desktop framework, IPC, event system |
+| `reqwest` 0.13 | HTTP client with streaming support |
 | `serde` / `serde_json` | Serialization for API payloads |
 | `futures-util` 0.3 | Stream processing for SSE parsing |
 | `tokio` 1.x | Async runtime |
+| `git2` 0.20 | Local git operations for version control |
+| `lopdf` 0.34 | PDF text extraction for context files |
 
 ---
 
@@ -121,14 +123,14 @@ Each character folder is backed by a local git repository.
 | `system-prompt.txt` | The system prompt injected into the LLM API call. Defines the role and instructions the model follows. |
 | `description.txt` | A user-facing description of the character. Visible from the character list on Venice.ai. Must be enticing and self-contained. |
 | `intro.txt` | The opening line of the character. Implicitly included as if the LLM already produced this as its first message. |
-| `context/*.md` or `context/*.txt` | Supplementary context files the user can create and edit within the application. These are included in the prompt payload. |
+| `context/*.md` or `context/*.txt` or `context/*.pdf` | Supplementary context files the user can create and edit within the application. These are included in the prompt payload. PDF files are read-only — their text is extracted and displayed, but not editable. |
 
 **Rules:**
 
 - The work folder location is configurable.
 - Each character gets its own subfolder.
-- All character files are plain text (`.md` or `.txt`), editable both inside the app and externally.
-- Context files are user-created; the app provides an editor for them.
+- All character files are plain text (`.md` or `.txt`), editable both inside the app and externally. PDF context files are read-only inside the app.
+- Context files can also be added by dragging and dropping `.txt`, `.md`, or `.pdf` files onto the context sidebar.
 
 ---
 
@@ -235,9 +237,10 @@ The endpoint is configurable to support Venice.ai's API or any OpenAI-compatible
 | `git_commit` | Stage all changes and commit with a user-provided message |
 | `git_revert` | Revert character files to a specified commit |
 | `git_log` | Return the commit history for the current character |
-| `list_context_files` | Return all `.md`/`.txt` files in a character's `context/` folder (name + content) |
+| `list_context_files` | Return all `.md`/`.txt`/`.pdf` files in a character's `context/` folder (name + content + isReadOnly) |
 | `create_context_file` | Create a new context file in the `context/` folder |
 | `delete_context_file` | Delete a context file from the `context/` folder |
+| `copy_file_to_context` | Copy an external file (`.txt`/`.md`/`.pdf`) into a character's `context/` folder (resolves name collisions) |
 
 ---
 
@@ -255,13 +258,14 @@ messages: [
        %%CHARACTER_INSTRUCTIONS%% is still replaced (just instructions injected into empty string)
      - If BOTH are empty: no system message is sent
 
-  2. CONTEXT FILE messages (one per file in context/ directory)
+   2. CONTEXT FILE messages (one per file in context/ directory, including PDF files with extracted text)
      - Role: "user"
      - Content: "The following information is provided as background context for
        this character. It is not always relevant. Only refer to it if it's relevant
        to the discussion: <file content>"
      - isFile: true (non-standard flag, marks these as file attachments)
      - Only included if the file has non-empty content
+      - PDF files have their text extracted at load time; they are read-only in the editor
      - Sorted alphabetically by filename
 
   3. CONVERSATION HISTORY (user/assistant messages as-is)
@@ -331,7 +335,7 @@ messages: [
 
 - **Rust** (stable toolchain)
 - **Node.js** (for `@tauri-apps/cli`)
-- **Tauri CLI** v1 (`npm install` handles this)
+- **Tauri CLI** v2 (`npm install` handles this)
 
 ### Running
 

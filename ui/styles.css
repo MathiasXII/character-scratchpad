@@ -351,6 +351,7 @@ main {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 
 .context-sidebar-header {
@@ -465,6 +466,43 @@ main {
   text-align: center;
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+/* Drop overlay for drag & drop */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(108, 99, 255, 0.15);
+  border: 2px dashed var(--accent);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.drop-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+
+.drop-overlay-icon {
+  font-size: 24px;
+}
+
+.drop-overlay-text {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.context-sidebar.drag-active .context-sidebar-header {
+  background: rgba(108, 99, 255, 0.2);
 }
 
 /* Pane Divider */
@@ -1054,6 +1092,26 @@ main {
   border-color: var(--accent);
 }
 
+.git-history-entry.current {
+  border-left: 3px solid var(--accent);
+  background: rgba(108, 99, 255, 0.08);
+}
+
+.git-history-entry.current .git-revert-btn {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+.git-history-entry.current .git-revert-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
 /* Markdown Rendering in Chat Messages */
 .message .content p {
   margin-bottom: 8px;
@@ -1358,4 +1416,15 @@ main {
 /* Context tab hidden state */
 #tab-bar .tab.tab-hidden {
   display: none;
+}
+
+.context-file-badge {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--accent, #6c63ff);
+  color: #fff;
+  margin-left: 6px;
+  opacity: 0.7;
+  vertical-align: middle;
 }

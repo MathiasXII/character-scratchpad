@@ -93,6 +93,8 @@ export async function handleCreateCharacter() {
   }
 }
 
+// NOTE: When updating the file-loading logic in this function,
+// also update reloadAfterRevert() below to stay in sync.
 export async function handleCharacterSelect() {
   const name = dom.characterSelect.value;
 
@@ -166,6 +168,82 @@ export async function handleCharacterSelect() {
   setEditorPlaceholder("Start editing...");
   updateTokenCounter();
   state.isLoadingCharacter = false;
+  updateGitBarVisibility();
+  checkDirty();
+  updateUIState();
+}
+
+/**
+ * Reload file contents from disk after a git revert.
+ * Unlike handleCharacterSelect, this does NOT call ensure_character_files
+ * (which would recreate missing files and overwrite the reverted state)
+ * and preserves the active context file if it still exists.
+ *
+ * If you update the file-loading logic in handleCharacterSelect,
+ * you MUST also update this function to stay in sync.
+ */
+export async function reloadAfterRevert() {
+  clearTimeout(state.saveTimeout);
+  state.saveTimeout = null;
+
+  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const fileEntries = Object.entries(TAB_FILE_MAP).map(([key, filename]) => [
+    key,
+    charDir + "/" + filename,
+  ]);
+
+  const results = await Promise.all(
+    fileEntries.map(([key, path]) =>
+      invoke("load_file", { path })
+        .then((content) => ({ key, content }))
+        .catch((error) => {
+          console.error(`Failed to load ${key}:`, error);
+          return { key, content: "" };
+        })
+    )
+  );
+
+  for (const { key, content } of results) {
+    state.tabContents[key] = content;
+    state.lastSavedContent[key] = content;
+  }
+
+  try {
+    state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
+  } catch (error) {
+    console.error("Failed to load context files:", error);
+    state.contextFiles = [];
+  }
+
+  if (state.activeContextFile) {
+    const stillExists = state.contextFiles.find((f) => f.name === state.activeContextFile);
+    if (!stillExists) {
+      state.activeContextFile = null;
+    }
+  }
+
+  state.contextLastSaved = {};
+  for (const file of state.contextFiles) {
+    state.contextLastSaved[file.name] = file.content;
+  }
+
+  renderContextFileList();
+
+  if (state.activeTab === "context") {
+    if (state.activeContextFile) {
+      const file = state.contextFiles.find((f) => f.name === state.activeContextFile);
+      setEditorValue(file?.content ?? "");
+      setEditorPlaceholder("Start editing...");
+    } else {
+      setEditorValue("");
+      setEditorPlaceholder("Select a context file...");
+    }
+  } else {
+    setEditorValue(state.tabContents[state.activeTab]);
+    setEditorPlaceholder("Start editing...");
+  }
+
+  updateTokenCounter();
   updateGitBarVisibility();
   checkDirty();
   updateUIState();

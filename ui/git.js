@@ -1,8 +1,8 @@
 const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP, TRACKED_FOLDERS } from "./app.js";
-import { showSaveError } from "./editor.js";
-import { handleCharacterSelect } from "./characters.js";
+import { showSaveError, saveCurrentTab } from "./editor.js";
+import { reloadAfterRevert } from "./characters.js";
 import { getEditorValue } from "./editor.js";
 
 let isCommitting = false;
@@ -81,11 +81,8 @@ export async function checkDirty() {
 
       // If the file doesn't exist at HEAD, it's a new file → pending change
       if (headContent === null) {
-        if (currentContent.trim() !== "") {
-          hasPendingChanges = true;
-          break;
-        }
-        continue;
+        hasPendingChanges = true;
+        break;
       }
 
       if (currentContent !== headContent) {
@@ -109,11 +106,8 @@ export async function checkDirty() {
 
           if (headContent === null) {
             // New context file not in HEAD → pending change
-            if (file.content.trim() !== "") {
-              hasPendingChanges = true;
-              break;
-            }
-            continue;
+            hasPendingChanges = true;
+            break;
           }
 
           // Context file content comes from list_context_files (already LF-normalized by Rust)
@@ -239,6 +233,7 @@ async function handleSaveCheckpoint() {
   showStatus("Saving...", "saving");
 
   try {
+    await saveCurrentTab();
     await invoke("git_commit", { repoPath, message });
 
     showStatus("✓ Saved", "saved");
@@ -295,21 +290,36 @@ export async function openGitHistory() {
       for (const entry of commits) {
         const el = document.createElement("div");
         el.className = "git-history-entry";
+        if (entry.is_current) {
+          el.classList.add("current");
+        }
+
+        const isCurrent = !!entry.is_current;
+        const buttonLabel = isCurrent ? "Current version" : "Restore this version";
         el.innerHTML = `
           <div class="git-entry-info">
             <span class="git-entry-message">${escapeHtml(entry.message)}</span>
             <span class="git-entry-time">${formatTimestamp(entry.timestamp)}</span>
           </div>
-          <button class="git-revert-btn" data-commit-id="${escapeHtml(entry.id)}">Restore this version</button>
+          <button class="git-revert-btn" data-commit-id="${escapeHtml(entry.id)}"${isCurrent ? " disabled" : ""}>${buttonLabel}</button>
         `;
-        el.querySelector(".git-revert-btn").addEventListener("click", () => {
-          handleGitRevert(entry.id);
-        });
+        if (!isCurrent) {
+          el.querySelector(".git-revert-btn").addEventListener("click", () => {
+            handleGitRevert(entry.id);
+          });
+        }
         historyList.appendChild(el);
       }
     }
 
     historyModal.classList.remove("hidden");
+
+    requestAnimationFrame(() => {
+      const currentEntry = historyList.querySelector(".git-history-entry.current");
+      if (currentEntry) {
+        currentEntry.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      }
+    });
   } catch (error) {
     showSaveError("Failed to load history: " + (typeof error === "string" ? error : String(error)));
   }
@@ -331,7 +341,7 @@ async function handleGitRevert(commitId) {
 
   try {
     await invoke("git_revert", { repoPath, commitId });
-    await handleCharacterSelect();
+    await reloadAfterRevert();
     await checkDirty();
   } catch (error) {
     showSaveError("Restore failed: " + (typeof error === "string" ? error : String(error)));
