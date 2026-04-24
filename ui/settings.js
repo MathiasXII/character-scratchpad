@@ -12,6 +12,19 @@ export function closeSettingsModal() {
   dom.settingsModal.classList.add("hidden");
 }
 
+export async function loadSettingsFromFile() {
+  const settings = await invoke("get_settings");
+  dom.apiKeyInput.value = settings.apiKey || "";
+  dom.modelInput.value = settings.model || "gpt-4o-mini";
+  dom.endpointInput.value = settings.endpoint || "https://api.openai.com/v1/chat/completions";
+  dom.temperatureInput.value = String(settings.temperature ?? 0.7);
+  dom.topPInput.value = String(settings.topP ?? 1.0);
+  dom.workFolderInput.value = localStorage.getItem("llm-work-folder") || "";
+  dom.temperatureValue.textContent = dom.temperatureInput.value;
+  dom.topPValue.textContent = dom.topPInput.value;
+  state.currentWorkFolder = dom.workFolderInput.value;
+}
+
 export function loadSettingsFromStorage() {
   dom.apiKeyInput.value = localStorage.getItem("llm-api-key") || "";
   dom.modelInput.value = localStorage.getItem("llm-model") || "gpt-4o-mini";
