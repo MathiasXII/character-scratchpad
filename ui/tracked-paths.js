@@ -18,6 +18,6 @@ export const TRACKED_TAB_FILES = {
 export const TRACKED_FOLDERS = [
   {
     path: "context",
-    extensions: [".md", ".txt"],
+    extensions: [".md", ".txt", ".pdf"],
   },
 ];

@@ -16,7 +16,7 @@ A desktop application for developing and testing AI characters compatible with [
 - **Streaming chat** — streams responses from any OpenAI-compatible API (Venice.ai, OpenAI, local models)
 - **Character file editor** — tabs for `Instructions`, `System Prompt`, `Description`, and `First Response`
 - **Git-backed versioning** — each character folder is a local git repo; save checkpoints and restore any version
-- **Context files** — attach supplementary `.md`/`.txt` files that get injected into the prompt payload
+- **Context files** — attach supplementary `.md`/`.txt`/`.pdf` files that get injected into the prompt payload; drag & drop to add files
 - **Auto-save** — edits are silently persisted to disk; errors are surfaced immediately
 
 ---
@@ -91,8 +91,9 @@ Each character is a folder inside your work folder:
     ├── system-prompt.txt    # System prompt sent to the LLM API
     ├── description.txt      # Public-facing description (for Venice.ai listings)
     ├── intro.txt            # Opening line the character implicitly "already said"
-    └── context/             # Optional supplementary context files
+    └── context/             # Optional supplementary context files (.md, .txt, .pdf)
         ├── lore.md
+        ├── reference.pdf     # PDFs are read-only; text is extracted for display
         └── ...
 ```
 
@@ -132,11 +133,11 @@ llm-chat/
 │   └── src/
 │       ├── main.rs           # Tauri builder, AppState init, command registration
 │       ├── state.rs          # AppState (api_key, model, endpoint)
-│       ├── types.rs          # Shared types: ChatMessage, Settings, etc.
+│       ├── types.rs          # Shared types: ChatMessage, Settings, ContextFile (with isReadOnly), etc.
 │       └── commands/
 │           ├── stream_chat.rs   # Streaming chat completions (SSE → Tauri events)
 │           ├── settings.rs      # update_settings / get_settings
-│           ├── files.rs         # load_file, save_file, list_context_files, create_context_file, delete_context_file
+│           ├── files.rs         # load_file, save_file, list_context_files, create_context_file, delete_context_file, copy_file_to_context
 │           ├── characters.rs    # list_characters, create_character
 │           └── git.rs           # git_commit, git_log, git_revert, checkpoints
 └── ui/
@@ -144,9 +145,9 @@ llm-chat/
     ├── styles.css            # Dark theme (CSS variables)
     ├── app.js                # Orchestrator: shared state/DOM, init, event wiring
     ├── chat.js               # Send, stream listeners, message DOM
-    ├── editor.js             # Tab switching, auto-save, token counter
+    ├── editor.js             # Tab switching, auto-save, token counter, read-only mode
     ├── characters.js         # Character list, select, create
-    ├── context.js              # Context file sidebar: list, select, add, delete
+    ├── context.js            # Context file sidebar: list, select, add, delete, drag & drop, PDF badge
     ├── settings.js           # Settings modal load/save/sync
     ├── git.js                # Checkpoint bar, history modal
     └── divider.js            # Pane divider drag logic
