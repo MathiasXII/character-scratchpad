@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::types::ContextFile;
+use lopdf::Document;
 
 /// Reject paths that contain traversal components (e.g. ".." or "." segments).
 fn validate_path(path: &str) -> Result<(), String> {
@@ -75,9 +76,9 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
         let entry = entry.map_err(|e| format!("Failed to read entry: {}", e))?;
         let path = entry.path();
 
-        // Only include .txt and .md files (non-hidden)
+        // Only include .txt, .md, and .pdf files (non-hidden)
         let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
-        if ext != "txt" && ext != "md" {
+        if ext != "txt" && ext != "md" && ext != "pdf" {
             continue;
         }
 
@@ -92,14 +93,25 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
             continue;
         }
 
-        let content = fs::read_to_string(&path)
-            .map_err(|e| format!("Failed to read '{}': {}", path.display(), e))?;
-        // Normalize line endings to LF for consistency
-        let content = content.replace("\r\n", "\n").replace('\r', "\n");
+        let (content, is_read_only) = if ext == "pdf" {
+            // Extract text from PDF files
+            let content = match extract_pdf_text(&path) {
+                Ok(text) => text,
+                Err(e) => format!("[PDF text extraction failed: {}]", e),
+            };
+            (content, true)
+        } else {
+            let content = fs::read_to_string(&path)
+                .map_err(|e| format!("Failed to read '{}': {}", path.display(), e))?;
+            // Normalize line endings to LF for consistency
+            let content = content.replace("\r\n", "\n").replace('\r', "\n");
+            (content, false)
+        };
 
         files.push(ContextFile {
             name: file_name,
             content,
+            is_read_only,
         });
     }
 
@@ -167,4 +179,12 @@ pub fn delete_context_file(character_dir: String, filename: String) -> Result<()
     // Delete the file
     fs::remove_file(&canonical_file)
         .map_err(|e| format!("Failed to delete '{}': {}", filename, e))
+}
+
+/// Extract text content from a PDF file using lopdf.
+fn extract_pdf_text(path: &Path) -> Result<String, String> {
+    let bytes = fs::read(path).map_err(|e| format!("Failed to read PDF '{}': {}", path.display(), e))?;
+    let doc = Document::load_mem(&bytes).map_err(|e| format!("{}", e))?;
+    let pages: Vec<u32> = doc.get_pages().keys().cloned().collect();
+    doc.extract_text(&pages).map_err(|e| format!("{}", e))
 }
