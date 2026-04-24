@@ -181,6 +181,77 @@ pub fn delete_context_file(character_dir: String, filename: String) -> Result<()
         .map_err(|e| format!("Failed to delete '{}': {}", filename, e))
 }
 
+/// Copy an external file into a character's context/ directory.
+/// Returns the filename used (which may differ from the original if a collision occurred).
+#[tauri::command]
+pub fn copy_file_to_context(source_path: String, character_dir: String) -> Result<String, String> {
+    validate_path(&source_path)?;
+    validate_path(&character_dir)?;
+
+    let source = Path::new(&source_path);
+    if !source.exists() {
+        return Err(format!("Source file not found: {}", source_path));
+    }
+    if !source.is_file() {
+        return Err(format!("Source is not a file: {}", source_path));
+    }
+
+    let filename = source
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| "Invalid source filename".to_string())?
+        .to_string();
+
+    // Validate the filename (reject hidden files, path separators, etc.)
+    validate_filename(&filename)?;
+
+    // Only allow certain file extensions
+    let ext = Path::new(&filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("")
+        .to_lowercase();
+    let allowed_extensions = ["txt", "md", "pdf"];
+    if !allowed_extensions.contains(&ext.as_str()) {
+        return Err(format!(
+            "File type '.{}' is not supported. Allowed types: {}",
+            ext,
+            allowed_extensions.join(", ")
+        ));
+    }
+
+    let context_dir = Path::new(&character_dir).join("context");
+
+    // Ensure context directory exists
+    fs::create_dir_all(&context_dir)
+        .map_err(|e| format!("Failed to create context directory: {}", e))?;
+
+    // Resolve collisions by appending a counter before the extension
+    let mut target_filename = filename.clone();
+    let mut counter = 1;
+    let stem = Path::new(&filename)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("file")
+        .to_string();
+    let ext_with_dot = if ext.is_empty() {
+        String::new()
+    } else {
+        format!(".{}", ext)
+    };
+
+    while context_dir.join(&target_filename).exists() {
+        target_filename = format!("{}-{}{}", stem, counter, ext_with_dot);
+        counter += 1;
+    }
+
+    let target_path = context_dir.join(&target_filename);
+    fs::copy(&source, &target_path)
+        .map_err(|e| format!("Failed to copy file: {}", e))?;
+
+    Ok(target_filename)
+}
+
 /// Extract text content from a PDF file using lopdf.
 fn extract_pdf_text(path: &Path) -> Result<String, String> {
     let bytes = fs::read(path).map_err(|e| format!("Failed to read PDF '{}': {}", path.display(), e))?;
