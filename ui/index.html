@@ -56,6 +56,7 @@
           <div id="token-counter">0 tokens</div>
           <div id="version-control-bar">
             <button id="git-history-btn" class="git-bar-control" title="View history">⏱ History</button>
+            <button id="preview-btn" class="git-bar-control" title="Preview assembled prompt">👁 Preview</button>
             <span id="git-status-indicator" class="git-status-indicator"></span>
             <button id="git-commit-btn" class="git-bar-control" title="Save checkpoint" disabled>💾 Save checkpoint</button>
           </div>
@@ -154,6 +155,19 @@
       </div>
       <div class="modal-body">
         <div id="git-history-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Prompt Modal -->
+  <div id="preview-modal" class="modal hidden">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2>Prompt Preview</h2>
+        <button id="preview-close" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="preview-content"></div>
       </div>
     </div>
   </div>

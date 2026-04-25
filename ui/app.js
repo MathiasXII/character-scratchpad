@@ -114,6 +114,7 @@ import {
   syncSettingsToBackend,
 } from "./settings.js";
 import { initContext } from "./context.js";
+import { initPreview } from "./preview.js";
 
 const { open } = window.__TAURI__.dialog;
 
@@ -199,6 +200,7 @@ async function init() {
   }
   initGit();
   initContext();
+  initPreview();
   await loadCharacters();
   initStreamListeners();
   initModelCombobox();

@@ -862,6 +862,10 @@ main {
   max-width: 340px;
 }
 
+.modal-lg {
+  max-width: 720px;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -1110,6 +1114,121 @@ main {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   border-color: var(--border);
+}
+
+/* Preview Modal */
+#preview-content {
+  max-height: 60vh;
+  overflow-y: auto;
+  line-height: 1.6;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+#preview-content:empty::before {
+  content: "No prompt to preview. Select a character first.";
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 32px 0;
+  display: block;
+}
+
+#preview-content h4 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 28px 0 8px 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+#preview-content h4:first-child {
+  margin-top: 0;
+}
+
+#preview-content h1 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 28px 0 12px 0;
+  color: var(--text-primary);
+}
+
+#preview-content h1:first-child {
+  margin-top: 0;
+}
+
+#preview-content h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 24px 0 10px 0;
+  color: var(--text-primary);
+}
+
+#preview-content h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 20px 0 8px 0;
+  color: var(--text-primary);
+}
+
+#preview-content ul, #preview-content ol {
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.preview-role-system {
+  color: #a78bfa;
+  border-bottom-color: rgba(167, 139, 250, 0.3);
+}
+
+.preview-role-user {
+  color: #60a5fa;
+  border-bottom-color: rgba(96, 165, 250, 0.3);
+}
+
+.preview-role-assistant {
+  color: #4ade80;
+  border-bottom-color: rgba(74, 222, 128, 0.3);
+}
+
+#preview-content p {
+  margin: 8px 0;
+}
+
+#preview-content p:first-child {
+  margin-top: 0;
+}
+
+#preview-content p:last-child {
+  margin-bottom: 0;
+}
+
+#preview-content pre {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+#preview-content code {
+  font-size: 13px;
+}
+
+#preview-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+#preview-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#preview-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
 }
 
 /* Markdown Rendering in Chat Messages */
