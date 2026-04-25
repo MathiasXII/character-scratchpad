@@ -84,7 +84,6 @@ export const dom = {
 };
 
 import {
-  addErrorMessage,
   autoResizeInput,
   handleSend,
   handleResend,

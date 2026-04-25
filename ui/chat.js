@@ -361,12 +361,22 @@ export function addMessage(role, content) {
   scrollToBottom();
 }
 
+const errorNotification = document.getElementById("error-notification");
+const errorText = document.getElementById("error-text");
+const errorDismiss = document.getElementById("error-dismiss");
+
+errorDismiss.addEventListener("click", hideErrorNotification);
+
 export function addErrorMessage(text) {
-  const el = document.createElement("div");
-  el.className = "message error";
-  el.textContent = text;
-  dom.messagesEl.appendChild(el);
-  scrollToBottom();
+  errorText.textContent = text;
+  errorNotification.classList.remove("hidden");
+  // Scroll to top so user sees the notification
+  dom.chatContainer.scrollTop = 0;
+}
+
+export function hideErrorNotification() {
+  errorNotification.classList.add("hidden");
+  errorText.textContent = "";
 }
 
 export function scrollToBottom() {
@@ -383,6 +393,7 @@ export function handleClearChat() {
   if (state.isStreaming) return;
   state.conversationHistory = [];
   dom.messagesEl.innerHTML = "";
+  hideErrorNotification();
   dom.resendBtn.disabled = true;
   dom.clearChatBtn.disabled = true;
   showWelcome();
