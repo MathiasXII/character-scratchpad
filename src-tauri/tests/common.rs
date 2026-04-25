@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct TempTestDir {
@@ -22,16 +22,13 @@ impl TempTestDir {
         Self { path }
     }
 
-    pub fn path(&self) -> &Path {
+    #[allow(dead_code)]
+    pub fn path(&self) -> &PathBuf {
         &self.path
     }
 
     pub fn join(&self, child: &str) -> PathBuf {
         self.path.join(child)
-    }
-
-    pub fn path_string(&self) -> String {
-        self.path.to_string_lossy().into_owned()
     }
 }
 
