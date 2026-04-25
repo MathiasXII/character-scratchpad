@@ -25,7 +25,7 @@ const DOMPURIFY_CONFIG = {
  *
  *   3. CONVERSATION HISTORY — the actual user/assistant messages as-is.
  */
-function buildMessagesArray() {
+export function buildMessagesArray() {
   // Sync active context file content to state.contextFiles before building messages
   if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
     const editorContent = state.cmView.state.doc.toString();
