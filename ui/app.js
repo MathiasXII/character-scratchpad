@@ -43,6 +43,8 @@ export const dom = {
   saveSettingsBtn: document.getElementById("save-settings"),
   apiKeyInput: document.getElementById("api-key"),
   modelInput: document.getElementById("model"),
+  modelDropdownBtn: document.getElementById("model-dropdown-btn"),
+  modelDropdown: document.getElementById("model-dropdown"),
   endpointInput: document.getElementById("endpoint"),
   temperatureInput: document.getElementById("temperature"),
   temperatureValue: document.getElementById("temperature-value"),
@@ -104,8 +106,10 @@ import { initGit, updateGitBarVisibility, checkDirty } from "./git.js";
 import {
   closeSettingsModal,
   handleSaveSettings,
+  initModelCombobox,
   loadSettingsFromFile,
   loadSettingsFromStorage,
+  onEndpointOrKeyChange,
   openSettingsModal,
   syncSettingsToBackend,
 } from "./settings.js";
@@ -197,6 +201,7 @@ async function init() {
   initContext();
   await loadCharacters();
   initStreamListeners();
+  initModelCombobox();
 
   // Set initial resend button state
   dom.resendBtn.disabled = state.conversationHistory.length === 0;
@@ -227,6 +232,8 @@ async function init() {
   dom.topPInput.addEventListener("input", () => {
     dom.topPValue.textContent = dom.topPInput.value;
   });
+  dom.apiKeyInput.addEventListener("input", onEndpointOrKeyChange);
+  dom.endpointInput.addEventListener("input", onEndpointOrKeyChange);
 
   dom.browseFolderBtn.addEventListener("click", async () => {
     const selected = await open({ directory: true, multiple: false });
