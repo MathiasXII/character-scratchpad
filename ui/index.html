@@ -97,10 +97,14 @@
         <input type="password" id="api-key" placeholder="sk-..." />
 
         <label for="model">Model</label>
-        <input type="text" id="model" placeholder="gpt-4o-mini" />
+        <div id="model-combobox" class="combobox">
+          <input type="text" id="model" placeholder="gpt-4o-mini" autocomplete="off" />
+          <button type="button" id="model-dropdown-btn" class="combobox-caret" disabled tabindex="-1" aria-label="Select model">&#9662;</button>
+          <div id="model-dropdown" class="combobox-dropdown hidden"></div>
+        </div>
 
         <label for="endpoint">API Endpoint</label>
-        <input type="text" id="endpoint" placeholder="https://api.openai.com/v1/chat/completions" />
+        <input type="text" id="endpoint" placeholder="https://api.openai.com/v1" />
 
         <div class="setting-row">
           <label for="temperature">Temperature <span id="temperature-value">0.7</span></label>

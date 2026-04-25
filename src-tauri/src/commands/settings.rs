@@ -18,14 +18,42 @@ fn get_settings_path() -> Result<PathBuf, String> {
     Ok(exe_dir.join("settings.json"))
 }
 
+/// Strips `/chat/completions` suffix (with optional trailing `/`) from an endpoint URL,
+/// then strips any remaining trailing `/`. Used for backward migration of old settings.
+fn strip_endpoint_suffix(endpoint: &str) -> String {
+    let mut result = endpoint.to_string();
+    // Strip /chat/completions with optional trailing /
+    if let Some(stripped) = result.strip_suffix("/chat/completions/") {
+        result = stripped.to_string();
+    } else if let Some(stripped) = result.strip_suffix("/chat/completions") {
+        result = stripped.to_string();
+    }
+    // Strip any remaining trailing /
+    while result.ends_with('/') {
+        result.pop();
+    }
+    result
+}
+
+/// Strips all trailing `/` characters from an endpoint URL.
+fn normalize_endpoint(endpoint: &str) -> String {
+    let mut result = endpoint.to_string();
+    while result.ends_with('/') {
+        result.pop();
+    }
+    result
+}
+
 /// Loads settings from the settings file, returning defaults if the file doesn't exist.
 fn load_settings_from_file() -> Settings {
     match get_settings_path() {
         Ok(path) => {
             if path.exists() {
                 match fs::read_to_string(&path) {
-                    Ok(content) => match serde_json::from_str(&content) {
-                        Ok(settings) => {
+                    Ok(content) => match serde_json::from_str::<Settings>(&content) {
+                        Ok(mut settings) => {
+                            // Migrate old endpoint format (full URL) to base URL
+                            settings.endpoint = strip_endpoint_suffix(&settings.endpoint);
                             eprintln!("Loaded settings from {:?}", path);
                             return settings;
                         }
@@ -48,7 +76,7 @@ fn load_settings_from_file() -> Settings {
     Settings {
         api_key: String::new(),
         model: "gpt-4o-mini".to_string(),
-        endpoint: "https://api.openai.com/v1/chat/completions".to_string(),
+        endpoint: "https://api.openai.com/v1".to_string(),
         temperature: 0.7,
         top_p: 1.0,
     }
@@ -72,15 +100,19 @@ fn save_settings_to_file(settings: &Settings) -> Result<(), String> {
 
 #[tauri::command]
 pub fn update_settings(state: State<'_, AppState>, settings: Settings) -> Result<(), String> {
+    let normalized_endpoint = normalize_endpoint(&settings.endpoint);
+
     // Update in-memory state
     *state.api_key.lock().map_err(|e| e.to_string())? = settings.api_key.clone();
     *state.model.lock().map_err(|e| e.to_string())? = settings.model.clone();
-    *state.endpoint.lock().map_err(|e| e.to_string())? = settings.endpoint.clone();
+    *state.endpoint.lock().map_err(|e| e.to_string())? = normalized_endpoint.clone();
     *state.temperature.lock().map_err(|e| e.to_string())? = settings.temperature;
     *state.top_p.lock().map_err(|e| e.to_string())? = settings.top_p;
 
-    // Persist to file
-    save_settings_to_file(&settings)
+    // Persist to file (with normalized endpoint)
+    let mut settings_to_save = settings;
+    settings_to_save.endpoint = normalized_endpoint;
+    save_settings_to_file(&settings_to_save)
 }
 
 #[tauri::command]
@@ -107,7 +139,9 @@ pub fn get_settings(state: State<'_, AppState>) -> Result<Settings, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_settings_path, load_settings_from_file, save_settings_to_file};
+    use super::{
+        get_settings_path, load_settings_from_file, save_settings_to_file, strip_endpoint_suffix,
+    };
     use crate::types::Settings;
     use std::fs;
     use std::sync::{Mutex, OnceLock};
@@ -144,10 +178,7 @@ mod tests {
 
             assert_eq!(settings.api_key, "");
             assert_eq!(settings.model, "gpt-4o-mini");
-            assert_eq!(
-                settings.endpoint,
-                "https://api.openai.com/v1/chat/completions"
-            );
+            assert_eq!(settings.endpoint, "https://api.openai.com/v1");
             assert_eq!(settings.temperature, 0.7);
             assert_eq!(settings.top_p, 1.0);
         });
@@ -159,7 +190,7 @@ mod tests {
             let settings = Settings {
                 api_key: "secret".to_string(),
                 model: "gpt-4.1-mini".to_string(),
-                endpoint: "https://example.test/chat".to_string(),
+                endpoint: "https://example.test".to_string(),
                 temperature: 0.25,
                 top_p: 0.9,
             };
@@ -172,7 +203,7 @@ mod tests {
             assert!(raw.contains("gpt-4.1-mini"));
             assert_eq!(loaded.api_key, "secret");
             assert_eq!(loaded.model, "gpt-4.1-mini");
-            assert_eq!(loaded.endpoint, "https://example.test/chat");
+            assert_eq!(loaded.endpoint, "https://example.test");
             assert_eq!(loaded.temperature, 0.25);
             assert_eq!(loaded.top_p, 0.9);
         });
@@ -186,7 +217,7 @@ mod tests {
                 r#"{
   "apiKey": "partial",
   "model": "model-x",
-  "endpoint": "https://example.test/chat"
+  "endpoint": "https://example.test"
 }"#,
             )
             .expect("partial settings file should be written");
@@ -195,9 +226,29 @@ mod tests {
 
             assert_eq!(loaded.api_key, "partial");
             assert_eq!(loaded.model, "model-x");
-            assert_eq!(loaded.endpoint, "https://example.test/chat");
+            assert_eq!(loaded.endpoint, "https://example.test");
             assert_eq!(loaded.temperature, 0.7);
             assert_eq!(loaded.top_p, 1.0);
         });
+    }
+
+    #[test]
+    fn strip_endpoint_suffix_migrates_old_format() {
+        assert_eq!(
+            strip_endpoint_suffix("https://api.openai.com/v1/chat/completions"),
+            "https://api.openai.com/v1"
+        );
+        assert_eq!(
+            strip_endpoint_suffix("https://api.openai.com/v1/chat/completions/"),
+            "https://api.openai.com/v1"
+        );
+        assert_eq!(
+            strip_endpoint_suffix("https://api.openai.com/v1"),
+            "https://api.openai.com/v1"
+        );
+        assert_eq!(
+            strip_endpoint_suffix("https://api.openai.com/v1/"),
+            "https://api.openai.com/v1"
+        );
     }
 }

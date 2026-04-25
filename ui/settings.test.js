@@ -14,18 +14,20 @@ const makeDom = () => {
     remove: vi.fn(),
   };
 
-  return {
-    settingsModal: { classList },
-    apiKeyInput: makeInput(),
-    modelInput: makeInput(),
-    endpointInput: makeInput(),
-    temperatureInput: makeInput(),
-    topPInput: makeInput(),
-    temperatureValue: { textContent: '' },
-    topPValue: { textContent: '' },
-    workFolderInput: makeInput(),
+    return {
+      settingsModal: { classList },
+      apiKeyInput: makeInput(),
+      modelInput: makeInput(),
+      endpointInput: makeInput(),
+      temperatureInput: makeInput(),
+      topPInput: makeInput(),
+      temperatureValue: { textContent: '' },
+      topPValue: { textContent: '' },
+      workFolderInput: makeInput(),
+      modelDropdownBtn: { disabled: true, addEventListener: vi.fn() },
+      modelDropdown: { innerHTML: '', classList: { add: vi.fn(), remove: vi.fn() }, appendChild: vi.fn(), children: [] },
+    };
   };
-};
 
 const mockDom = makeDom();
 const mockState = {
@@ -84,6 +86,15 @@ beforeEach(() => {
   mockDom.temperatureValue.textContent = '';
   mockDom.topPValue.textContent = '';
   mockDom.workFolderInput.value = '';
+  mockDom.modelDropdownBtn.disabled = true;
+  mockDom.modelDropdown.innerHTML = '';
+  mockDom.modelDropdown.classList.add.mockReset();
+  mockDom.modelDropdown.classList.remove.mockReset();
+
+  mockInvoke.mockImplementation((cmd) => {
+    if (cmd === 'fetch_models') return [];
+    return null;
+  });
 
   mockState.currentWorkFolder = 'old-folder';
   mockState.selectedCharacter = 'original-character';
@@ -94,7 +105,7 @@ beforeEach(() => {
 });
 
 describe('settings module', () => {
-  it('loads settings from localStorage into the UI state', () => {
+  it('loads settings from localStorage into the UI state', async () => {
     window.localStorage.setItem('llm-api-key', 'secret');
     window.localStorage.setItem('llm-model', 'gpt-4.1-mini');
     window.localStorage.setItem('llm-endpoint', 'https://example.test/chat');
@@ -102,7 +113,7 @@ describe('settings module', () => {
     window.localStorage.setItem('llm-top-p', '0.9');
     window.localStorage.setItem('llm-work-folder', 'characters');
 
-    settings.loadSettingsFromStorage();
+    await settings.loadSettingsFromStorage();
 
     expect(mockDom.apiKeyInput.value).toBe('secret');
     expect(mockDom.modelInput.value).toBe('gpt-4.1-mini');
@@ -165,5 +176,29 @@ describe('settings module', () => {
     expect(mockSetEditorPlaceholder).toHaveBeenCalledWith('Select a character to start editing...');
     expect(mockUpdateTokenCounter).toHaveBeenCalled();
     expect(mockLoadCharacters).toHaveBeenCalled();
+  });
+
+  it('sortModels sorts normal models first, then tee, then ee2e', () => {
+    const models = [
+      'ee2e-model-a',
+      'gpt-4o-mini',
+      'tee-model-b',
+      'claude-3',
+      'ee2e-model-b',
+      'tee-model-a',
+      'llama-3',
+    ];
+
+    const sorted = settings.sortModels(models);
+
+    expect(sorted).toEqual([
+      'claude-3',
+      'gpt-4o-mini',
+      'llama-3',
+      'tee-model-a',
+      'tee-model-b',
+      'ee2e-model-a',
+      'ee2e-model-b',
+    ]);
   });
 });
