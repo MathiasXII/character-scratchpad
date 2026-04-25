@@ -2,6 +2,7 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
 import { dom, state } from "./app.js";
+import { renderPreviewMessages } from "./preview.js";
 
 const DOMPURIFY_CONFIG = {
   ADD_TAGS: ["details", "summary"],
@@ -74,6 +75,125 @@ export function buildMessagesArray() {
   }
 
   return messages;
+}
+
+/**
+ * Build only the prompt portion of the messages array (system + context),
+ * WITHOUT any conversation history. Used by the left-pane Preview button
+ * to show what the assembled prompt looks like before any chat.
+ */
+export function buildPromptOnly() {
+  // Sync editor content first (same as buildMessagesArray)
+  if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
+    const editorContent = state.cmView.state.doc.toString();
+    const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+    if (file) file.content = editorContent;
+  }
+
+  if (state.cmView) {
+    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
+  }
+
+  const messages = [];
+
+  // 1. System message
+  const systemPrompt = state.tabContents.prompt || "";
+  const instructions = state.tabContents.instructions || "";
+
+  if (systemPrompt.trim() || instructions.trim()) {
+    const systemContent = systemPrompt.replace(
+      "%%CHARACTER_INSTRUCTIONS%%",
+      instructions
+    );
+    messages.push({ role: "system", content: systemContent });
+  }
+
+  // 2. Context files
+  const CONTEXT_INTRO =
+    "The following information is provided as background context for this character. " +
+    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
+
+  for (const file of state.contextFiles) {
+    if (file.content && file.content.trim()) {
+      messages.push({
+        role: "user",
+        content: CONTEXT_INTRO + file.content,
+        isFile: true,
+      });
+    }
+  }
+
+  return messages;
+}
+
+/**
+ * Build the messages array as it would have been sent to the API
+ * to generate the response for the message at the given index.
+ *
+ * Shows system + context + all conversation history up to and including
+ * the message at upToIndex, so you can see the full context that led to
+ * each message (including the message itself).
+ */
+export function buildMessagesArrayUpTo(upToIndex) {
+  // Sync editor content first (same as buildMessagesArray)
+  if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
+    const editorContent = state.cmView.state.doc.toString();
+    const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+    if (file) file.content = editorContent;
+  }
+
+  if (state.cmView) {
+    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
+  }
+
+  const messages = [];
+
+  // 1. System message
+  const systemPrompt = state.tabContents.prompt || "";
+  const instructions = state.tabContents.instructions || "";
+
+  if (systemPrompt.trim() || instructions.trim()) {
+    const systemContent = systemPrompt.replace(
+      "%%CHARACTER_INSTRUCTIONS%%",
+      instructions
+    );
+    messages.push({ role: "system", content: systemContent });
+  }
+
+  // 2. Context files
+  const CONTEXT_INTRO =
+    "The following information is provided as background context for this character. " +
+    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
+
+  for (const file of state.contextFiles) {
+    if (file.content && file.content.trim()) {
+      messages.push({
+        role: "user",
+        content: CONTEXT_INTRO + file.content,
+        isFile: true,
+      });
+    }
+  }
+
+  // 3. Conversation history — up to and including the clicked message
+  for (const msg of state.conversationHistory.slice(0, upToIndex + 1)) {
+    messages.push({ role: msg.role, content: msg.content });
+  }
+
+  return messages;
+}
+
+/**
+ * Open the preview modal showing the prompt that was sent to generate
+ * the message at the given index in conversationHistory.
+ */
+export function openMessagePreview(index) {
+  const previewModal = document.getElementById("preview-modal");
+  if (!previewModal) return;
+
+  const messages = buildMessagesArrayUpTo(index);
+  renderPreviewMessages(messages);
+  previewModal.classList.remove("hidden");
 }
 
 export function initStreamListeners() {
@@ -174,9 +294,20 @@ export function createMessageElement(role, content, index) {
   label.className = "role-label";
   label.textContent = role === "user" ? "You" : (state.selectedCharacter || "Assistant");
 
-  // Add action buttons (edit and delete)
+  // Add action buttons (preview, edit and delete)
   const actionsDiv = document.createElement("div");
   actionsDiv.className = "message-actions";
+  
+  const previewBtn = document.createElement("button");
+  previewBtn.className = "action-btn preview-btn";
+  previewBtn.title = "Preview prompt";
+  previewBtn.textContent = "👁";
+  previewBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (index !== undefined) {
+      openMessagePreview(index);
+    }
+  });
   
   const editBtn = document.createElement("button");
   editBtn.className = "action-btn edit-btn";
@@ -200,6 +331,7 @@ export function createMessageElement(role, content, index) {
     }
   });
   
+  actionsDiv.appendChild(previewBtn);
   actionsDiv.appendChild(deleteBtn);
   actionsDiv.appendChild(editBtn);
 
@@ -314,7 +446,7 @@ export function startEdit(index) {
   
   // Add Save/Cancel buttons
   const actionsDiv = el.querySelector('.message-actions');
-  actionsDiv.querySelectorAll('.edit-btn, .delete-btn').forEach(btn => btn.style.display = 'none');
+  actionsDiv.querySelectorAll('.preview-btn, .edit-btn, .delete-btn').forEach(btn => btn.style.display = 'none');
   
   const saveBtn = document.createElement('button');
   saveBtn.className = 'action-btn save-btn';
@@ -342,7 +474,7 @@ export function cancelEdit() {
   if (el) {
     el.querySelector('.content').style.display = '';
     el.querySelector('.edit-textarea')?.remove();
-    el.querySelectorAll('.edit-btn, .delete-btn').forEach(btn => btn.style.display = '');
+    el.querySelectorAll('.preview-btn, .edit-btn, .delete-btn').forEach(btn => btn.style.display = '');
     el.querySelectorAll('.save-btn, .cancel-btn').forEach(btn => btn.remove());
   }
   state.editingIndex = null;
@@ -366,7 +498,7 @@ export function saveEdit(index) {
   textarea.remove();
   const actionsDiv = el.querySelector('.message-actions');
   actionsDiv.querySelectorAll('.save-btn, .cancel-btn').forEach(btn => btn.remove());
-  actionsDiv.querySelectorAll('.edit-btn, .delete-btn').forEach(btn => btn.style.display = '');
+  actionsDiv.querySelectorAll('.preview-btn, .edit-btn, .delete-btn').forEach(btn => btn.style.display = '');
 
   state.editingIndex = null;
   dom.resendBtn.disabled = state.conversationHistory.length === 0;
