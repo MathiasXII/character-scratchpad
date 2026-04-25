@@ -309,7 +309,7 @@ pub async fn generate_checkpoint_name(
 
     let response = match state
         .client
-        .post(&endpoint)
+        .post(&format!("{}/chat/completions", endpoint))
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .json(&request_body)
