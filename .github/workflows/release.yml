@@ -51,7 +51,7 @@ jobs:
           shared-key: "${{ matrix.platform }}-v2"
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
 
