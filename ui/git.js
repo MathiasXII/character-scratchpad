@@ -370,13 +370,7 @@ export function initGit() {
     historyClose.addEventListener("click", closeGitHistory);
   }
 
-  if (historyModal) {
-    historyModal.addEventListener("click", (event) => {
-      if (event.target === historyModal) {
-        closeGitHistory();
-      }
-    });
-  }
+
 
   updateGitBarVisibility();
 }

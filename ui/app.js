@@ -220,11 +220,7 @@ async function init() {
   dom.settingsBtn.addEventListener("click", openSettingsModal);
   dom.chatDisabledSettingsBtn.addEventListener("click", openSettingsModal);
   dom.settingsClose.addEventListener("click", closeSettingsModal);
-  dom.settingsModal.addEventListener("click", (event) => {
-    if (event.target === dom.settingsModal) {
-      closeSettingsModal();
-    }
-  });
+
   dom.saveSettingsBtn.addEventListener("click", handleSaveSettings);
   dom.temperatureInput.addEventListener("input", () => {
     dom.temperatureValue.textContent = dom.temperatureInput.value;
@@ -245,11 +241,7 @@ async function init() {
   dom.newCharacterBtn.addEventListener("click", openNewCharacterModal);
   dom.newCharacterClose.addEventListener("click", closeNewCharacterModal);
   dom.newCharacterCancel.addEventListener("click", closeNewCharacterModal);
-  dom.newCharacterModal.addEventListener("click", (event) => {
-    if (event.target === dom.newCharacterModal) {
-      closeNewCharacterModal();
-    }
-  });
+
   dom.newCharacterCreate.addEventListener("click", handleCreateCharacter);
   dom.newCharacterNameInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {

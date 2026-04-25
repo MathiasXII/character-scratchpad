@@ -198,12 +198,7 @@ export function handleDeleteContextFile(filename) {
   newCancel.addEventListener("click", close);
   newClose.addEventListener("click", close);
 
-  dom.deleteContextModal.addEventListener("click", function handler(e) {
-    if (e.target === dom.deleteContextModal) {
-      close();
-      dom.deleteContextModal.removeEventListener("click", handler);
-    }
-  });
+
 }
 
 /**
