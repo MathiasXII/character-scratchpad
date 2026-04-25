@@ -73,6 +73,21 @@ globalThis.requestAnimationFrame = (callback) => {
   return 1;
 };
 
+// Set up error notification elements in DOM before importing chat.js
+// (chat.js uses document.getElementById at module level for these)
+const errorNotificationEl = document.createElement('div');
+errorNotificationEl.id = 'error-notification';
+errorNotificationEl.className = 'error-notification hidden';
+const errorTextEl = document.createElement('div');
+errorTextEl.id = 'error-text';
+errorTextEl.className = 'error-text';
+const errorDismissEl = document.createElement('button');
+errorDismissEl.id = 'error-dismiss';
+errorDismissEl.className = 'error-dismiss';
+errorNotificationEl.appendChild(errorTextEl);
+errorNotificationEl.appendChild(errorDismissEl);
+document.body.appendChild(errorNotificationEl);
+
 let chat;
 
 beforeAll(async () => {
@@ -100,6 +115,10 @@ beforeEach(() => {
   mockDom.sendBtn.disabled = false;
   mockDom.resendBtn.disabled = true;
   mockDom.clearChatBtn.disabled = true;
+
+  // Reset error notification state
+  errorNotificationEl.classList.add('hidden');
+  errorTextEl.textContent = '';
 
   mockState.conversationHistory = [];
   mockState.isStreaming = false;
@@ -179,7 +198,8 @@ describe('chat module', () => {
     expect(mockState.isStreaming).toBe(false);
     expect(mockDom.sendBtn.disabled).toBe(false);
     expect(mockState.currentAssistantEl).toBeNull();
-    expect(mockDom.messagesEl.querySelector('.message.error')?.textContent).toBe('network failed');
+    expect(errorNotificationEl.classList.contains('hidden')).toBe(false);
+    expect(errorTextEl.textContent).toBe('network failed');
   });
 
   it('deletes a message and all later messages from history and DOM', () => {
