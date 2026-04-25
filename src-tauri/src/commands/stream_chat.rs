@@ -32,7 +32,7 @@ pub async fn send_message_stream(
 
     let response = state
         .client
-        .post(&format!("{}/chat/completions", endpoint))
+        .post(format!("{}/chat/completions", endpoint))
         .header("Authorization", format!("Bearer {}", api_key))
         .header("Content-Type", "application/json")
         .json(&request_body)
