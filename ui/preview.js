@@ -1,4 +1,4 @@
-import { buildMessagesArray } from "./chat.js";
+import { buildPromptOnly } from "./chat.js";
 
 const ROLE_LABELS = {
   system: "System",
@@ -11,12 +11,13 @@ const DOMPURIFY_CONFIG = {
   ADD_ATTR: ["checked", "disabled"],
 };
 
-export function openPreview() {
+/**
+ * Render an array of ChatMessage objects into the preview modal content.
+ * Shared by full preview and per-message preview.
+ */
+export function renderPreviewMessages(messages) {
   const previewContent = document.getElementById("preview-content");
-  const previewModal = document.getElementById("preview-modal");
-  if (!previewContent || !previewModal) return;
-
-  const messages = buildMessagesArray();
+  if (!previewContent) return;
 
   previewContent.innerHTML = "";
 
@@ -35,7 +36,14 @@ export function openPreview() {
 
     previewContent.innerHTML = parts.join("\n\n");
   }
+}
 
+export function openPreview() {
+  const previewModal = document.getElementById("preview-modal");
+  if (!previewModal) return;
+
+  const messages = buildPromptOnly();
+  renderPreviewMessages(messages);
   previewModal.classList.remove("hidden");
 }
 
