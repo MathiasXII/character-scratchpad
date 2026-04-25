@@ -13,6 +13,7 @@ use commands::git::{
     generate_checkpoint_name, git_commit, git_commit_amend, git_diff_last, git_get_head_content,
     git_is_dirty, git_list_head_folder, git_log, git_revert,
 };
+use commands::models::fetch_models;
 use commands::settings::{get_settings, update_settings};
 use commands::stream_chat::send_message_stream;
 use state::AppState;
@@ -25,7 +26,7 @@ pub fn run() {
         .manage(AppState {
             api_key: Mutex::new(String::new()),
             model: Mutex::new("zai-org-glm-4.6".to_string()),
-            endpoint: Mutex::new("https://api.venice.ai/api/v1/chat/completions".to_string()),
+            endpoint: Mutex::new("https://api.venice.ai/api/v1".to_string()),
             temperature: Mutex::new(0.7f32),
             top_p: Mutex::new(1.0f32),
             client: reqwest::Client::builder()
@@ -55,6 +56,7 @@ pub fn run() {
             git_diff_last,
             git_commit_amend,
             generate_checkpoint_name,
+            fetch_models,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

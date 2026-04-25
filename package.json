@@ -8,7 +8,8 @@
     "build": "tauri build",
     "bundle": "rollup ui/src/editor-cm.mjs -f iife -o ui/lib/editor-cm.bundle.js -p @rollup/plugin-node-resolve",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "clean": "cargo clean --manifest-path src-tauri/Cargo.toml && node -e \"const fs=require('fs');try{fs.unlinkSync('ui/lib/editor-cm.bundle.js')}catch(e){}\""
   },
   "devDependencies": {
     "@codemirror/commands": "^6.10.3",
