@@ -11,7 +11,7 @@ const ROLE_LABELS = {
  * Render an array of ChatMessage objects into the preview modal content.
  * Shared by full preview and per-message preview.
  */
-function renderPreviewMessages(messages) {
+export function renderPreviewMessages(messages) {
   const previewContent = document.getElementById("preview-content");
   if (!previewContent) return;
 
