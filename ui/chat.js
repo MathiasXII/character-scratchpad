@@ -77,6 +77,59 @@ export function buildMessagesArray() {
   return messages;
 }
 
+function renderConversationHistory({ showWelcomeIfEmpty = false } = {}) {
+  dom.messagesEl.innerHTML = "";
+
+  if (state.conversationHistory.length === 0) {
+    if (showWelcomeIfEmpty) {
+      showWelcome();
+    }
+    return;
+  }
+
+  state.conversationHistory.forEach((msg, index) => {
+    dom.messagesEl.appendChild(createMessageElement(msg.role, msg.content, index));
+  });
+}
+
+export function syncFirstResponse() {
+  if (state.isStreaming || state.isLoadingCharacter || !state.selectedCharacter) {
+    return;
+  }
+
+  const introText = (state.tabContents["first-response"] || "").trim();
+  const history = state.conversationHistory;
+  const hasSingleInjectedIntro =
+    history.length === 1 &&
+    history[0].role === "assistant" &&
+    history[0]._isFirstResponse === true;
+
+  if (!introText) {
+    if (!hasSingleInjectedIntro) {
+      return;
+    }
+
+    state.conversationHistory = [];
+    renderConversationHistory({ showWelcomeIfEmpty: true });
+    return;
+  }
+
+  if (history.length === 0) {
+    state.conversationHistory = [
+      { role: "assistant", content: introText, _isFirstResponse: true },
+    ];
+    renderConversationHistory();
+    return;
+  }
+
+  if (hasSingleInjectedIntro) {
+    state.conversationHistory = [
+      { ...history[0], content: introText, _isFirstResponse: true },
+    ];
+    renderConversationHistory();
+  }
+}
+
 /**
  * Build only the prompt portion of the messages array (system + context),
  * WITHOUT any conversation history. Used by the left-pane Preview button
@@ -288,6 +341,10 @@ export function createMessageElement(role, content, index) {
   el.className = `message ${role}`;
   if (index !== undefined) {
     el.dataset.index = index;
+  }
+
+  if (index !== undefined && state.conversationHistory[index]?._isFirstResponse) {
+    el.classList.add("first-response");
   }
 
   const label = document.createElement("div");
