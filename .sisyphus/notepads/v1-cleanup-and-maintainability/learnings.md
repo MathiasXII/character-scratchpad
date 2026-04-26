@@ -74,3 +74,9 @@
 - Tauri v2 constraint: async commands with `State<'_, T>` references MUST return `Result<_, _>` -- this forced `test_connection` and `test_model` return types from `TestConnectionResult` to `Result<TestConnectionResult, String>`. All return values wrapped in `Ok()`. Frontend unaffected since Tauri unwraps the Result.
 - `stream_chat.rs` and `git.rs` (generate_checkpoint_name) already used `state.client`; they were refactored to use the shared URL/header helpers only.
 - All 19 Rust unit tests + 6 integration tests + 70 Vitest tests pass. Clippy clean.
+
+## 2026-04-26 T13 export surface tightening
+- Verified `ui/app.js` is the sole consumer of the shared frontend wiring imports, while `ui/helpers.js` remains the central home for markdown formatting, error coercion, path construction, and prompt-building helpers.
+- Privatized internal-only helpers that are only used within their own modules: preview modal internals, the git history close helper, the context refresh helper, and the settings model-dropdown fetch/render helpers.
+- Preserved exports that are part of the public UI module surface or are imported by `app.js` and Vitest mocks, so the event-driven wiring stayed intact.
+- `npm test` completed cleanly after the export tightening: all 70 Vitest tests and the Rust test suite passed.

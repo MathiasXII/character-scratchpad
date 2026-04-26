@@ -169,7 +169,7 @@ export function sortModels(models) {
   return [...normal, ...tee, ...ee2e];
 }
 
-export async function fetchModels() {
+async function fetchModels() {
   const baseUrl = dom.endpointInput.value.trim();
   const apiKey = dom.apiKeyInput.value.trim();
 
@@ -196,7 +196,7 @@ export async function fetchModels() {
   }
 }
 
-export function renderModelDropdown(filter = "") {
+function renderModelDropdown(filter = "") {
   const dropdown = dom.modelDropdown;
   dropdown.innerHTML = "";
 

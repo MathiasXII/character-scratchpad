@@ -256,4 +256,4 @@ Node.js in CI is currently pinned to **24**.
 | v0.4 | Git-backed versioning (commit / revert / AI checkpoint naming) | ✅ Done |
 | v0.5 | Markdown rendering in chat, message edit / delete / resend | ✅ Done |
 | v0.6 | Context folder management + first-response injection | ✅ Done |
-| v1.0 | Venice.ai API compatibility & polish | 🔲 Planned |
+| v1.0 | Venice.ai API compatibility & polish | ✅ Done |

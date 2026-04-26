@@ -36,7 +36,7 @@ export async function saveActiveContextFile() {
 /**
  * Refresh the context file list from disk and update state.
  */
-export async function refreshContextFiles(charDir) {
+async function refreshContextFiles(charDir) {
   try {
     state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
   } catch (error) {
