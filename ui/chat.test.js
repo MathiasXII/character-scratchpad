@@ -1,50 +1,54 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockInvoke = vi.fn();
-const mockListen = vi.fn();
-const listeners = {};
+const { mockInvoke, mockListen, listeners, mockDom, mockState } = vi.hoisted(() => {
+  const mockInvoke = vi.fn();
+  const mockListen = vi.fn();
+  const listeners = {};
 
-function createButton() {
-  const button = document.createElement('button');
-  button.disabled = false;
-  return button;
-}
+  function createButton() {
+    const button = document.createElement('button');
+    button.disabled = false;
+    return button;
+  }
 
-const mockDom = {
-  messagesEl: document.createElement('div'),
-  chatContainer: document.createElement('div'),
-  userInput: document.createElement('textarea'),
-  sendBtn: createButton(),
-  resendBtn: createButton(),
-  clearChatBtn: createButton(),
-};
+  const mockDom = {
+    messagesEl: document.createElement('div'),
+    chatContainer: document.createElement('div'),
+    userInput: document.createElement('textarea'),
+    sendBtn: createButton(),
+    resendBtn: createButton(),
+    clearChatBtn: createButton(),
+  };
 
-Object.defineProperty(mockDom.chatContainer, 'scrollHeight', {
-  value: 240,
-  writable: true,
-  configurable: true,
+  Object.defineProperty(mockDom.chatContainer, 'scrollHeight', {
+    value: 240,
+    writable: true,
+    configurable: true,
+  });
+
+  const mockState = {
+    conversationHistory: [],
+    isStreaming: false,
+    editingIndex: null,
+    currentAssistantEl: null,
+    currentAssistantContent: '',
+    tabContents: {
+      instructions: '',
+      prompt: '',
+      description: '',
+      'first-response': '',
+      context: '',
+    },
+    contextFiles: [],
+    activeContextFile: null,
+    activeTab: 'instructions',
+    cmView: null,
+    selectedCharacter: 'Guide',
+    chatDisabled: false,
+  };
+
+  return { mockInvoke, mockListen, listeners, mockDom, mockState };
 });
-
-const mockState = {
-  conversationHistory: [],
-  isStreaming: false,
-  editingIndex: null,
-  currentAssistantEl: null,
-  currentAssistantContent: '',
-  tabContents: {
-    instructions: '',
-    prompt: '',
-    description: '',
-    'first-response': '',
-    context: '',
-  },
-  contextFiles: [],
-  activeContextFile: null,
-  activeTab: 'instructions',
-  cmView: null,
-  selectedCharacter: 'Guide',
-  chatDisabled: false,
-};
 
 vi.mock('./app.js', () => ({
   dom: mockDom,
@@ -89,6 +93,7 @@ errorNotificationEl.appendChild(errorDismissEl);
 document.body.appendChild(errorNotificationEl);
 
 let chat;
+let syncFirstResponse;
 
 beforeAll(async () => {
   mockListen.mockImplementation((eventName, handler) => {
@@ -97,6 +102,7 @@ beforeAll(async () => {
   });
 
   chat = await import('./chat.js');
+  syncFirstResponse = chat.syncFirstResponse;
 });
 
 beforeEach(() => {
@@ -262,6 +268,146 @@ describe('chat module', () => {
         { role: 'assistant', content: 'Answer one' },
         { role: 'user', content: 'Second' },
       ],
+    });
+  });
+
+  describe('first-response sync', () => {
+    it('injects the first response when chat is empty and intro text exists', () => {
+      mockState.tabContents['first-response'] = 'Hello there!';
+
+      syncFirstResponse();
+
+      expect(mockState.conversationHistory).toEqual([
+        { role: 'assistant', content: 'Hello there!', _isFirstResponse: true },
+      ]);
+      expect(chat.buildMessagesArray()).toEqual([
+        { role: 'assistant', content: 'Hello there!' },
+      ]);
+    });
+
+    it('does not inject when intro text is empty or whitespace', () => {
+      mockState.tabContents['first-response'] = '   \n  ';
+
+      syncFirstResponse();
+
+      expect(mockState.conversationHistory).toEqual([]);
+      expect(chat.buildMessagesArray()).toEqual([]);
+    });
+
+    it('replaces the injected assistant bubble when the intro text changes', () => {
+      mockState.conversationHistory = [
+        { role: 'assistant', content: 'Old intro', _isFirstResponse: true },
+      ];
+      mockState.tabContents['first-response'] = 'New intro';
+
+      syncFirstResponse();
+
+      expect(mockState.conversationHistory).toEqual([
+        { role: 'assistant', content: 'New intro', _isFirstResponse: true },
+      ]);
+      expect(chat.buildMessagesArray()).toEqual([
+        { role: 'assistant', content: 'New intro' },
+      ]);
+    });
+
+    it('removes the injected assistant bubble when intro text becomes empty', () => {
+      mockState.conversationHistory = [
+        { role: 'assistant', content: 'Injected intro', _isFirstResponse: true },
+      ];
+      mockState.tabContents['first-response'] = ' ';
+
+      syncFirstResponse();
+
+      expect(mockState.conversationHistory).toEqual([]);
+      expect(chat.buildMessagesArray()).toEqual([]);
+    });
+
+    it('does not mutate history when user messages exist or more than one message is present', () => {
+      mockState.conversationHistory = [
+        { role: 'user', content: 'Hi' },
+        { role: 'assistant', content: 'Already there' },
+      ];
+      mockState.tabContents['first-response'] = 'Injected intro';
+
+      syncFirstResponse();
+
+      expect(mockState.conversationHistory).toEqual([
+        { role: 'user', content: 'Hi' },
+        { role: 'assistant', content: 'Already there' },
+      ]);
+      expect(chat.buildMessagesArray()).toEqual([
+        { role: 'user', content: 'Hi' },
+        { role: 'assistant', content: 'Already there' },
+      ]);
+    });
+  });
+
+  describe('first-response regression', () => {
+    it('serializes an injected first response as a plain assistant message', () => {
+      mockState.conversationHistory = [
+        { role: 'assistant', content: 'Hello there!', _isFirstResponse: true },
+      ];
+
+      expect(chat.buildMessagesArray()).toStrictEqual([
+        { role: 'assistant', content: 'Hello there!' },
+      ]);
+    });
+
+    it('clears injected first-response history and keeps sync coherent after clearing', () => {
+      mockState.tabContents['first-response'] = 'Hello there!';
+      mockState.conversationHistory = [
+        { role: 'assistant', content: 'Hello there!', _isFirstResponse: true },
+      ];
+      mockDom.messagesEl.appendChild(chat.createMessageElement('assistant', 'Hello there!', 0));
+
+      chat.handleClearChat();
+
+      expect(mockState.conversationHistory).toEqual([]);
+      expect(mockDom.messagesEl.querySelector('.welcome')).not.toBeNull();
+
+      syncFirstResponse();
+
+      expect(mockState.conversationHistory).toEqual([
+        { role: 'assistant', content: 'Hello there!', _isFirstResponse: true },
+      ]);
+      expect(mockDom.messagesEl.querySelector('.welcome')).toBeNull();
+      expect(chat.buildMessagesArray()).toStrictEqual([
+        { role: 'assistant', content: 'Hello there!' },
+      ]);
+    });
+
+    it('preserves an injected first response at the start of resend history', async () => {
+      mockState.conversationHistory = [
+        { role: 'assistant', content: 'Injected intro', _isFirstResponse: true },
+        { role: 'user', content: 'First' },
+        { role: 'assistant', content: 'Answer one' },
+        { role: 'user', content: 'Second' },
+        { role: 'assistant', content: 'Answer two' },
+      ];
+
+      mockDom.messagesEl.appendChild(chat.createMessageElement('assistant', 'Injected intro', 0));
+      mockDom.messagesEl.appendChild(chat.createMessageElement('user', 'First', 1));
+      mockDom.messagesEl.appendChild(chat.createMessageElement('assistant', 'Answer one', 2));
+      mockDom.messagesEl.appendChild(chat.createMessageElement('user', 'Second', 3));
+      mockDom.messagesEl.appendChild(chat.createMessageElement('assistant', 'Answer two', 4));
+
+      await chat.handleResend();
+
+      expect(mockState.conversationHistory).toEqual([
+        { role: 'assistant', content: 'Injected intro', _isFirstResponse: true },
+        { role: 'user', content: 'First' },
+        { role: 'assistant', content: 'Answer one' },
+        { role: 'user', content: 'Second' },
+      ]);
+      expect(mockState.conversationHistory[0]._isFirstResponse).toBe(true);
+      expect(mockInvoke).toHaveBeenCalledWith('send_message_stream', {
+        messages: [
+          { role: 'assistant', content: 'Injected intro' },
+          { role: 'user', content: 'First' },
+          { role: 'assistant', content: 'Answer one' },
+          { role: 'user', content: 'Second' },
+        ],
+      });
     });
   });
 });
