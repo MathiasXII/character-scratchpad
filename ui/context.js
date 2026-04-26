@@ -2,7 +2,7 @@ const { invoke } = window.__TAURI__.core;
 const { getCurrentWebview } = window.__TAURI__.webview;
 
 import { dom, state } from "./app.js";
-import { getCharacterDir, formatError } from "./helpers.js";
+import { getRepoPath, formatError } from "./helpers.js";
 import { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly } from "./editor.js";
 import { checkDirty } from "./git.js";
 
@@ -24,7 +24,7 @@ export async function saveActiveContextFile() {
   if (content === state.contextLastSaved[state.activeContextFile]) {
     return false;
   }
-  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+  const charDir = getRepoPath(state);
   const path = charDir + "/context/" + state.activeContextFile;
   await invoke("save_file", { path, content });
   state.contextLastSaved[state.activeContextFile] = content;
@@ -36,7 +36,7 @@ export async function saveActiveContextFile() {
 /**
  * Refresh the context file list from disk and update state.
  */
-async function refreshContextFiles(charDir) {
+export async function refreshContextFiles(charDir) {
   try {
     state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
   } catch (error) {
@@ -166,7 +166,7 @@ export async function handleAddContextFile() {
   if (!filename || filename.trim() === "") return;
 
   const trimmedName = filename.trim();
-  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+  const charDir = getRepoPath(state);
 
   try {
     await invoke("create_context_file", {
@@ -232,7 +232,7 @@ export function handleDeleteContextFile(filename) {
  * @param {string} filename
  */
 async function performDelete(filename) {
-  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+  const charDir = getRepoPath(state);
 
   try {
     await invoke("delete_context_file", {
@@ -286,7 +286,7 @@ async function handleDroppedFiles(paths) {
     return;
   }
 
-  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+  const charDir = getRepoPath(state);
   const allowedExtensions = ["txt", "md", "pdf"];
   let copiedCount = 0;
   const errors = [];
