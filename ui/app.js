@@ -46,6 +46,8 @@ export const dom = {
   modelDropdownBtn: document.getElementById("model-dropdown-btn"),
   modelDropdown: document.getElementById("model-dropdown"),
   endpointInput: document.getElementById("endpoint"),
+  testConnectionBtn: document.getElementById("test-connection-btn"),
+  testModelBtn: document.getElementById("test-model-btn"),
   temperatureInput: document.getElementById("temperature"),
   temperatureValue: document.getElementById("temperature-value"),
   topPInput: document.getElementById("top-p"),
@@ -111,6 +113,9 @@ import {
   onEndpointOrKeyChange,
   openSettingsModal,
   syncSettingsToBackend,
+  testConnection,
+  testModel,
+  clearTestResults,
 } from "./settings.js";
 import { initContext } from "./context.js";
 import { initPreview } from "./preview.js";
@@ -230,7 +235,13 @@ async function init() {
     dom.topPValue.textContent = dom.topPInput.value;
   });
   dom.apiKeyInput.addEventListener("input", onEndpointOrKeyChange);
+  dom.apiKeyInput.addEventListener("input", clearTestResults);
   dom.endpointInput.addEventListener("input", onEndpointOrKeyChange);
+  dom.endpointInput.addEventListener("input", clearTestResults);
+  dom.modelInput.addEventListener("input", clearTestResults);
+
+  dom.testConnectionBtn.addEventListener("click", testConnection);
+  dom.testModelBtn.addEventListener("click", testModel);
 
   dom.browseFolderBtn.addEventListener("click", async () => {
     const selected = await open({ directory: true, multiple: false });

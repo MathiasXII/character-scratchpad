@@ -136,6 +136,127 @@ export function initModelCombobox() {
   });
 }
 
+export async function testConnection() {
+  const baseUrl = dom.endpointInput.value.trim();
+  const apiKey = dom.apiKeyInput.value.trim();
+  const btn = dom.testConnectionBtn;
+
+  clearFieldError(dom.endpointInput);
+  clearFieldError(dom.apiKeyInput);
+  resetTestBtn(btn);
+
+  if (!baseUrl || !apiKey) {
+    btn.textContent = "✗";
+    btn.classList.add("error");
+    if (!baseUrl) setFieldError(dom.endpointInput);
+    if (!apiKey) setFieldError(dom.apiKeyInput);
+    return;
+  }
+
+  btn.textContent = "...";
+  btn.disabled = true;
+
+  try {
+    const result = await invoke("test_connection", { baseUrl, apiKey });
+
+    if (result.success) {
+      btn.textContent = "✓";
+      btn.classList.add("success");
+    } else {
+      btn.textContent = "✗";
+      btn.classList.add("error");
+
+      const errorType = result.error_type || "";
+      if (errorType === "connection" || errorType === "endpoint") {
+        setFieldError(dom.endpointInput);
+      } else if (errorType === "auth") {
+        setFieldError(dom.apiKeyInput);
+      } else {
+        // Generic server error — highlight endpoint as the likely culprit
+        setFieldError(dom.endpointInput);
+      }
+    }
+  } catch {
+    btn.textContent = "✗";
+    btn.classList.add("error");
+    setFieldError(dom.endpointInput);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+export async function testModel() {
+  const baseUrl = dom.endpointInput.value.trim();
+  const apiKey = dom.apiKeyInput.value.trim();
+  const model = dom.modelInput.value.trim();
+  const btn = dom.testModelBtn;
+
+  clearFieldError(dom.modelInput);
+  resetTestBtn(btn);
+
+  if (!baseUrl || !apiKey || !model) {
+    btn.textContent = "✗";
+    btn.classList.add("error");
+    if (!model) setFieldError(dom.modelInput);
+    if (!baseUrl) setFieldError(dom.endpointInput);
+    if (!apiKey) setFieldError(dom.apiKeyInput);
+    return;
+  }
+
+  btn.textContent = "...";
+  btn.disabled = true;
+
+  try {
+    const result = await invoke("test_model", { baseUrl, apiKey, model });
+
+    if (result.success) {
+      btn.textContent = "✓";
+      btn.classList.add("success");
+    } else {
+      btn.textContent = "✗";
+      btn.classList.add("error");
+
+      const errorType = result.error_type || "";
+      if (errorType === "model_not_found") {
+        setFieldError(dom.modelInput);
+      } else if (errorType === "auth") {
+        setFieldError(dom.apiKeyInput);
+      } else if (errorType === "connection" || errorType === "endpoint") {
+        setFieldError(dom.endpointInput);
+      } else {
+        setFieldError(dom.modelInput);
+      }
+    }
+  } catch {
+    btn.textContent = "✗";
+    btn.classList.add("error");
+    setFieldError(dom.modelInput);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function setFieldError(input) {
+  input.classList.add("field-error");
+}
+
+function clearFieldError(input) {
+  input.classList.remove("field-error");
+}
+
+function resetTestBtn(btn) {
+  btn.textContent = "Test";
+  btn.classList.remove("success", "error");
+}
+
+export function clearTestResults() {
+  resetTestBtn(dom.testConnectionBtn);
+  resetTestBtn(dom.testModelBtn);
+  clearFieldError(dom.endpointInput);
+  clearFieldError(dom.apiKeyInput);
+  clearFieldError(dom.modelInput);
+}
+
 export const onEndpointOrKeyChange = debounce(fetchModels, 500);
 
 export function openSettingsModal() {

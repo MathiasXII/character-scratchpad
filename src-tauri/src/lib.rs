@@ -16,6 +16,7 @@ use commands::git::{
 use commands::models::fetch_models;
 use commands::settings::{get_settings, update_settings};
 use commands::stream_chat::send_message_stream;
+use commands::test_connection::{test_connection, test_model};
 use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -57,6 +58,8 @@ pub fn run() {
             git_commit_amend,
             generate_checkpoint_name,
             fetch_models,
+            test_connection,
+            test_model,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

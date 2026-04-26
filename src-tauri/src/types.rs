@@ -41,6 +41,17 @@ pub struct Settings {
     pub top_p: f32,
 }
 
+/// Result of a connection/model test command.
+#[derive(Debug, Serialize, Clone)]
+pub struct TestConnectionResult {
+    pub success: bool,
+    /// "connection" | "auth" | "endpoint" | "model_not_found" | "server"
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub message: Option<String>,
+}
+
 /// A single file from a character's context/ directory.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ContextFile {
