@@ -1,7 +1,7 @@
 const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP, updateUIState } from "./app.js";
-import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder } from "./editor.js";
+import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder, updateInstructionsVisibility } from "./editor.js";
 import { openSettingsModal } from "./settings.js";
 import { updateGitBarVisibility, checkDirty } from "./git.js";
 import { renderContextFileList } from "./context.js";
@@ -113,6 +113,7 @@ export async function handleCharacterSelect() {
     setEditorPlaceholder("Select a character to start editing...");
     renderContextFileList();
     updateTokenCounter();
+    updateInstructionsVisibility();
     updateGitBarVisibility();
     checkDirty();
     updateUIState();
@@ -167,6 +168,7 @@ export async function handleCharacterSelect() {
   setEditorValue(state.tabContents[state.activeTab]);
   setEditorPlaceholder("Start editing...");
   updateTokenCounter();
+  updateInstructionsVisibility();
   state.isLoadingCharacter = false;
   updateGitBarVisibility();
   checkDirty();
@@ -243,7 +245,8 @@ export async function reloadAfterRevert() {
     setEditorPlaceholder("Start editing...");
   }
 
-  updateTokenCounter();
+updateTokenCounter();
+  updateInstructionsVisibility();
   updateGitBarVisibility();
   checkDirty();
   updateUIState();

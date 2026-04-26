@@ -3,6 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 const mockInvoke = vi.fn();
 const mockUpdateUIState = vi.fn();
 const mockUpdateTokenCounter = vi.fn();
+const mockUpdateInstructionsVisibility = vi.fn();
 const mockGetEditorValue = vi.fn();
 const mockSetEditorValue = vi.fn();
 const mockSetEditorPlaceholder = vi.fn();
@@ -56,6 +57,7 @@ vi.mock('./app.js', () => ({
 
 vi.mock('./editor.js', () => ({
   updateTokenCounter: mockUpdateTokenCounter,
+  updateInstructionsVisibility: mockUpdateInstructionsVisibility,
   getEditorValue: mockGetEditorValue,
   setEditorValue: mockSetEditorValue,
   setEditorPlaceholder: mockSetEditorPlaceholder,
@@ -88,8 +90,9 @@ beforeAll(async () => {
 
 beforeEach(() => {
   mockInvoke.mockReset();
-  mockUpdateUIState.mockReset();
-  mockUpdateTokenCounter.mockReset();
+mockUpdateUIState.mockReset();
+mockUpdateTokenCounter.mockReset();
+mockUpdateInstructionsVisibility.mockReset();
   mockGetEditorValue.mockReset();
   mockSetEditorValue.mockReset();
   mockSetEditorPlaceholder.mockReset();

@@ -101,7 +101,7 @@ import {
   loadCharacters,
   openNewCharacterModal,
 } from "./characters.js";
-import { hideSaveError, saveCurrentTab, switchTab, updateTokenCounter } from "./editor.js";
+import { hideSaveError, saveCurrentTab, switchTab, updateTokenCounter, updateInstructionsVisibility } from "./editor.js";
 import { initPaneDivider } from "./divider.js";
 import { initGit, updateGitBarVisibility, checkDirty } from "./git.js";
 import {
@@ -272,7 +272,14 @@ async function init() {
   state.cmView = window.createCodeMirrorEditor(dom.editorEl, {
     doc: state.tabContents[state.activeTab],
     onChange: () => {
+      // Sync editor content to state immediately so visibility checks
+      // and other reads always see the latest content, not the stale
+      // value from before the debounce saves.
+      if (state.cmView) {
+        state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
+      }
       updateTokenCounter();
+      updateInstructionsVisibility();
       if (!state.isLoadingCharacter) {
         clearTimeout(state.saveTimeout);
         state.saveTimeout = setTimeout(saveCurrentTab, 1000);
