@@ -1,8 +1,6 @@
-use crate::commands::settings::normalize_endpoint;
-
 #[tauri::command]
 pub async fn fetch_models(base_url: String, api_key: String) -> Result<Vec<String>, String> {
-    let base = normalize_endpoint(&base_url);
+    let base = base_url.trim_end_matches('/');
     let url = format!("{}/models", base);
 
     let client = reqwest::Client::new();

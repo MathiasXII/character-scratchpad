@@ -116,6 +116,7 @@ import {
   testConnection,
   testModel,
   clearTestResults,
+  applyEndpointNormalization,
 } from "./settings.js";
 import { initContext } from "./context.js";
 import { initPreview } from "./preview.js";
@@ -238,6 +239,7 @@ async function init() {
   dom.apiKeyInput.addEventListener("input", clearTestResults);
   dom.endpointInput.addEventListener("input", onEndpointOrKeyChange);
   dom.endpointInput.addEventListener("input", clearTestResults);
+  dom.endpointInput.addEventListener("blur", applyEndpointNormalization);
   dom.modelInput.addEventListener("input", clearTestResults);
 
   dom.testConnectionBtn.addEventListener("click", testConnection);

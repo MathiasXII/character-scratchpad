@@ -8,6 +8,73 @@ let lastFetchedBaseUrl = "";
 let lastFetchedApiKey = "";
 let allModels = [];
 
+/**
+ * Normalizes an endpoint URL into a clean base URL.
+ * Mirrors the Rust `normalize_endpoint` logic so the user sees
+ * the corrected value immediately on blur.
+ *
+ * Strategy:
+ * 1. Strip leading/trailing slashes from the input.
+ * 2. Find the LAST version segment (/v1, /v2, /v1beta, etc.)
+ *    and truncate everything after it.
+ * 3. If no version segment, fall back to stripping known API suffixes.
+ */
+export function normalizeEndpoint(endpoint) {
+  let result = endpoint.replace(/^\/+|\/+$/g, "");
+
+  // Find the last version segment: /v followed by a digit
+  const matches = [...result.matchAll(/\/v(\d)/g)];
+  if (matches.length > 0) {
+    const last = matches[matches.length - 1];
+    const segStart = last.index;
+    // Find the end of the version segment (e.g. "/v1beta")
+    const afterV = result.slice(segStart + 2);
+    const versionEnd = afterV.search("/");
+    const segEnd = versionEnd === -1 ? result.length : segStart + 2 + versionEnd;
+    return result.slice(0, segEnd);
+  }
+
+  // Fallback: no version segment — strip known API suffixes
+  const suffixes = [
+    "/chat/completions",
+    "/completions",
+    "/models",
+    "/embeddings",
+    "/images/generations",
+    "/audio/transcriptions",
+    "/audio/translations",
+    "/audio/speech",
+    "/moderations",
+  ];
+
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const suffix of suffixes) {
+      if (result.endsWith(suffix)) {
+        result = result.slice(0, -suffix.length);
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  // Strip trailing slashes left by suffix removal
+  result = result.replace(/\/+$/, "");
+  return result;
+}
+
+/** Applies endpoint normalization to the input field in-place. */
+export function applyEndpointNormalization() {
+  const input = dom.endpointInput;
+  const raw = input.value.trim();
+  if (!raw) return;
+  const normalized = normalizeEndpoint(raw);
+  if (normalized !== raw) {
+    input.value = normalized;
+  }
+}
+
 function debounce(fn, delay) {
   let timer;
   return (...args) => {

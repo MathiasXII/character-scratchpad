@@ -367,4 +367,80 @@ describe('settings module', () => {
       expect(mockDom.modelInput.classList.remove).toHaveBeenCalledWith('field-error');
     });
   });
+
+  describe('normalizeEndpoint', () => {
+    it('truncates everything after the version segment', () => {
+      expect(settings.normalizeEndpoint('https://api.openai.com/v1/chat/completions'))
+        .toBe('https://api.openai.com/v1');
+      expect(settings.normalizeEndpoint('https://api.openai.com/v1/models'))
+        .toBe('https://api.openai.com/v1');
+      expect(settings.normalizeEndpoint('https://api.openai.com/v1/chat/completion'))
+        .toBe('https://api.openai.com/v1');
+      expect(settings.normalizeEndpoint('https://api.openai.com/v1/whatever/else'))
+        .toBe('https://api.openai.com/v1');
+    });
+
+    it('handles Venice-style nested paths', () => {
+      expect(settings.normalizeEndpoint('https://api.venice.ai/api/v1/chat/completions'))
+        .toBe('https://api.venice.ai/api/v1');
+      expect(settings.normalizeEndpoint('https://api.venice.ai/api/v1'))
+        .toBe('https://api.venice.ai/api/v1');
+    });
+
+    it('handles version variants (v2, v1beta)', () => {
+      expect(settings.normalizeEndpoint('https://api.example.com/v2/chat/completions'))
+        .toBe('https://api.example.com/v2');
+      expect(settings.normalizeEndpoint('https://api.example.com/v1beta/models'))
+        .toBe('https://api.example.com/v1beta');
+    });
+
+    it('picks the last version segment when multiple exist', () => {
+      expect(settings.normalizeEndpoint('https://api.example.com/v1/proxy/v2/chat/completions'))
+        .toBe('https://api.example.com/v1/proxy/v2');
+    });
+
+    it('strips leading and trailing slashes', () => {
+      expect(settings.normalizeEndpoint('https://api.openai.com/v1/'))
+        .toBe('https://api.openai.com/v1');
+      expect(settings.normalizeEndpoint('https://api.openai.com/v1///'))
+        .toBe('https://api.openai.com/v1');
+    });
+
+    it('leaves a clean base URL unchanged', () => {
+      expect(settings.normalizeEndpoint('https://api.openai.com/v1'))
+        .toBe('https://api.openai.com/v1');
+    });
+
+    it('falls back to stripping known suffixes when no version segment exists', () => {
+      expect(settings.normalizeEndpoint('https://api.example.com/chat/completions'))
+        .toBe('https://api.example.com');
+      expect(settings.normalizeEndpoint('https://api.example.com/models'))
+        .toBe('https://api.example.com');
+    });
+
+    it('leaves unknown paths without a version segment unchanged', () => {
+      expect(settings.normalizeEndpoint('https://gateway.example.com/custom'))
+        .toBe('https://gateway.example.com/custom');
+    });
+  });
+
+  describe('applyEndpointNormalization', () => {
+    it('updates the input value when endpoint has trailing path', () => {
+      mockDom.endpointInput.value = 'https://api.openai.com/v1/chat/completions';
+      settings.applyEndpointNormalization();
+      expect(mockDom.endpointInput.value).toBe('https://api.openai.com/v1');
+    });
+
+    it('does not change an already-clean endpoint', () => {
+      mockDom.endpointInput.value = 'https://api.openai.com/v1';
+      settings.applyEndpointNormalization();
+      expect(mockDom.endpointInput.value).toBe('https://api.openai.com/v1');
+    });
+
+    it('does nothing when the input is empty', () => {
+      mockDom.endpointInput.value = '';
+      settings.applyEndpointNormalization();
+      expect(mockDom.endpointInput.value).toBe('');
+    });
+  });
 });
