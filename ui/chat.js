@@ -2,7 +2,7 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
 import { dom, state } from "./app.js";
-import { renderMarkdown } from "./helpers.js";
+import { renderMarkdown, syncEditorToState, buildSystemPrompt, buildContextMessages } from "./helpers.js";
 import { renderPreviewMessages } from "./preview.js";
 
 /**
@@ -23,47 +23,18 @@ import { renderPreviewMessages } from "./preview.js";
  *   3. CONVERSATION HISTORY — the actual user/assistant messages as-is.
  */
 export function buildMessagesArray() {
-  // Sync active context file content to state.contextFiles before building messages
-  if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
-    const editorContent = state.cmView.state.doc.toString();
-    const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-    if (file) file.content = editorContent;
-  }
-
-  // Sync current editor content to state so we always use what's on screen,
-  // even if the debounced save hasn't fired yet
-  if (state.cmView) {
-    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
-  }
+  syncEditorToState(state);
 
   const messages = [];
 
   // 1. System message: system-prompt.txt with %%CHARACTER_INSTRUCTIONS%% replaced
-  const systemPrompt = state.tabContents.prompt || "";
-  const instructions = state.tabContents.instructions || "";
-
-  if (systemPrompt.trim() || instructions.trim()) {
-    const systemContent = systemPrompt.replace(
-      "%%CHARACTER_INSTRUCTIONS%%",
-      instructions
-    );
+  const systemContent = buildSystemPrompt(state);
+  if (systemContent !== null) {
     messages.push({ role: "system", content: systemContent });
   }
 
   // 2. Context files as user messages with isFile flag
-  const CONTEXT_INTRO =
-    "The following information is provided as background context for this character. " +
-    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
-
-  for (const file of state.contextFiles) {
-    if (file.content && file.content.trim()) {
-      messages.push({
-        role: "user",
-        content: CONTEXT_INTRO + file.content,
-        isFile: true,
-      });
-    }
-  }
+  messages.push(...buildContextMessages(state));
 
   // 3. Conversation history
   for (const msg of state.conversationHistory) {
@@ -132,45 +103,18 @@ export function syncFirstResponse() {
  * to show what the assembled prompt looks like before any chat.
  */
 export function buildPromptOnly() {
-  // Sync editor content first (same as buildMessagesArray)
-  if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
-    const editorContent = state.cmView.state.doc.toString();
-    const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-    if (file) file.content = editorContent;
-  }
-
-  if (state.cmView) {
-    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
-  }
+  syncEditorToState(state);
 
   const messages = [];
 
   // 1. System message
-  const systemPrompt = state.tabContents.prompt || "";
-  const instructions = state.tabContents.instructions || "";
-
-  if (systemPrompt.trim() || instructions.trim()) {
-    const systemContent = systemPrompt.replace(
-      "%%CHARACTER_INSTRUCTIONS%%",
-      instructions
-    );
+  const systemContent = buildSystemPrompt(state);
+  if (systemContent !== null) {
     messages.push({ role: "system", content: systemContent });
   }
 
   // 2. Context files
-  const CONTEXT_INTRO =
-    "The following information is provided as background context for this character. " +
-    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
-
-  for (const file of state.contextFiles) {
-    if (file.content && file.content.trim()) {
-      messages.push({
-        role: "user",
-        content: CONTEXT_INTRO + file.content,
-        isFile: true,
-      });
-    }
-  }
+  messages.push(...buildContextMessages(state));
 
   return messages;
 }
@@ -184,45 +128,18 @@ export function buildPromptOnly() {
  * each message (including the message itself).
  */
 export function buildMessagesArrayUpTo(upToIndex) {
-  // Sync editor content first (same as buildMessagesArray)
-  if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
-    const editorContent = state.cmView.state.doc.toString();
-    const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-    if (file) file.content = editorContent;
-  }
-
-  if (state.cmView) {
-    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
-  }
+  syncEditorToState(state);
 
   const messages = [];
 
   // 1. System message
-  const systemPrompt = state.tabContents.prompt || "";
-  const instructions = state.tabContents.instructions || "";
-
-  if (systemPrompt.trim() || instructions.trim()) {
-    const systemContent = systemPrompt.replace(
-      "%%CHARACTER_INSTRUCTIONS%%",
-      instructions
-    );
+  const systemContent = buildSystemPrompt(state);
+  if (systemContent !== null) {
     messages.push({ role: "system", content: systemContent });
   }
 
   // 2. Context files
-  const CONTEXT_INTRO =
-    "The following information is provided as background context for this character. " +
-    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
-
-  for (const file of state.contextFiles) {
-    if (file.content && file.content.trim()) {
-      messages.push({
-        role: "user",
-        content: CONTEXT_INTRO + file.content,
-        isFile: true,
-      });
-    }
-  }
+  messages.push(...buildContextMessages(state));
 
   // 3. Conversation history — up to and including the clicked message
   for (const msg of state.conversationHistory.slice(0, upToIndex + 1)) {
