@@ -4,14 +4,9 @@ import { dom, state, TAB_FILE_MAP, TRACKED_FOLDERS } from "./app.js";
 import { showSaveError, saveCurrentTab } from "./editor.js";
 import { reloadAfterRevert } from "./characters.js";
 import { getEditorValue } from "./editor.js";
-import { getCharacterDir, formatError } from "./helpers.js";
+import { getRepoPath, formatError } from "./helpers.js";
 
 let isCommitting = false;
-
-function getRepoPath() {
-  if (!state.currentWorkFolder || !state.selectedCharacter) return null;
-  return getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
-}
 
 function formatTimestamp(unix) {
   const date = new Date(unix * 1000);
@@ -54,7 +49,7 @@ export async function checkDirty() {
   const saveBtn = dom.gitCommitBtn;
   if (!indicator || !saveBtn) return;
 
-  const repoPath = getRepoPath();
+  const repoPath = getRepoPath(state);
   if (!repoPath) {
     indicator.textContent = "";
     indicator.className = "git-status-indicator";
@@ -216,7 +211,7 @@ async function handleSaveCheckpoint() {
   if (!state.selectedCharacter || isCommitting) return;
   isCommitting = true;
 
-  const repoPath = getRepoPath();
+  const repoPath = getRepoPath(state);
   if (!repoPath) { isCommitting = false; return; }
 
   const saveBtn = dom.gitCommitBtn;
@@ -268,7 +263,7 @@ async function renameCheckpointInBackground(repoPath) {
 export async function openGitHistory() {
   if (!state.selectedCharacter) return;
 
-  const repoPath = getRepoPath();
+  const repoPath = getRepoPath(state);
   if (!repoPath) return;
 
   const historyList = document.getElementById("git-history-list");
@@ -332,7 +327,7 @@ async function handleGitRevert(commitId) {
   const confirmed = window.confirm("Restore this version? Your current changes will be replaced by the selected checkpoint.");
   if (!confirmed) return;
 
-  const repoPath = getRepoPath();
+  const repoPath = getRepoPath(state);
   if (!repoPath) return;
 
   try {

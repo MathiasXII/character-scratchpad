@@ -1,7 +1,7 @@
 const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP, updateUIState } from "./app.js";
-import { getCharacterDir, formatError } from "./helpers.js";
+import { getRepoPath, formatError } from "./helpers.js";
 import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder, updateInstructionsVisibility } from "./editor.js";
 import { openSettingsModal } from "./settings.js";
 import { updateGitBarVisibility, checkDirty } from "./git.js";
@@ -181,7 +181,7 @@ export async function handleCharacterSelect() {
     // Continue anyway - we'll try to load files even if some are missing
   }
 
-  const charDir = getCharacterDir(state.currentWorkFolder, name);
+  const charDir = getRepoPath(state);
   const { tabContents, lastSavedContent, contextFiles } = await loadCharacterFiles(charDir);
 
   for (const key in tabContents) {
@@ -210,7 +210,7 @@ export async function reloadAfterRevert() {
   clearTimeout(state.saveTimeout);
   state.saveTimeout = null;
 
-  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+  const charDir = getRepoPath(state);
   const { tabContents, lastSavedContent, contextFiles } = await loadCharacterFiles(charDir);
 
   for (const key in tabContents) {

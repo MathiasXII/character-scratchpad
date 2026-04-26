@@ -1,7 +1,7 @@
 const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP } from "./app.js";
-import { getCharacterDir, formatError } from "./helpers.js";
+import { getRepoPath, formatError } from "./helpers.js";
 import { checkDirty } from "./git.js";
 import { renderContextFileList, saveActiveContextFile } from "./context.js";
 
@@ -80,7 +80,7 @@ export { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly
  */
 function persistTabFile(tab, content) {
   const filename = TAB_FILE_MAP[tab];
-  const path = getCharacterDir(state.currentWorkFolder, state.selectedCharacter) + "/" + filename;
+  const path = getRepoPath(state) + "/" + filename;
   return Promise.resolve(invoke("save_file", { path, content }))
     .then(() => {
       state.lastSavedContent[tab] = content;

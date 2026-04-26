@@ -23,6 +23,11 @@ export function getCharacterDir(workFolder, characterName) {
  * Get the active character directory from app state.
  * Returns null when no character is selected or no work folder exists.
  */
+export function getRepoPath(state) {
+  if (!state.currentWorkFolder || !state.selectedCharacter) return null;
+  return getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+}
+
 /**
  * Sync the current CodeMirror editor content back into the shared state
  * so that prompt-building and dirty-checking always see what's on screen,
