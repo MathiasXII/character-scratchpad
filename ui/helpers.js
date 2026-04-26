@@ -1,4 +1,4 @@
-export const MARKDOWN_RENDER_CONFIG = {
+const MARKDOWN_RENDER_CONFIG = {
   ADD_TAGS: ["details", "summary"],
   ADD_ATTR: ["checked", "disabled"],
 };
@@ -15,7 +15,7 @@ export function renderMarkdown(markdown) {
   return DOMPurify.sanitize(marked.parse(markdown), MARKDOWN_RENDER_CONFIG);
 }
 
-export function getCharacterDir(workFolder, characterName) {
+function getCharacterDir(workFolder, characterName) {
   return workFolder && characterName ? workFolder + "/" + characterName : "";
 }
 
@@ -70,7 +70,7 @@ export function buildSystemPrompt(state) {
  * Prefix prepended to each context file's content when injected
  * as a user message in the prompt.
  */
-export const CONTEXT_INTRO =
+const CONTEXT_INTRO =
   "The following information is provided as background context for this character. " +
   "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
 

@@ -1,7 +1,7 @@
 use std::path::Path;
 
 /// Reject paths that contain traversal components (e.g. ".." or "." segments).
-pub fn validate_path(path: &str) -> Result<(), String> {
+pub(crate) fn validate_path(path: &str) -> Result<(), String> {
     let p = Path::new(path);
     for component in p.components() {
         match component {
@@ -20,7 +20,7 @@ pub fn validate_path(path: &str) -> Result<(), String> {
 /// Validate a bare filename: reject empty, path separators, traversal, and hidden names.
 ///
 /// Used for context filenames and character names (which become directory names).
-pub fn validate_filename(filename: &str) -> Result<(), String> {
+pub(crate) fn validate_filename(filename: &str) -> Result<(), String> {
     if filename.is_empty() {
         return Err("Filename cannot be empty".to_string());
     }
