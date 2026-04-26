@@ -1,12 +1,17 @@
-#[tauri::command]
-pub async fn fetch_models(base_url: String, api_key: String) -> Result<Vec<String>, String> {
-    let base = base_url.trim_end_matches('/');
-    let url = format!("{}/models", base);
+use tauri::State;
 
-    let client = reqwest::Client::new();
-    let response = match client
-        .get(&url)
-        .header("Authorization", format!("Bearer {}", api_key))
+use crate::commands::http::{models_url, with_auth};
+use crate::state::AppState;
+
+#[tauri::command]
+pub async fn fetch_models(
+    state: State<'_, AppState>,
+    base_url: String,
+    api_key: String,
+) -> Result<Vec<String>, String> {
+    let url = models_url(&base_url);
+
+    let response = match with_auth(state.client.get(&url), &api_key)
         .send()
         .await
     {

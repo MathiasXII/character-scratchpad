@@ -2,16 +2,26 @@ use std::fs;
 use std::path::Path;
 
 use crate::commands::git::{create_signature, open_repo, stage_all_excluding_git};
+use crate::commands::validation::validate_filename;
 
-/// Validate that a character name is safe (no path traversal, no separators)
+/// Validate that a character name is safe (no path traversal, no separators, no hidden names).
+///
+/// Delegates to `validate_filename` since character names become directory names
+/// and must satisfy the same safety constraints.
 fn validate_character_name(name: &str) -> Result<(), String> {
-    if name.is_empty() {
-        return Err("Character name cannot be empty".to_string());
-    }
-    if name.contains("..") || name.contains('/') || name.contains('\\') {
-        return Err(format!("Invalid character name: '{}'", name));
-    }
-    Ok(())
+    validate_filename(name).map_err(|e| {
+        // Rewrite the error prefix to say "character name" instead of "filename"
+        // while preserving the specific reason.
+        if e.starts_with("Filename cannot be empty") {
+            "Character name cannot be empty".to_string()
+        } else if e.starts_with("Invalid filename (cannot start with '.')") {
+            format!("Invalid character name (cannot start with '.'): '{}'", name)
+        } else if e.starts_with("Invalid filename") {
+            format!("Invalid character name: '{}'", name)
+        } else {
+            e
+        }
+    })
 }
 
 #[tauri::command]
@@ -147,5 +157,10 @@ mod tests {
     #[test]
     fn test_validate_character_name_allows_normal() {
         assert!(validate_character_name("my-character").is_ok());
+    }
+
+    #[test]
+    fn test_validate_character_name_rejects_hidden() {
+        assert!(validate_character_name(".hidden").is_err());
     }
 }

@@ -41,3 +41,36 @@
 - Backend helper visibility can be tightened safely in small steps: `normalize_line_endings()` works as a crate-only helper, `AppState` fields only need crate access, and `ChatCompletionRequest` is only constructed inside the backend.
 - Keep Tauri command entrypoints public, but helper return/inner types should stay scoped to the crate when they are only consumed by sibling modules.
 - Reuse checks showed the main backend helpers are still exercised across modules (`files.rs`, `git.rs`, `settings.rs`, `stream_chat.rs`), so the safe cleanup target is visibility reduction rather than deletion.
+
+## 2026-04-26 T10 prompt-building and editor-sync consolidation
+- Three functions in `chat.js` (`buildMessagesArray`, `buildPromptOnly`, `buildMessagesArrayUpTo`) each contained identical blocks for: (1) editor-to-state sync, (2) system prompt assembly with `%%CHARACTER_INSTRUCTIONS%%` replacement, (3) context file message construction with `CONTEXT_INTRO` prefix.
+- Extracted four shared helpers into `ui/helpers.js`: `syncEditorToState(state)`, `buildSystemPrompt(state)`, `CONTEXT_INTRO` constant, `buildContextMessages(state)`.
+- `buildSystemPrompt` returns `null` when both system-prompt and instructions are empty, letting callers use a simple `!== null` check instead of duplicating the trim-or-check logic.
+- `buildContextMessages` returns an array, so callers use `messages.push(...buildContextMessages(state))` for clean spreading.
+- All 70 Vitest tests pass unchanged — the refactoring preserves exact message ordering and content.
+- The `editor.js` visibility warning also checks `%%CHARACTER_INSTRUCTIONS%%` but only for display purposes (not prompt building), so it was left untouched.
+
+## 2026-04-26 T11 character/context flow consolidation
+- Extracted `loadCharacterFiles(charDir)` and `refreshCharacterUI()` in `characters.js` to eliminate duplicated file-loading and UI-refresh sequences between `handleCharacterSelect` and `reloadAfterRevert`.
+- `loadCharacterFiles` returns `{ tabContents, lastSavedContent, contextFiles }` without modifying state — callers assign results themselves, preserving the different post-load logic (e.g., `reloadAfterRevert` preserves `activeContextFile` if it still exists).
+- Extracted `saveActiveContextFile()` in `context.js` to consolidate the repeated context-file save pattern across `selectContextFile`, `switchTab`, and `saveCurrentTab`. Returns `true` if saved, `false` if skipped, throws on error — callers handle UI feedback (banner vs console error).
+- Extracted `refreshContextFiles(charDir)` in `context.js` to centralize the `invoke("list_context_files")` + state update pattern used in `handleAddContextFile`, `performDelete`, `handleDroppedFiles`, and `loadCharacterFiles`.
+- `handleDroppedFiles` now uses `getCharacterDir()` instead of manual string concatenation — minor consistency fix.
+- Vitest auto-reformats `vi.fn()` declarations into `vi.hoisted()` when they're referenced in `vi.mock` factories — use `vi.hoisted()` for any mock that appears in a factory callback.
+- Circular dependency between `context.js` ↔ `editor.js` already existed (`renderContextFileList` and `getEditorValue`/`setEditorValue`); adding `saveActiveContextFile` to the same cycle is safe since ES modules handle circular imports for function references.
+## 2026-04-26 T8 validation helper consolidation
+- Extracted alidate_path and alidate_filename from iles.rs into a new shared src-tauri/src/commands/validation.rs module.
+- alidate_character_name in characters.rs now delegates to alidate_filename with error-message rewriting (preserves "Character name" prefix in errors).
+- Tightened alidate_character_name to also reject hidden names starting with . — this aligns with list_characters which already skips hidden directories, so a .hidden character name would be invisible anyway.
+- Added 	est_validate_character_name_rejects_hidden test to cover the tightened behavior.
+- Pre-existing compile blockers fixed along the way: added http module to mod.rs, added models_url/with_auth helpers to http.rs, fixed 	est_connection.rs return type from TestConnectionResult to Result<TestConnectionResult, String> (Tauri async commands with State references must return Result).
+- All 19 Rust unit tests + 6 integration tests + 70 Vitest tests pass. Clippy clean.
+
+## 2026-04-26 T7 HTTP request helper consolidation
+- Created `src-tauri/src/commands/http.rs` with five `pub(crate)` helpers: `chat_completions_url`, `models_url`, `bearer_value`, `with_auth_json`, `with_auth`.
+- URL builders centralize trailing-slash trimming (`trim_end_matches('/')`) + path appending -- previously inconsistent (stream_chat and git.rs didn't trim, test_connection/test_model/models.rs did).
+- `with_auth_json` applies both Authorization and Content-Type headers for POST+JSON requests; `with_auth` applies only Authorization for GET requests.
+- `test_connection`, `test_model`, and `fetch_models` now accept `State<'_, AppState>` to reuse the shared `reqwest::Client` instead of creating `reqwest::Client::new()` per call. The `base_url` and `api_key` params are still used for the actual request -- `State` is only for client access.
+- Tauri v2 constraint: async commands with `State<'_, T>` references MUST return `Result<_, _>` -- this forced `test_connection` and `test_model` return types from `TestConnectionResult` to `Result<TestConnectionResult, String>`. All return values wrapped in `Ok()`. Frontend unaffected since Tauri unwraps the Result.
+- `stream_chat.rs` and `git.rs` (generate_checkpoint_name) already used `state.client`; they were refactored to use the shared URL/header helpers only.
+- All 19 Rust unit tests + 6 integration tests + 70 Vitest tests pass. Clippy clean.
