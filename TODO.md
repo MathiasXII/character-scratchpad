@@ -59,8 +59,8 @@ This file tracks the original vertical-slice roadmap plus newer completed improv
 - [x] **G. Context Folder (full stack)**
   Add context file list/create/delete/copy support, drag & drop import, PDF extraction with read-only editing, and include non-empty context files as separate prompt messages.
 
-- [ ] **H. First Response Injection**
-  When sending the first user message in a conversation, check whether `intro.txt` has non-empty content. If it does, prepend an assistant message with that content before the first user turn and display it with a subtle First Response label.
+- [x] **H. First Response Injection**
+  When a character is loaded or `intro.txt` is edited, sync a guarded first-response assistant bubble into the chat. The bubble is injected only when the chat is empty or contains exactly one existing first-response message; it is removed when `intro.txt` is cleared. The internal `_isFirstResponse` marker is stripped from API payloads so the message serializes as a normal assistant turn. A subtle "✦ First Response" label distinguishes it visually.
 
 - [ ] **I. Venice.ai Compatibility & Polish**
   Add a built-in Venice.ai settings preset using the base URL `https://api.venice.ai/api/v1`, label the description content clearly as public-facing, and do a final polish pass on UX and error handling.
