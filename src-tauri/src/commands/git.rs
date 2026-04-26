@@ -6,8 +6,9 @@ use git2::{IndexAddOption, Oid, ResetType, Signature, Sort, StatusOptions};
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
-use crate::state::AppState;
+use crate::commands::http::{chat_completions_url, with_auth_json};
 use crate::commands::line_endings::normalize_line_endings;
+use crate::state::AppState;
 use crate::types::{ChatCompletionRequest, ChatMessage};
 
 #[derive(Serialize, Deserialize)]
@@ -316,14 +317,13 @@ pub async fn generate_checkpoint_name(
         top_p: None,
     };
 
-    let response = match state
-        .client
-        .post(format!("{}/chat/completions", endpoint))
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
-        .json(&request_body)
-        .send()
-        .await
+    let response = match with_auth_json(
+        state.client.post(chat_completions_url(&endpoint)),
+        &api_key,
+    )
+    .json(&request_body)
+    .send()
+    .await
     {
         Ok(response) => response,
         Err(_) => return Ok("Checkpoint".to_string()),

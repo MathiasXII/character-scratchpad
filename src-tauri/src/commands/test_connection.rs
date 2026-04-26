@@ -1,3 +1,7 @@
+use tauri::State;
+
+use crate::commands::http::{chat_completions_url, with_auth_json};
+use crate::state::AppState;
 use crate::types::TestConnectionResult;
 
 /// Test the API key + endpoint by sending a minimal chat completion request.
@@ -5,9 +9,12 @@ use crate::types::TestConnectionResult;
 /// that proves auth passed, so we treat it as success.
 /// Only 401 = bad key, connection failure = bad endpoint.
 #[tauri::command]
-pub async fn test_connection(base_url: String, api_key: String) -> TestConnectionResult {
-    let base = base_url.trim_end_matches('/');
-    let url = format!("{}/chat/completions", base);
+pub async fn test_connection(
+    state: State<'_, AppState>,
+    base_url: String,
+    api_key: String,
+) -> Result<TestConnectionResult, String> {
+    let url = chat_completions_url(&base_url);
 
     // Use a dummy model — we don't care if it exists, only whether auth passes
     let request_body = serde_json::json!({
@@ -17,22 +24,18 @@ pub async fn test_connection(base_url: String, api_key: String) -> TestConnectio
         "stream": false,
     });
 
-    let client = reqwest::Client::new();
-    let response = match client
-        .post(&url)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
+    let response = match with_auth_json(state.client.post(&url), &api_key)
         .json(&request_body)
         .send()
         .await
     {
         Ok(r) => r,
         Err(e) => {
-            return TestConnectionResult {
+            return Ok(TestConnectionResult {
                 success: false,
                 error_type: Some("connection".into()),
                 message: Some(format!("Could not connect: {}", e)),
-            }
+            })
         }
     };
 
@@ -40,11 +43,11 @@ pub async fn test_connection(base_url: String, api_key: String) -> TestConnectio
 
     // 200 = everything works
     if status.is_success() {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: true,
             error_type: None,
             message: None,
-        };
+        });
     }
 
     let body = response.text().await.unwrap_or_default();
@@ -52,11 +55,11 @@ pub async fn test_connection(base_url: String, api_key: String) -> TestConnectio
 
     // 401 = bad API key — the one error that means auth failed
     if status.as_u16() == 401 {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: false,
             error_type: Some("auth".into()),
             message: Some("Invalid API key".into()),
-        };
+        });
     }
 
     // Model-related errors = auth PASSED (server accepted the key, just rejected
@@ -69,23 +72,23 @@ pub async fn test_connection(base_url: String, api_key: String) -> TestConnectio
         || (status.as_u16() == 400 && body.to_lowercase().contains("model"));
 
     if is_model_error {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: true,
             error_type: None,
             message: None,
-        };
+        });
     }
 
     // 404 without model mention = bad endpoint URL
     if status.as_u16() == 404 {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: false,
             error_type: Some("endpoint".into()),
             message: Some("Endpoint not found (404). Check the URL.".into()),
-        };
+        });
     }
 
-    TestConnectionResult {
+    Ok(TestConnectionResult {
         success: false,
         error_type: Some("server".into()),
         message: Some(format!(
@@ -93,15 +96,19 @@ pub async fn test_connection(base_url: String, api_key: String) -> TestConnectio
             status,
             truncate(&body, 200)
         )),
-    }
+    })
 }
 
 /// Test a model by sending a minimal chat completion request.
 /// Returns structured result so the frontend can highlight the model field on failure.
 #[tauri::command]
-pub async fn test_model(base_url: String, api_key: String, model: String) -> TestConnectionResult {
-    let base = base_url.trim_end_matches('/');
-    let url = format!("{}/chat/completions", base);
+pub async fn test_model(
+    state: State<'_, AppState>,
+    base_url: String,
+    api_key: String,
+    model: String,
+) -> Result<TestConnectionResult, String> {
+    let url = chat_completions_url(&base_url);
 
     let request_body = serde_json::json!({
         "model": model,
@@ -110,44 +117,40 @@ pub async fn test_model(base_url: String, api_key: String, model: String) -> Tes
         "stream": false,
     });
 
-    let client = reqwest::Client::new();
-    let response = match client
-        .post(&url)
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
+    let response = match with_auth_json(state.client.post(&url), &api_key)
         .json(&request_body)
         .send()
         .await
     {
         Ok(r) => r,
         Err(e) => {
-            return TestConnectionResult {
+            return Ok(TestConnectionResult {
                 success: false,
                 error_type: Some("connection".into()),
                 message: Some(format!("Could not connect: {}", e)),
-            }
+            })
         }
     };
 
     let status = response.status();
 
     if status.is_success() {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: true,
             error_type: None,
             message: None,
-        };
+        });
     }
 
     let body = response.text().await.unwrap_or_default();
     let error_code = extract_error_code(&body);
 
     if status.as_u16() == 401 {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: false,
             error_type: Some("auth".into()),
             message: Some("Invalid API key".into()),
-        };
+        });
     }
 
     // Model not found — 404 with model_not_found body, or explicit invalid_model code
@@ -155,31 +158,31 @@ pub async fn test_model(base_url: String, api_key: String, model: String) -> Tes
         || error_code == "model_not_found"
         || error_code == "MODEL_NOT_FOUND"
     {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: false,
             error_type: Some("model_not_found".into()),
             message: Some(format!("Model '{}' not found", model)),
-        };
+        });
     }
 
     if error_code == "invalid_model" || error_code == "INVALID_MODEL" {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: false,
             error_type: Some("model_not_found".into()),
             message: Some(format!("Invalid model: '{}'", model)),
-        };
+        });
     }
 
     // Fallback: 400 with "model" in the body likely means bad model name
     if status.as_u16() == 400 && body.to_lowercase().contains("model") {
-        return TestConnectionResult {
+        return Ok(TestConnectionResult {
             success: false,
             error_type: Some("model_not_found".into()),
             message: Some(format!("Invalid model: '{}'", model)),
-        };
+        });
     }
 
-    TestConnectionResult {
+    Ok(TestConnectionResult {
         success: false,
         error_type: Some("server".into()),
         message: Some(format!(
@@ -187,7 +190,7 @@ pub async fn test_model(base_url: String, api_key: String, model: String) -> Tes
             status,
             truncate(&body, 200)
         )),
-    }
+    })
 }
 
 /// Extract the error code from an API error response body.
