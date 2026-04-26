@@ -1,372 +1,492 @@
-# Character Scratch Pad — Venice.ai Character Workbench
+# Character Scratch Pad — Current Architecture & Feature Documentation
 
 ## 1. Project Overview
 
-**Character Scratch Pad** is a desktop application built to develop, test, and refine AI characters compatible with [Venice.ai](https://venice.ai). It provides a local workbench where character creators can write prompts, iterate on personalities, and validate behaviour through live conversation — all within a single interface.
+**Character Scratch Pad** is a Tauri v2 desktop application for creating, editing, and testing AI characters against OpenAI-compatible chat APIs. It is designed around a local, file-based workflow that fits Venice.ai-style character authoring, while still supporting other providers that expose compatible `/chat/completions` and `/models` endpoints.
 
-### Goal
+The application combines three workflows in one desktop tool:
 
-Create an environment to develop and test characters that are compatible with Venice.ai, combining an ordinary LLM chat with live prompt editing, file-based versioning, and standardized character file organisation.
+1. **Character authoring** — edit character files directly on disk
+2. **Prompt inspection** — preview the assembled prompt before or after chat turns
+3. **Live validation** — stream responses from an LLM provider while iterating on the files
 
 ---
 
 ## 2. Architecture
 
 | Layer | Technology | Role |
-|-------|-----------|------|
-| Native shell | **Tauri v2** (Rust) | Desktop window, filesystem access, git operations, HTTP client |
-| Backend | **Rust** (`src-tauri/src/`) | API proxy with streaming, app state management, Tauri commands |
-| Frontend | **Vanilla HTML/CSS/JS** (`ui/`) | UI rendering, user interaction, markdown display |
+|---|---|---|
+| Native shell | **Tauri v2** | Desktop window, IPC bridge, filesystem access, packaging |
+| Backend | **Rust** (`src-tauri/src/`) | Settings persistence, file operations, git operations, HTTP requests, SSE streaming |
+| Frontend | **Vanilla HTML/CSS/JS** (`ui/`) | UI rendering, CodeMirror integration, chat UX, modals, previews |
+| Editor bundle | **CodeMirror 6** | Rich editor for tracked character files and editable context files |
 
 ### Why Tauri?
 
-Tauri provides a lightweight native shell with direct Rust access to the filesystem and system APIs. This is essential for:
+Tauri fits the project because the app needs native capabilities without Electron overhead:
 
-- Managing character folder structures on disk
-- Running local git operations (init, commit, revert) without external dependencies
-- Streaming API responses through the backend while keeping the frontend responsive
-- Keeping the application self-contained — no Node server required at runtime
+- direct filesystem access for character folders
+- local git repositories per character
+- backend-managed streaming requests
+- native drag-and-drop file imports
+- cross-platform desktop packaging
 
 ---
 
-## 3. Current State (v0.1.0)
+## 3. Current Application State
 
-The application currently functions as a basic LLM chat client:
+The project is no longer a basic chat prototype. The current app includes:
 
-- **Streaming chat** — Messages are sent to an OpenAI-compatible API endpoint and tokens stream back in real time via Tauri events.
-- **Settings** — API key, model name, and endpoint URL are persisted in `localStorage` and synced to the Rust backend on startup/save.
-- **Dark theme UI** — Single-pane chat interface with message bubbles, auto-scrolling, and a settings modal.
+- **Two-pane workbench** with a draggable divider
+- **Character selection and creation** inside a configurable work folder
+- **Scratchpad mode** when no character is selected
+- **CodeMirror-based editor** with autosave for tracked files
+- **Context file management** for `.txt`, `.md`, and `.pdf`
+- **Read-only PDF extraction** via `lopdf`
+- **Streaming chat** over OpenAI-compatible APIs
+- **Markdown rendering** for both user and assistant messages
+- **Delete, edit, and resend** chat actions
+- **Prompt preview** for the assembled prompt and per-message context
+- **Per-character git checkpoints** with restore/history support
+- **Provider tooling in Settings**:
+  - fetch models from `/models`
+  - test endpoint/API key
+  - test a specific model
+  - tune `temperature` and `top_p`
+- **Persistent backend settings** via `settings.json`
+- **Rust integration tests, Vitest UI tests, and CI**
 
-### Source Layout
+### Still incomplete
 
-```
+Two roadmap items remain unfinished:
+
+1. **First response injection** from `intro.txt`
+2. **Venice.ai compatibility & polish** work, such as a built-in Venice preset in Settings and final UX cleanup
+
+`intro.txt` is already created, loaded, and editable, but its content is **not yet injected into the chat automatically**.
+
+---
+
+## 4. Source Layout
+
+```text
 llm-chat/
-├── package.json                # Node dev scripts (tauri dev/build)
+├── README.md
+├── DOCUMENTATION.md
+├── TODO.md
+├── AGENTS.md
+├── package.json                # npm scripts: dev, build, bundle, test, clean
+├── vitest.config.js            # Vitest config for ui/**/*.test.js
+├── .github/
+│   └── workflows/
+│       ├── ci.yml              # cargo check/clippy/test + vitest
+│       └── release.yml
 ├── src-tauri/
-│   ├── Cargo.toml              # Rust dependencies
-│   ├── tauri.conf.json         # Tauri window & bundle config
-│   └── src/
-│       └── main.rs             # All backend logic (~143 lines)
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   ├── src/
+│   │   ├── main.rs             # Windows subsystem stub, calls lib::run()
+│   │   ├── lib.rs              # Tauri builder, AppState init, invoke_handler registration
+│   │   ├── state.rs            # AppState: api_key, model, endpoint, temperature, top_p, client
+│   │   ├── types.rs            # ChatMessage, Settings, ContextFile, TestConnectionResult
+│   │   └── commands/
+│   │       ├── characters.rs
+│   │       ├── files.rs
+│   │       ├── git.rs
+│   │       ├── models.rs
+│   │       ├── settings.rs
+│   │       ├── stream_chat.rs
+│   │       └── test_connection.rs
+│   └── tests/
+│       ├── character_workflow.rs
+│       ├── context_files.rs
+│       ├── files_edge_cases.rs
+│       ├── git_workflow.rs
+│       └── common.rs
 └── ui/
-    ├── index.html              # Single-page markup
-    ├── styles.css              # Dark theme styles
-    └── app.js                  # Frontend logic (~196 lines)
+    ├── index.html
+    ├── styles.css
+    ├── app.js
+    ├── characters.js
+    ├── chat.js
+    ├── context.js
+    ├── divider.js
+    ├── editor.js
+    ├── git.js
+    ├── preview.js
+    ├── settings.js
+    ├── tracked-paths.js
+    ├── *.test.js
+    ├── lib/
+    │   ├── dompurify.min.js
+    │   ├── marked.min.js
+    │   └── editor-cm.bundle.js
+    └── src/
+        └── editor-cm.mjs
 ```
-
-### Key Dependencies (Rust)
-
-| Crate | Purpose |
-|-------|---------|
-| `tauri` 2.x | Desktop framework, IPC, event system |
-| `reqwest` 0.13 | HTTP client with streaming support |
-| `serde` / `serde_json` | Serialization for API payloads |
-| `futures-util` 0.3 | Stream processing for SSE parsing |
-| `tokio` 1.x | Async runtime |
-| `git2` 0.20 | Local git operations for version control |
-| `lopdf` 0.34 | PDF text extraction for context files |
 
 ---
 
-## 4. Target Features
+## 5. Character Project Layout
 
-### 4.1 Character Scratch Pad
+Each character is stored as a folder inside the configured work folder:
 
-A fully functional chat that works out of the box — no character configuration required.
-
-| Feature | Description |
-|---------|-------------|
-| Markdown rendering | Messages support full markdown (bold, italic, code blocks, lists, links) |
-| Send message | Standard send — appends user message, streams assistant reply |
-| Resend last message | Replaces the last user message with new text instead of appending; the previous user message is deleted and the new one takes its place, then a new response is generated |
-| Delete message | Removes a message and **all messages below it** in the conversation |
-| Edit any message | Clicking edit on any message (user or assistant) replaces its display with an edit input box (plain text, no markdown rendering). Saving re-submits the conversation from that point forward |
-
-**Edit behaviour detail:** When a message is edited, the conversation is truncated at that point and regenerated — identical to how OpenAI's "Edit" works in ChatGPT.
-
-### 4.2 Live Prompt Editing
-
-Changes to character files are reflected immediately in the chat — no reload or restart required.
-
-- Editing `instructions.txt`, `system-prompt.txt`, or context files triggers a live re-injection of the system prompt into the conversation on the next message send.
-- The chat uses the latest on-disk content at the time of each API call.
-
-### 4.3 Character File Versioning
-
-Each character folder is backed by a local git repository.
-
-| Operation | Description |
-|-----------|-------------|
-| Commit | User explicitly commits the current state of all character files with a message |
-| Revert | User reverts to a previous commit, restoring all character files to that state |
-| Auto-save | All edits to character files are silently auto-saved to disk in the background. If auto-save fails, the application **must raise an error** to the user |
-
-**Scope:** Only commit and revert. No branching, merging, remotes, or push/pull. The git repository exists solely as an undo history.
-
-### 4.4 Work Folder & Character Organisation
-
-```
+```text
 <work-folder>/
 └── <character-name>/
-    ├── .git/                    # Local repository (commit/revert only)
-    ├── instructions.txt        # Character personality, traits, behaviour rules
-    ├── system-prompt.txt        # System prompt sent to the LLM
-    ├── description.txt          # Public-facing character description (shown on Venice.ai)
-    ├── intro.txt               # The first message the character implicitly "said"
-    └── context/                # Optional context files
+    ├── .git/
+    ├── instructions.txt
+    ├── system-prompt.txt
+    ├── description.txt
+    ├── intro.txt
+    └── context/
         ├── lore.md
+        ├── notes.txt
+        ├── reference.pdf
         └── ...
 ```
 
+### File roles
+
 | File | Purpose |
-|------|---------|
-| `instructions.txt` | Defines the character's personality, speech patterns, traits, and behavioural constraints. This is the "who the character is" file. |
-| `system-prompt.txt` | The system prompt injected into the LLM API call. Defines the role and instructions the model follows. |
-| `description.txt` | A user-facing description of the character. Visible from the character list on Venice.ai. Must be enticing and self-contained. |
-| `intro.txt` | The opening line of the character. Implicitly included as if the LLM already produced this as its first message. |
-| `context/*.md` or `context/*.txt` or `context/*.pdf` | Supplementary context files the user can create and edit within the application. These are included in the prompt payload. PDF files are read-only — their text is extracted and displayed, but not editable. |
+|---|---|
+| `instructions.txt` | Character behaviour, tone, personality, rules |
+| `system-prompt.txt` | Main system prompt template sent to the model |
+| `description.txt` | Public-facing description text |
+| `intro.txt` | Reserved for the planned first-response feature |
+| `context/*` | Optional supporting documents injected as prompt context |
 
-**Rules:**
+### Creation and integrity rules
 
-- The work folder location is configurable.
-- Each character gets its own subfolder.
-- All character files are plain text (`.md` or `.txt`), editable both inside the app and externally. PDF context files are read-only inside the app.
-- Context files can also be added by dragging and dropping `.txt`, `.md`, or `.pdf` files onto the context sidebar.
+When a character is created or ensured:
 
----
-
-## 5. UI Layout (Desktop)
-
-The application uses a **two-pane horizontal layout** optimized for desktop use.
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  Header: App title + Character selector + Settings           │
-├──────────────────────────┬───────────────────────────────────┤
-│ [Instructions][Prompt].. │                                   │
-│ [Description][1st Resp]  │   Right Pane (Chat)               │
-│──────────────────────────│                                   │
-│                          │   ┌───────────────────────────┐   │
-│                          │   │  Message bubbles           │   │
-│  Markdown textarea       │   │  with markdown rendering   │   │
-│  (fills entire space)     │   │                           │   │
-│                          │   │                           │   │
-│                          │   └───────────────────────────┘   │
-│                          │   ┌───────────────────────────┐   │
-│                          │   │  Input area                │   │
-│                          │   └───────────────────────────┘   │
-│                          │                                   │
-│  ~234 tokens             │                                   │
-├──────────────────────────┴───────────────────────────────────┤
-│  Footer: Version info / Status                                │
-└──────────────────────────────────────────────────────────────┘
-```
-
-### Left Pane — Character Editor
-
-The left pane is minimalist by design: **horizontal tabs across the top, a single markdown textarea filling all remaining space, and a token counter at the bottom.** No extra chrome. Maximum editing area.
-
-| Tab | Maps to | Description |
-|-----|---------|-------------|
-| **Instructions** | `instructions.txt` | Define personality, traits, speech patterns, behavioural rules |
-| **System Prompt** | `system-prompt.txt` | Define the AI's role and system-level instructions |
-| **Description** | `description.txt` | Public-facing character description for Venice.ai listings |
-| **First Response** | `intro.txt` | The opening line the character implicitly produces |
-
-**Left pane structure (top to bottom):**
-
-1. **Tab bar** — Horizontal row of tabs aligned at the top. Clicking a tab switches the textarea content.
-2. **Markdown textarea** — A single `<textarea>` that fills 100% of the space between the tab bar and the token counter. Supports markdown syntax. Edits are auto-saved to disk.
-3. **Token counter** — A small, subtle count of approximate tokens in the current file content, displayed at the bottom of the pane. Calculated using a rough heuristic (e.g., ~4 characters per token) since exact counts require the model's tokenizer.
-
-### Right Pane — Chat
-
-- Displays the conversation with **full markdown rendering** (bold, italic, code blocks, lists, links, etc.).
-- Supports send, resend, delete, and edit operations on messages.
-- Uses the current character files as the system prompt context.
+- missing core files are created empty
+- `context/` is created if needed
+- a local git repository is initialised if missing
+- an `Initial commit` is created if the repo has no commits yet
 
 ---
 
-## 6. API Integration
+## 6. Settings & Persistence
 
-### Current Flow
+### Storage model
 
-```
-Frontend (app.js)
-  │  invoke("send_message_stream", { messages })
-  ▼
-Rust Backend (main.rs)
-  │  POST <endpoint>/chat/completions
-  │  Authorization: Bearer <api_key>
-  │  Body: { model, messages, stream: true }
-  ▼
-API (OpenAI-compatible)
-  │  SSE stream: data: { choices: [{ delta: { content } }] }
-  ▼
-Rust Backend
-  │  emit("stream-token", content)  → per token
-  │  emit("stream-end")             → on completion
-  ▼
-Frontend
-  │  Appends tokens to the assistant message bubble
-  │  Marks streaming complete on "stream-end"
-```
+| Setting | Stored in `settings.json` | Stored in `localStorage` |
+|---|---:|---:|
+| API key | ✅ | ✅ |
+| Model | ✅ | ✅ |
+| Endpoint base URL | ✅ | ✅ |
+| Temperature | ✅ | ✅ |
+| Top P | ✅ | ✅ |
+| Work folder | ❌ | ✅ |
 
-### Settings
+### Important endpoint detail
 
-| Setting | Default | Stored In |
-|---------|---------|-----------|
-| API Key | *(empty)* | `localStorage` → Rust `AppState` |
-| Model | `gpt-4o-mini` | `localStorage` → Rust `AppState` |
-| Endpoint | `https://api.openai.com/v1/chat/completions` | `localStorage` → Rust `AppState` |
+The app stores the **base API URL**, not the full chat-completions URL.
 
-The endpoint is configurable to support Venice.ai's API or any OpenAI-compatible provider.
+Examples:
+
+- OpenAI: `https://api.openai.com/v1`
+- Venice.ai: `https://api.venice.ai/api/v1`
+
+The backend appends:
+
+- `/chat/completions` for chat requests
+- `/models` for model discovery
+
+Older docs that mention storing the full `/chat/completions` URL are outdated. The backend also migrates previously saved full URLs by stripping that suffix.
 
 ---
 
-## 7. Planned Tauri Commands (Target)
+## 7. Backend Commands
+
+The current Tauri command surface is:
 
 | Command | Purpose |
-|---------|---------|
-| `send_message_stream` | Stream chat completions (already implemented) |
-| `update_settings` | Persist API settings to backend state (already implemented) |
-| `get_settings` | Read current settings from backend state (already implemented) |
-| `load_character_file` | Read a character file (`instructions.md`, `prompt.md`, etc.) from disk |
-| `save_character_file` | Write content to a character file (triggers auto-save) |
-| `list_characters` | Scan the work folder and return all character subfolders |
-| `create_character` | Create a new character folder with default files and init git |
-| `git_commit` | Stage all changes and commit with a user-provided message |
-| `git_revert` | Revert character files to a specified commit |
-| `git_log` | Return the commit history for the current character |
-| `list_context_files` | Return all `.md`/`.txt`/`.pdf` files in a character's `context/` folder (name + content + isReadOnly) |
-| `create_context_file` | Create a new context file in the `context/` folder |
-| `delete_context_file` | Delete a context file from the `context/` folder |
-| `copy_file_to_context` | Copy an external file (`.txt`/`.md`/`.pdf`) into a character's `context/` folder (resolves name collisions) |
+|---|---|
+| `send_message_stream` | Send a streaming chat-completions request |
+| `update_settings` | Persist and sync the current backend settings |
+| `get_settings` | Load settings from disk and hydrate `AppState` |
+| `load_file` | Read a text file from disk |
+| `save_file` | Write a text file, creating parent directories if needed |
+| `list_context_files` | Return context files and extracted PDF content |
+| `create_context_file` | Create a new empty context file |
+| `delete_context_file` | Delete a context file safely |
+| `copy_file_to_context` | Copy an external supported file into `context/` |
+| `list_characters` | List non-hidden character directories |
+| `create_character` | Create a character directory |
+| `ensure_character_files` | Ensure files, context directory, and git repo exist |
+| `git_commit` | Commit current character files |
+| `git_log` | Return checkpoint history |
+| `git_revert` | Restore a selected commit |
+| `git_is_dirty` | Fallback dirty-state detection |
+| `git_get_head_content` | Fetch file content from HEAD for comparisons |
+| `git_list_head_folder` | Fetch folder contents from HEAD |
+| `git_diff_last` | Return latest commit diff |
+| `git_commit_amend` | Rename the latest commit |
+| `generate_checkpoint_name` | Ask the configured model to summarise the latest diff |
+| `fetch_models` | Query `<base>/models` and return model IDs |
+| `test_connection` | Validate endpoint/API key and classify the failure mode |
+| `test_model` | Validate a concrete model name |
 
 ---
 
-## 8. Data Flow — Character-Aware Chat
+## 8. Frontend Architecture
 
-### Message Structure Sent to LLM API
+### Shared state and DOM
 
-The messages array sent to the API follows this structure:
+`ui/app.js` exports:
 
-```
-messages: [
-  1. SYSTEM message (if system-prompt.txt or instructions.txt is non-empty)
-     - Content: system-prompt.txt with %%CHARACTER_INSTRUCTIONS%% replaced by instructions.txt
-     - If system-prompt.txt is empty but instructions.txt has content:
-       %%CHARACTER_INSTRUCTIONS%% is still replaced (just instructions injected into empty string)
-     - If BOTH are empty: no system message is sent
+- `state` — shared mutable application state
+- `dom` — cached DOM element references
+- `TAB_FILE_MAP` and `TRACKED_FOLDERS` re-exported from `tracked-paths.js`
 
-   2. CONTEXT FILE messages (one per file in context/ directory, including PDF files with extracted text)
-     - Role: "user"
-     - Content: "The following information is provided as background context for
-       this character. It is not always relevant. Only refer to it if it's relevant
-       to the discussion: <file content>"
-     - isFile: true (non-standard flag, marks these as file attachments)
-     - Only included if the file has non-empty content
-      - PDF files have their text extracted at load time; they are read-only in the editor
-     - Sorted alphabetically by filename
+The project intentionally uses simple shared state rather than a UI framework. Important `state` fields include:
 
-  3. CONVERSATION HISTORY (user/assistant messages as-is)
-     - { role: "user", content: "..." }
-     - { role: "assistant", content: "..." }
-     - ...
-]
-```
+- `conversationHistory`
+- `tabContents`
+- `contextFiles`
+- `activeTab`
+- `activeContextFile`
+- `selectedCharacter`
+- `currentWorkFolder`
+- `isStreaming`
+- `chatDisabled`
+- `cmView`
 
-### Example API Request
+### Frontend module responsibilities
 
-```json
-{
-  "model": "zai-org/glm-5",
-  "max_tokens": 2048,
-  "temperature": 1,
-  "top_p": 0.95,
-  "stream": true,
-  "messages": [
-    {
-      "role": "system",
-      "content": "# ROLE\nYou are a game master...\n%%CHARACTER_INSTRUCTIONS%%\n→ replaced with instructions.txt content\n..."
-    },
-    {
-      "role": "user",
-      "content": "The following information is provided as background context...",
-      "isFile": true
-    },
-    {
-      "role": "user",
-      "content": "Hello"
-    }
-  ]
-}
-```
+| Module | Responsibility |
+|---|---|
+| `app.js` | App bootstrap, event wiring, chat/settings gating, shared state/dom |
+| `characters.js` | Character dropdown, create modal, load/reload flows, scratchpad mode |
+| `editor.js` | CodeMirror sync, autosave, tab switching, token counter, instructions visibility warning |
+| `context.js` | Context sidebar rendering, context CRUD, drag & drop imports, delete modal |
+| `chat.js` | Message assembly, send/stream lifecycle, message actions, per-message previews |
+| `preview.js` | Shared preview rendering and preview modal lifecycle |
+| `git.js` | Dirty detection, checkpoint save flow, history modal, restore flow |
+| `settings.js` | Settings load/save/sync, model fetching, connection/model test flows |
+| `divider.js` | Left/right pane resizing |
+| `tracked-paths.js` | Mapping of tracked tabs/files and tracked folders/extensions |
 
-### Key Behaviors
+---
 
-- **Empty system prompt + empty instructions** → No system message is included
-- **%%CHARACTER_INSTRUCTIONS%% placeholder** → Replaced with instructions.txt content verbatim
-- **%%CHARACTER_INSTRUCTIONS%% not present** → Instructions are NOT injected (user controls placement)
-- **Context files** → Each becomes a separate user message with `isFile: true`
-- **Context files are reloaded** on character select, edits to context files require re-selecting character
-- **conversationHistory** stores only user/assistant messages (no system/context) — these are prepended at send time
+## 9. Current UI Behaviour
 
-### Data Flow
+### 9.1 Layout
 
-```
-1. User selects a character
-2. App loads: instructions.txt + system-prompt.txt + description.txt + intro.txt + context/*
-3. On message send:
-   a. Build messages array:
-      - System message (if prompt/instructions non-empty)
-      - Context file messages (if context files exist)
-      - Conversation history
-   b. Call API with streaming
-4. On character file edit (in left pane):
-   a. Auto-save to disk
-   b. Next message send picks up updated file content automatically
+The app uses a two-pane desktop layout:
+
+- **Left pane**
+  - context sidebar
+  - tab bar (`Instructions`, `System Prompt`, `Description`, `First Response`, `Context`)
+  - CodeMirror editor
+  - token counter
+  - version control bar (`History`, `Preview`, dirty indicator, `Save checkpoint`)
+
+- **Right pane**
+  - dismissible error notification area
+  - chat-disabled overlay when key/model/endpoint are missing
+  - message list
+  - input area with `Resend` and `Send`
+
+### 9.2 Character loading modes
+
+- **No work folder configured**: the selector prompts the user to configure Settings
+- **No characters yet**: the selector shows `No characters yet`
+- **Scratchpad mode**: when no character is selected, the editor is cleared and no file-backed saving occurs
+- **Character selected**: tracked character files and context files load in parallel, then dirty state is recalculated
+
+### 9.3 Editor behaviour
+
+- CodeMirror powers the editor surface
+- the active tab auto-saves after a 1-second debounce
+- switching tabs flushes unsaved content
+- PDF context files are read-only
+- token count uses a simple `chars / 4` heuristic
+
+### 9.4 Instructions visibility warning
+
+If `instructions.txt` contains text but `system-prompt.txt` does not contain `%%CHARACTER_INSTRUCTIONS%%`:
+
+- the **Instructions** tab gets a warning icon/tint
+- a banner appears while viewing the **System Prompt** tab
+
+This warns the user that the instructions file would otherwise be ignored at send time.
+
+### 9.5 Prompt preview
+
+There are two preview flows:
+
+1. **Global Preview** in the left pane — assembled prompt without conversation history
+2. **Per-message preview** — the exact prompt context used up to a given message
+
+Both use the shared rendering logic in `ui/preview.js`.
+
+### 9.6 Chat controls
+
+- **Send**: appends the user message and starts a streaming assistant response
+- **Resend**: truncates history at the last user turn and regenerates from there
+- **Delete**: removes the selected message and everything after it
+- **Edit**: edits a message inline and updates the conversation history from that point
+
+---
+
+## 10. Prompt Assembly & Data Flow
+
+### Prompt assembly order
+
+When the frontend builds the messages array, it uses this order:
+
+1. **System message**
+   - starts from `system-prompt.txt`
+   - replaces `%%CHARACTER_INSTRUCTIONS%%` with `instructions.txt`
+   - included if either file has content
+
+2. **Context file messages**
+   - each non-empty context file becomes a separate **user** message
+   - each gets an explanatory prefix
+   - each includes `isFile: true`
+
+3. **Conversation history**
+   - user/assistant chat turns only
+
+### Current limitation
+
+`intro.txt` is **not** injected yet. That feature is still planned.
+
+### Chat request flow
+
+```text
+Frontend
+  └─ invoke("send_message_stream", { messages, maxTokens? })
+        ↓
+Rust backend
+  └─ POST <base>/chat/completions
+        ↓
+Provider returns SSE stream
+        ↓
+Rust emits:
+  - stream-token
+  - stream-end
+        ↓
+Frontend appends rendered markdown progressively
 ```
 
 ---
 
-## 9. Development
+## 11. Git Checkpointing Model
 
-### Prerequisites
+Each character directory is its own local git repository.
 
-- **Rust** (stable toolchain)
-- **Node.js** (for `@tauri-apps/cli`)
-- **Tauri CLI** v2 (`npm install` handles this)
+### What git is used for
 
-### Running
+- saving checkpoints
+- listing checkpoint history
+- restoring previous versions
+- comparing the current editor state to HEAD for dirty detection
 
-```bash
-cd llm-chat
-npm install
-npm run dev
-```
+### Dirty-state logic
 
-### Building
+The app primarily compares editor/context state against the committed HEAD contents via:
 
-```bash
-npm run build
-```
+- `git_get_head_content`
+- `git_list_head_folder`
 
-### Project Configuration
+It falls back to `git_is_dirty` if HEAD-based comparison is unavailable.
 
-- **Tauri config**: `src-tauri/tauri.conf.json` — window size, CSP, bundle identifier, icon paths
-- **Rust dependencies**: `src-tauri/Cargo.toml`
-- **Node scripts**: `package.json` — `dev` and `build` commands
+### AI checkpoint names
+
+After a timestamp-based checkpoint commit is created, the app can:
+
+1. fetch the latest diff
+2. ask the configured LLM for a short checkpoint title
+3. amend the latest commit message in the background
+
+If that rename fails, the timestamp-based name remains valid.
 
 ---
 
-## 10. Roadmap
+## 12. File Handling Rules
 
-| Phase | Scope | Status |
-|-------|-------|--------|
-| **v0.1** | Basic LLM chat with streaming | ✅ Done |
-| **v0.2** | Two-pane UI, character file editor tabs | 🔲 Planned |
-| **v0.3** | Filesystem commands, auto-save, character CRUD | 🔲 Planned |
-| **v0.4** | Git-backed versioning (commit/revert) | 🔲 Planned |
-| **v0.5** | Markdown rendering in chat, message edit/delete/resend | ✅ Done |
-| **v0.6** | Context folder management, first-response injection | 🔲 In progress |
-| **v1.0** | Venice.ai API compatibility, polish, testing | 🔲 Planned |
+### Validation and safety
+
+The backend rejects:
+
+- path traversal via `..`
+- blocked `.` path components in validated paths
+- hidden context filenames that start with `.`
+- unsupported context file extensions
+
+### Supported context files
+
+- `.txt`
+- `.md`
+- `.pdf`
+
+Behaviour:
+
+- filenames without a supported extension default to `.txt`
+- copy collisions are resolved with suffixes such as `-1`
+- PDFs are extracted to text and marked `isReadOnly: true`
+
+---
+
+## 13. Testing & Quality Gates
+
+### Rust tests
+
+Rust integration tests cover:
+
+- character creation and ensure flow
+- git commit/log/revert/amend/head lookups
+- context file creation/deletion/copying
+- line ending normalization and path edge cases
+
+### Frontend tests
+
+Vitest covers:
+
+- prompt assembly and stream handling
+- character selection/loading
+- editor save/switch behaviour
+- instructions visibility warning logic
+- dirty-state and history rendering
+- context file selection/create/delete flows
+- settings load/save/model testing logic
+
+### CI
+
+The CI workflow currently runs:
+
+- `cargo check`
+- `cargo clippy -- -D warnings`
+- `cargo test`
+- `npm test`
+
+---
+
+## 14. Roadmap Snapshot
+
+| Area | Status |
+|---|---|
+| Two-pane editor/chat layout | ✅ Done |
+| Character file load/save | ✅ Done |
+| Per-character git checkpoints | ✅ Done |
+| Markdown chat + edit/delete/resend | ✅ Done |
+| Context folder with PDF support | ✅ Done |
+| Prompt preview | ✅ Done |
+| Model discovery/testing in Settings | ✅ Done |
+| First response injection from `intro.txt` | 🔲 Not done |
+| Venice.ai preset/polish pass | 🔲 Partially pending |
+
+---
+
+## 15. Notes for Future Contributors
+
+- Treat the configured endpoint as a **base URL**, not a full chat-completions path.
+- If you change tracked character file names, update:
+  - `ui/tracked-paths.js`
+  - the docs in `README.md`, `TODO.md`, `AGENTS.md`, and this file
+- If you change character load logic, keep `handleCharacterSelect()` and `reloadAfterRevert()` in sync.
+- If you add new prompt-visible inputs, update both the send path and the preview path.

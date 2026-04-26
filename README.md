@@ -1,6 +1,6 @@
 # Character Scratch Pad — Venice.ai Character Workbench
 
-A desktop application for developing and testing AI characters compatible with [Venice.ai](https://venice.ai). Write prompts, iterate on personalities, and validate behaviour through live conversation — all in one place.
+A desktop application for developing and testing AI characters against OpenAI-compatible chat APIs. It is designed around Venice.ai-style character workflows, while remaining usable with other compatible providers and local model gateways.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 ![Tauri](https://img.shields.io/badge/Tauri-v2-orange)
@@ -13,11 +13,13 @@ A desktop application for developing and testing AI characters compatible with [
 ## What It Does
 
 - **Two-pane layout** — left pane edits character files, right pane is a live chat interface
-- **Streaming chat** — streams responses from any OpenAI-compatible API (Venice.ai, OpenAI, local models)
-- **Character file editor** — tabs for `Instructions`, `System Prompt`, `Description`, and `First Response`
+- **Streaming chat** — streams responses from any OpenAI-compatible API
+- **Character file editor** — tabs for `Instructions`, `System Prompt`, `Description`, `First Response`, and `Context`
+- **Prompt previews** — inspect the assembled prompt globally or per message
 - **Git-backed versioning** — each character folder is a local git repo; save checkpoints and restore any version
-- **Context files** — attach supplementary `.md`/`.txt`/`.pdf` files that get injected into the prompt payload; drag & drop to add files
-- **Auto-save** — edits are silently persisted to disk; errors are surfaced immediately
+- **Context files** — attach supplementary `.md` / `.txt` / `.pdf` files; drag & drop to add files
+- **Auto-save** — edits are silently persisted to disk and save errors are surfaced immediately
+- **Provider tooling** — fetch models, test endpoint/API key, test a model, and tune `temperature` / `top_p`
 
 ---
 
@@ -26,8 +28,9 @@ A desktop application for developing and testing AI characters compatible with [
 | Layer | Technology |
 |-------|-----------|
 | Desktop shell | [Tauri v2](https://v2.tauri.app) (Rust) |
-| Backend | Rust — filesystem, git, HTTP streaming |
-| Frontend | Vanilla HTML / CSS / JS (no framework, no bundler at runtime) |
+| Backend | Rust — filesystem, git, HTTP streaming, settings persistence |
+| Frontend | Vanilla HTML / CSS / JS |
+| Editor | CodeMirror 6 bundled into `ui/lib/editor-cm.bundle.js` |
 
 No Electron. No Node server at runtime. Lightweight native window with a Rust core.
 
@@ -36,9 +39,9 @@ No Electron. No Node server at runtime. Lightweight native window with a Rust co
 ## Prerequisites
 
 - [Rust](https://www.rust-lang.org/tools/install) (stable toolchain)
-- [Node.js](https://nodejs.org) (LTS recommended, used only for the Tauri CLI and Rollup bundling)
+- [Node.js](https://nodejs.org) (used for Tauri CLI, Vitest, and the editor bundling step)
 - Platform dependencies for Tauri v2:
-  - **Windows**: Microsoft Visual C++ Build Tools or Visual Studio
+  - **Windows**: Microsoft Visual C++ Build Tools or Visual Studio, plus WebView2
   - **macOS**: Xcode Command Line Tools (`xcode-select --install`)
   - **Linux**: `libwebkit2gtk-4.1-dev`, `libssl-dev`, `libgtk-3-dev` — see [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/)
 
@@ -51,107 +54,193 @@ No Electron. No Node server at runtime. Lightweight native window with a Rust co
 git clone https://github.com/MathiasXII/eight-day.git
 cd eight-day
 
-# Install JS dev dependencies (Tauri CLI + CodeMirror + Rollup)
+# Install development dependencies
 npm install
 
 # Start the app in development mode
 npm run dev
 ```
 
-The first run will compile the Rust backend — expect 2–5 minutes on a cold cache.
+The first run will compile the Rust backend, so expect a slower startup on a cold cache.
 
 ---
 
 ## Configuration
 
-On first launch, open **Settings** (gear icon in the header) and set:
+On first launch, open **Settings** and configure:
 
-| Setting | Description | Default |
-|---------|-------------|---------|
+| Setting | Description | Default in frontend UI |
+|---------|-------------|------------------------|
 | API Key | Your API key for the LLM provider | *(empty)* |
-| Model | Model identifier (e.g. `gpt-4o-mini`) | `gpt-4o-mini` |
-| Endpoint | OpenAI-compatible chat completions URL | `https://api.openai.com/v1/chat/completions` |
-| Work Folder | Directory where character folders are stored | `characters/` next to the executable |
+| Model | Model identifier (example: `gpt-4o-mini`) | `gpt-4o-mini` |
+| Endpoint | OpenAI-compatible **base URL** | `https://api.openai.com/v1` |
+| Temperature | Sampling temperature | `0.7` |
+| Top P | Nucleus sampling value | `1.0` |
+| Work Folder | Directory where character folders are stored | chosen by the user |
 
-For Venice.ai, set the endpoint to `https://api.venice.ai/api/v3/chat/completions` and use your Venice API key.
+### Important endpoint note
 
-Settings are persisted in `localStorage` and synced to the Rust backend on startup.
+The app stores a **base URL**, not the full chat-completions endpoint.
+
+- ✅ Correct: `https://api.openai.com/v1`
+- ✅ Correct: `https://api.venice.ai/api/v1`
+- ❌ Do not enter: `.../chat/completions`
+
+The Rust backend appends `/chat/completions` for chat requests and `/models` for model discovery.
+
+### Venice.ai
+
+For Venice.ai, use the base URL:
+
+```text
+https://api.venice.ai/api/v1
+```
+
+and your Venice API key.
+
+### Persistence
+
+- API key, model, endpoint, temperature, and top-p are synced to backend `settings.json`
+- the work folder is stored in `localStorage`
 
 ---
 
 ## Character File Layout
 
-Each character is a folder inside your work folder:
+Each character is stored as a folder inside the work folder:
 
-```
+```text
 <work-folder>/
 └── my-character/
-    ├── .git/                # Local git repo (commit/revert only — no remote)
+    ├── .git/                # Local git repo (checkpoint history only)
     ├── instructions.txt     # Personality, speech patterns, behavioural rules
-    ├── system-prompt.txt    # System prompt sent to the LLM API
-    ├── description.txt      # Public-facing description (for Venice.ai listings)
-    ├── intro.txt            # Opening line the character implicitly "already said"
-    └── context/             # Optional supplementary context files (.md, .txt, .pdf)
+    ├── system-prompt.txt    # System prompt template sent to the LLM API
+    ├── description.txt      # Public-facing description text
+    ├── intro.txt            # Reserved for planned first-response injection
+    └── context/             # Optional supplementary context files
         ├── lore.md
-        ├── reference.pdf     # PDFs are read-only; text is extracted for display
+        ├── reference.pdf    # PDFs are read-only; text is extracted for display
         └── ...
 ```
 
-### Compatibility with Character Studio
+### Character Studio compatibility
 
-The character folder format is fully compatible with [Character Studio](https://characterbrowser.app/studio) by [Ominous](https://ko-fi.com/omnius42) — a browser-based Venice.ai character editor. Projects created in either tool can be opened in the other:
+This project uses the same core file names as Character Studio-style folder projects (`instructions.txt`, `system-prompt.txt`, `description.txt`, `intro.txt`, `context/`). In practice that makes cross-tool workflows plausible, but this README intentionally avoids claiming formal compatibility beyond the shared on-disk file layout.
 
-- **This app → Character Studio**: point Character Studio's *Open Project* at your character folder via the Local Folder (FSA) option.
-- **Character Studio → this app**: set your work folder to the directory containing the Character Studio project folder.
+### System prompt injection
 
-Both tools read and write the same files (`instructions.txt`, `system-prompt.txt`, `description.txt`, `intro.txt`, `context/`), so they stay in sync automatically.
+At send time:
 
-### System Prompt Injection
-
-The `%%CHARACTER_INSTRUCTIONS%%` placeholder in `system-prompt.txt` is replaced with the content of `instructions.txt` at send time. Context files are each injected as separate user messages before the conversation history.
+- `%%CHARACTER_INSTRUCTIONS%%` in `system-prompt.txt` is replaced with `instructions.txt`
+- non-empty context files are each injected as separate user messages before conversation history
+- `intro.txt` is **not yet injected automatically**
 
 ---
 
-## Building
+## Main Features
+
+### Character editing
+
+- CodeMirror 6 editor
+- tabbed editing for tracked files
+- autosave with save-error banner
+- token counter heuristic
+- warning when `instructions.txt` would be ignored because the prompt is missing `%%CHARACTER_INSTRUCTIONS%%`
+
+### Chat workflow
+
+- markdown rendering for both user and assistant messages
+- streaming token updates
+- delete message + following history
+- edit message in place
+- resend from the last user turn
+- dismissible error notification bar
+
+### Prompt inspection
+
+- global Preview button for the assembled prompt
+- per-message preview button to inspect the exact prompt context for a turn
+
+### Checkpoints
+
+- per-character git repositories
+- dirty-state detection against HEAD
+- save checkpoint button
+- history modal with restore flow
+- optional LLM-generated checkpoint rename after commit
+
+---
+
+## Development Commands
 
 ```bash
+# Start the desktop app in dev mode
+npm run dev
+
+# Rebuild the CodeMirror bundle only
+npm run bundle
+
+# Run frontend tests
+npm test
+
+# Run Rust tests
+cd src-tauri && cargo test
+
+# Build desktop bundles
 npm run build
 ```
-
-Produces platform-specific installers in `src-tauri/target/release/bundle/`.
 
 ---
 
 ## Project Structure
 
-```
+```text
 llm-chat/
-├── package.json              # npm scripts: dev, build, bundle
+├── package.json              # npm scripts: dev, build, bundle, test, clean
 ├── src-tauri/
 │   ├── Cargo.toml            # Rust dependencies
 │   ├── tauri.conf.json       # Window config, CSP, bundle identifier
 │   └── src/
-│       ├── main.rs           # Tauri builder, AppState init, command registration
-│       ├── state.rs          # AppState (api_key, model, endpoint)
-│       ├── types.rs          # Shared types: ChatMessage, Settings, ContextFile (with isReadOnly), etc.
+│       ├── main.rs           # Windows subsystem stub
+│       ├── lib.rs            # Tauri builder, AppState init, command registration
+│       ├── state.rs          # AppState (api_key, model, endpoint, temperature, top_p)
+│       ├── types.rs          # Shared types: ChatMessage, Settings, ContextFile, etc.
 │       └── commands/
-│           ├── stream_chat.rs   # Streaming chat completions (SSE → Tauri events)
-│           ├── settings.rs      # update_settings / get_settings
-│           ├── files.rs         # load_file, save_file, list_context_files, create_context_file, delete_context_file, copy_file_to_context
-│           ├── characters.rs    # list_characters, create_character
-│           └── git.rs           # git_commit, git_log, git_revert, checkpoints
+│           ├── stream_chat.rs    # Streaming chat completions (SSE → Tauri events)
+│           ├── settings.rs       # update_settings / get_settings
+│           ├── files.rs          # load_file, save_file, context file management
+│           ├── characters.rs     # list_characters, create_character, ensure_character_files
+│           ├── git.rs            # checkpoints, history, restore, dirty helpers
+│           ├── models.rs         # fetch_models
+│           └── test_connection.rs# test_connection / test_model
 └── ui/
-    ├── index.html            # SPA markup
-    ├── styles.css            # Dark theme (CSS variables)
-    ├── app.js                # Orchestrator: shared state/DOM, init, event wiring
-    ├── chat.js               # Send, stream listeners, message DOM
-    ├── editor.js             # Tab switching, auto-save, token counter, read-only mode
-    ├── characters.js         # Character list, select, create
-    ├── context.js            # Context file sidebar: list, select, add, delete, drag & drop, PDF badge
-    ├── settings.js           # Settings modal load/save/sync
-    ├── git.js                # Checkpoint bar, history modal
-    └── divider.js            # Pane divider drag logic
+    ├── index.html            # SPA markup and modals
+    ├── styles.css            # Dark theme styling
+    ├── app.js                # Orchestrator: shared state/DOM, bootstrap, event wiring
+    ├── chat.js               # Send, stream listeners, message actions, prompt builders
+    ├── editor.js             # Tab switching, auto-save, token counter, warnings
+    ├── characters.js         # Character list, select, create, reload-after-revert
+    ├── context.js            # Context sidebar and drag & drop imports
+    ├── settings.js           # Settings modal load/save/sync + model tooling
+    ├── git.js                # Checkpoint bar, history modal, dirty checks
+    ├── preview.js            # Prompt preview modal rendering
+    ├── divider.js            # Pane divider drag logic
+    └── tracked-paths.js      # Tracked file/folder config
 ```
+
+---
+
+## Testing & CI
+
+- **Frontend**: Vitest (`ui/**/*.test.js`) in `jsdom`
+- **Backend**: Rust integration tests in `src-tauri/tests/`
+- **CI** runs:
+  - `cargo check`
+  - `cargo clippy -- -D warnings`
+  - `cargo test`
+  - `npm test`
+
+Node.js in CI is currently pinned to **24**.
 
 ---
 
@@ -164,5 +253,5 @@ llm-chat/
 | v0.3 | Filesystem commands, auto-save, character CRUD | ✅ Done |
 | v0.4 | Git-backed versioning (commit / revert / AI checkpoint naming) | ✅ Done |
 | v0.5 | Markdown rendering in chat, message edit / delete / resend | ✅ Done |
-| v0.6 | Context folder management, first-response injection | 🔲 In progress |
+| v0.6 | Context folder management + first-response injection | 🟡 Partially done (`Context` complete, first-response injection still pending) |
 | v1.0 | Venice.ai API compatibility & polish | 🔲 Planned |
