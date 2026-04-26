@@ -20,6 +20,7 @@ A desktop application for developing and testing AI characters against OpenAI-co
 - **Context files** — attach supplementary `.md` / `.txt` / `.pdf` files; drag & drop to add files
 - **Auto-save** — edits are silently persisted to disk and save errors are surfaced immediately
 - **Provider tooling** — fetch models, test endpoint/API key, test a model, and tune `temperature` / `top_p`
+- **First-response injection** — `intro.txt` content appears as an assistant bubble on character load, with a subtle "✦ First Response" label
 
 ---
 
@@ -116,7 +117,7 @@ Each character is stored as a folder inside the work folder:
     ├── instructions.txt     # Personality, speech patterns, behavioural rules
     ├── system-prompt.txt    # System prompt template sent to the LLM API
     ├── description.txt      # Public-facing description text
-    ├── intro.txt            # Reserved for planned first-response injection
+    ├── intro.txt            # First-response message injected into chat on character load
     └── context/             # Optional supplementary context files
         ├── lore.md
         ├── reference.pdf    # PDFs are read-only; text is extracted for display
@@ -133,7 +134,7 @@ At send time:
 
 - `%%CHARACTER_INSTRUCTIONS%%` in `system-prompt.txt` is replaced with `instructions.txt`
 - non-empty context files are each injected as separate user messages before conversation history
-- `intro.txt` is **not yet injected automatically**
+- `intro.txt` content is synced to a first-response assistant bubble on character load and on intro edits; the bubble is removed when intro is cleared, and the internal `_isFirstResponse` marker is stripped from API payloads
 
 ---
 
@@ -151,6 +152,7 @@ At send time:
 
 - markdown rendering for both user and assistant messages
 - streaming token updates
+- first-response injection from `intro.txt` with guarded sync and subtle label
 - delete message + following history
 - edit message in place
 - resend from the last user turn
@@ -216,10 +218,10 @@ llm-chat/
 └── ui/
     ├── index.html            # SPA markup and modals
     ├── styles.css            # Dark theme styling
-    ├── app.js                # Orchestrator: shared state/DOM, bootstrap, event wiring
-    ├── chat.js               # Send, stream listeners, message actions, prompt builders
+    ├── app.js                # Orchestrator: shared state/DOM, bootstrap, event wiring, first-response sync
+    ├── chat.js               # Send, stream listeners, message actions, prompt builders, first-response sync
     ├── editor.js             # Tab switching, auto-save, token counter, warnings
-    ├── characters.js         # Character list, select, create, reload-after-revert
+    ├── characters.js         # Character list, select, create, reload-after-revert, first-response sync
     ├── context.js            # Context sidebar and drag & drop imports
     ├── settings.js           # Settings modal load/save/sync + model tooling
     ├── git.js                # Checkpoint bar, history modal, dirty checks
@@ -253,5 +255,5 @@ Node.js in CI is currently pinned to **24**.
 | v0.3 | Filesystem commands, auto-save, character CRUD | ✅ Done |
 | v0.4 | Git-backed versioning (commit / revert / AI checkpoint naming) | ✅ Done |
 | v0.5 | Markdown rendering in chat, message edit / delete / resend | ✅ Done |
-| v0.6 | Context folder management + first-response injection | 🟡 Partially done (`Context` complete, first-response injection still pending) |
+| v0.6 | Context folder management + first-response injection | ✅ Done |
 | v1.0 | Venice.ai API compatibility & polish | 🔲 Planned |
