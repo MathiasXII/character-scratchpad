@@ -93,6 +93,7 @@ import {
   initStreamListeners,
   scrollToBottom,
   showWelcome,
+  syncFirstResponse,
 } from "./chat.js";
 import {
   closeNewCharacterModal,
@@ -282,6 +283,9 @@ async function init() {
       }
       updateTokenCounter();
       updateInstructionsVisibility();
+      if (state.activeTab === "first-response" && !state.isLoadingCharacter && !state.isStreaming) {
+        syncFirstResponse();
+      }
       if (!state.isLoadingCharacter) {
         clearTimeout(state.saveTimeout);
         state.saveTimeout = setTimeout(saveCurrentTab, 1000);

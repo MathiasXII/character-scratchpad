@@ -5,6 +5,7 @@ import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholde
 import { openSettingsModal } from "./settings.js";
 import { updateGitBarVisibility, checkDirty } from "./git.js";
 import { renderContextFileList } from "./context.js";
+import { syncFirstResponse } from "./chat.js";
 
 export async function loadCharacters() {
   dom.characterSelect.innerHTML = "";
@@ -173,6 +174,7 @@ export async function handleCharacterSelect() {
   updateGitBarVisibility();
   checkDirty();
   updateUIState();
+  syncFirstResponse();
 }
 
 /**
@@ -250,4 +252,5 @@ updateTokenCounter();
   updateGitBarVisibility();
   checkDirty();
   updateUIState();
+  syncFirstResponse();
 }
