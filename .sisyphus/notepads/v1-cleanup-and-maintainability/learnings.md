@@ -31,3 +31,13 @@
 - Shared `TempTestDir` in `src-tauri/tests/common.rs` already covered per-test isolation via unique temp-dir naming and `Drop` cleanup.
 - Consolidation path was to import `mod common;` in `character_workflow.rs`, `context_files.rs`, and `git_workflow.rs`, then replace local `TempWorkspace` scaffolding with `common::TempTestDir`.
 - `files_edge_cases.rs` already used the shared helper, so no behavior change was needed there.
+
+## 2026-04-26 T12 settings helper dedupe
+- Settings load/apply logic in `ui/settings.js` now flows through shared snapshot setters instead of duplicating field writes for file vs. storage sources.
+- Connection/model tests now share the same button-state and field-error helpers, which keeps unsaved form values testable while reducing repeated success/error handling branches.
+- The refactor preserved the existing validation semantics: missing fields still mark their inputs, successful tests still restore the green check state, and the backend invocations still read directly from the form.
+
+## 2026-04-26 T9 backend visibility tightening
+- Backend helper visibility can be tightened safely in small steps: `normalize_line_endings()` works as a crate-only helper, `AppState` fields only need crate access, and `ChatCompletionRequest` is only constructed inside the backend.
+- Keep Tauri command entrypoints public, but helper return/inner types should stay scoped to the crate when they are only consumed by sibling modules.
+- Reuse checks showed the main backend helpers are still exercised across modules (`files.rs`, `git.rs`, `settings.rs`, `stream_chat.rs`), so the safe cleanup target is visibility reduction rather than deletion.

@@ -83,6 +83,70 @@ function debounce(fn, delay) {
   };
 }
 
+function setFieldError(input, hasError) {
+  input.classList[hasError ? "add" : "remove"]("field-error");
+}
+
+function clearFieldError(input) {
+  setFieldError(input, false);
+}
+
+function setTestButtonState(btn, state) {
+  btn.textContent = state === "pending" ? "..." : state === "success" ? "✓" : state === "error" ? "✗" : "Test";
+  btn.classList.remove("success", "error");
+  if (state === "success") btn.classList.add("success");
+  if (state === "error") btn.classList.add("error");
+  btn.disabled = state === "pending";
+}
+
+function setSettingsInputs(settings) {
+  dom.apiKeyInput.value = settings.apiKey || "";
+  dom.modelInput.value = settings.model || "gpt-4o-mini";
+  dom.endpointInput.value = settings.endpoint || "https://api.openai.com/v1";
+  dom.temperatureInput.value = String(settings.temperature ?? 0.7);
+  dom.topPInput.value = String(settings.topP ?? 1.0);
+}
+
+function applySettingsSnapshot({ workFolder } = {}) {
+  dom.temperatureValue.textContent = dom.temperatureInput.value;
+  dom.topPValue.textContent = dom.topPInput.value;
+  if (workFolder !== undefined) {
+    dom.workFolderInput.value = workFolder;
+    state.currentWorkFolder = workFolder;
+  }
+}
+
+async function loadSettingsSnapshot(settings, workFolder) {
+  setSettingsInputs(settings);
+  applySettingsSnapshot({ workFolder });
+  await fetchModels();
+}
+
+function validateRequiredInputs(requiredInputs, btn) {
+  let hasMissing = false;
+  for (const input of requiredInputs) {
+    const isMissing = !input.value.trim();
+    setFieldError(input, isMissing);
+    hasMissing ||= isMissing;
+  }
+
+  if (hasMissing) {
+    setTestButtonState(btn, "error");
+    return false;
+  }
+
+  return true;
+}
+
+function markTestFailure(btn, field) {
+  setTestButtonState(btn, "error");
+  setFieldError(field, true);
+}
+
+function markTestSuccess(btn) {
+  setTestButtonState(btn, "success");
+}
+
 export function sortModels(models) {
   const normal = [];
   const tee = [];
@@ -210,43 +274,32 @@ export async function testConnection() {
 
   clearFieldError(dom.endpointInput);
   clearFieldError(dom.apiKeyInput);
-  resetTestBtn(btn);
+  setTestButtonState(btn, "idle");
 
-  if (!baseUrl || !apiKey) {
-    btn.textContent = "✗";
-    btn.classList.add("error");
-    if (!baseUrl) setFieldError(dom.endpointInput);
-    if (!apiKey) setFieldError(dom.apiKeyInput);
+  if (!validateRequiredInputs([dom.endpointInput, dom.apiKeyInput], btn)) {
     return;
   }
 
-  btn.textContent = "...";
-  btn.disabled = true;
+  setTestButtonState(btn, "pending");
 
   try {
     const result = await invoke("test_connection", { baseUrl, apiKey });
 
     if (result.success) {
-      btn.textContent = "✓";
-      btn.classList.add("success");
+      markTestSuccess(btn);
     } else {
-      btn.textContent = "✗";
-      btn.classList.add("error");
-
       const errorType = result.error_type || "";
       if (errorType === "connection" || errorType === "endpoint") {
-        setFieldError(dom.endpointInput);
+        markTestFailure(btn, dom.endpointInput);
       } else if (errorType === "auth") {
-        setFieldError(dom.apiKeyInput);
+        markTestFailure(btn, dom.apiKeyInput);
       } else {
         // Generic server error — highlight endpoint as the likely culprit
-        setFieldError(dom.endpointInput);
+        markTestFailure(btn, dom.endpointInput);
       }
     }
   } catch {
-    btn.textContent = "✗";
-    btn.classList.add("error");
-    setFieldError(dom.endpointInput);
+    markTestFailure(btn, dom.endpointInput);
   } finally {
     btn.disabled = false;
   }
@@ -259,66 +312,42 @@ export async function testModel() {
   const btn = dom.testModelBtn;
 
   clearFieldError(dom.modelInput);
-  resetTestBtn(btn);
+  setTestButtonState(btn, "idle");
 
-  if (!baseUrl || !apiKey || !model) {
-    btn.textContent = "✗";
-    btn.classList.add("error");
-    if (!model) setFieldError(dom.modelInput);
-    if (!baseUrl) setFieldError(dom.endpointInput);
-    if (!apiKey) setFieldError(dom.apiKeyInput);
+  if (!validateRequiredInputs([dom.endpointInput, dom.apiKeyInput, dom.modelInput], btn)) {
+    if (!model) setFieldError(dom.modelInput, true);
     return;
   }
 
-  btn.textContent = "...";
-  btn.disabled = true;
+  setTestButtonState(btn, "pending");
 
   try {
     const result = await invoke("test_model", { baseUrl, apiKey, model });
 
     if (result.success) {
-      btn.textContent = "✓";
-      btn.classList.add("success");
+      markTestSuccess(btn);
     } else {
-      btn.textContent = "✗";
-      btn.classList.add("error");
-
       const errorType = result.error_type || "";
       if (errorType === "model_not_found") {
-        setFieldError(dom.modelInput);
+        markTestFailure(btn, dom.modelInput);
       } else if (errorType === "auth") {
-        setFieldError(dom.apiKeyInput);
+        markTestFailure(btn, dom.apiKeyInput);
       } else if (errorType === "connection" || errorType === "endpoint") {
-        setFieldError(dom.endpointInput);
+        markTestFailure(btn, dom.endpointInput);
       } else {
-        setFieldError(dom.modelInput);
+        markTestFailure(btn, dom.modelInput);
       }
     }
   } catch {
-    btn.textContent = "✗";
-    btn.classList.add("error");
-    setFieldError(dom.modelInput);
+    markTestFailure(btn, dom.modelInput);
   } finally {
     btn.disabled = false;
   }
 }
 
-function setFieldError(input) {
-  input.classList.add("field-error");
-}
-
-function clearFieldError(input) {
-  input.classList.remove("field-error");
-}
-
-function resetTestBtn(btn) {
-  btn.textContent = "Test";
-  btn.classList.remove("success", "error");
-}
-
 export function clearTestResults() {
-  resetTestBtn(dom.testConnectionBtn);
-  resetTestBtn(dom.testModelBtn);
+  setTestButtonState(dom.testConnectionBtn, "idle");
+  setTestButtonState(dom.testModelBtn, "idle");
   clearFieldError(dom.endpointInput);
   clearFieldError(dom.apiKeyInput);
   clearFieldError(dom.modelInput);
@@ -336,30 +365,17 @@ export function closeSettingsModal() {
 
 export async function loadSettingsFromFile() {
   const settings = await invoke("get_settings");
-  dom.apiKeyInput.value = settings.apiKey || "";
-  dom.modelInput.value = settings.model || "gpt-4o-mini";
-  dom.endpointInput.value = settings.endpoint || "https://api.openai.com/v1";
-  dom.temperatureInput.value = String(settings.temperature ?? 0.7);
-  dom.topPInput.value = String(settings.topP ?? 1.0);
-  dom.workFolderInput.value = localStorage.getItem("llm-work-folder") || "";
-  dom.temperatureValue.textContent = dom.temperatureInput.value;
-  dom.topPValue.textContent = dom.topPInput.value;
-  state.currentWorkFolder = dom.workFolderInput.value;
-  await fetchModels();
+  await loadSettingsSnapshot(settings, localStorage.getItem("llm-work-folder") || "");
 }
 
 export async function loadSettingsFromStorage() {
-  dom.apiKeyInput.value = localStorage.getItem("llm-api-key") || "";
-  dom.modelInput.value = localStorage.getItem("llm-model") || "gpt-4o-mini";
-  dom.endpointInput.value =
-    localStorage.getItem("llm-endpoint") || "https://api.openai.com/v1";
-  dom.temperatureInput.value = localStorage.getItem("llm-temperature") || "0.7";
-  dom.topPInput.value = localStorage.getItem("llm-top-p") || "1.0";
-  dom.temperatureValue.textContent = dom.temperatureInput.value;
-  dom.topPValue.textContent = dom.topPInput.value;
-  dom.workFolderInput.value = localStorage.getItem("llm-work-folder") || "";
-  state.currentWorkFolder = dom.workFolderInput.value;
-  await fetchModels();
+  await loadSettingsSnapshot({
+    apiKey: localStorage.getItem("llm-api-key") || "",
+    model: localStorage.getItem("llm-model") || "gpt-4o-mini",
+    endpoint: localStorage.getItem("llm-endpoint") || "https://api.openai.com/v1",
+    temperature: localStorage.getItem("llm-temperature") || "0.7",
+    topP: localStorage.getItem("llm-top-p") || "1.0",
+  }, localStorage.getItem("llm-work-folder") || "");
 }
 
 export async function syncSettingsToBackend() {
