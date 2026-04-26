@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use crate::state::AppState;
+use crate::commands::line_endings::normalize_line_endings;
 use crate::types::{ChatCompletionRequest, ChatMessage};
 
 #[derive(Serialize, Deserialize)]
@@ -15,6 +16,14 @@ pub struct CommitEntry {
     pub message: String,
     pub timestamp: i64,
     pub is_current: bool,
+}
+
+pub(crate) fn open_repo(repo_path: &str) -> Result<git2::Repository, String> {
+    git2::Repository::open(repo_path).map_err(|e| e.to_string())
+}
+
+pub(crate) fn create_signature() -> Result<Signature<'static>, String> {
+    Signature::now("Character Scratch Pad", "app@localhost").map_err(|e| e.to_string())
 }
 
 /// Stage all files in the repository, excluding .git internals.
@@ -34,8 +43,8 @@ pub(crate) fn stage_all_excluding_git(index: &mut git2::Index) -> Result<(), git
 
 #[tauri::command]
 pub fn git_commit(repo_path: String, message: String) -> Result<String, String> {
-    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
-    let sig = Signature::now("Character Scratch Pad", "app@localhost").map_err(|e| e.to_string())?;
+    let repo = open_repo(&repo_path)?;
+    let sig = create_signature()?;
 
     let mut index = repo.index().map_err(|e| e.to_string())?;
     stage_all_excluding_git(&mut index).map_err(|e| e.to_string())?;
@@ -56,7 +65,7 @@ pub fn git_commit(repo_path: String, message: String) -> Result<String, String> 
 
 #[tauri::command]
 pub fn git_log(repo_path: String) -> Result<Vec<CommitEntry>, String> {
-    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let repo = open_repo(&repo_path)?;
 
     // Empty repo — nothing to list
     if repo.is_empty().unwrap_or(true) {
@@ -126,7 +135,7 @@ pub fn git_log(repo_path: String) -> Result<Vec<CommitEntry>, String> {
 
 #[tauri::command]
 pub fn git_revert(repo_path: String, commit_id: String) -> Result<(), String> {
-    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let repo = open_repo(&repo_path)?;
     let oid = Oid::from_str(&commit_id).map_err(|e| e.to_string())?;
     let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
 
@@ -138,7 +147,7 @@ pub fn git_revert(repo_path: String, commit_id: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn git_is_dirty(repo_path: String) -> Result<bool, String> {
-    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let repo = open_repo(&repo_path)?;
 
     if repo.is_empty().unwrap_or(false) {
         return Ok(true);
@@ -165,7 +174,7 @@ pub fn git_is_dirty(repo_path: String) -> Result<bool, String> {
 /// Returns `None` if the repo is empty or the file doesn't exist at HEAD.
 #[tauri::command]
 pub fn git_get_head_content(repo_path: String, file_path: String) -> Result<Option<String>, String> {
-    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let repo = open_repo(&repo_path)?;
 
     // If the repo has no commits, no HEAD content exists
     if repo.is_empty().unwrap_or(true) {
@@ -189,7 +198,7 @@ pub fn git_get_head_content(repo_path: String, file_path: String) -> Result<Opti
     };
 
     // Normalize line endings to LF for consistent comparison with editor content
-    Ok(Some(content.replace("\r\n", "\n").replace('\r', "\n")))
+    Ok(Some(normalize_line_endings(content)))
 }
 
 /// List all non-hidden filenames in a folder at the HEAD commit.
@@ -197,7 +206,7 @@ pub fn git_get_head_content(repo_path: String, file_path: String) -> Result<Opti
 /// Extension filtering is left to the caller (JS side) so scope is controlled by config.
 #[tauri::command]
 pub fn git_list_head_folder(repo_path: String, folder_path: String) -> Result<Vec<String>, String> {
-    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let repo = open_repo(&repo_path)?;
 
     if repo.is_empty().unwrap_or(true) {
         return Ok(Vec::new());
@@ -232,7 +241,7 @@ pub fn git_list_head_folder(repo_path: String, folder_path: String) -> Result<Ve
 
 #[tauri::command]
 pub fn git_diff_last(repo_path: String) -> Result<String, String> {
-    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let repo = open_repo(&repo_path)?;
     let head = match repo.head() {
         Ok(head) => head,
         Err(_) => return Ok(String::new()),
@@ -263,7 +272,7 @@ pub fn git_diff_last(repo_path: String) -> Result<String, String> {
 
 #[tauri::command]
 pub fn git_commit_amend(repo_path: String, message: String) -> Result<(), String> {
-    let repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+    let repo = open_repo(&repo_path)?;
     let head = repo.head().map_err(|e| e.to_string())?;
     let commit = head.peel_to_commit().map_err(|e| e.to_string())?;
 

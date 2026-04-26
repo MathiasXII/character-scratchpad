@@ -10,6 +10,8 @@
 - Critical path: T1 → T7 → T10 → T14 → F1-F4
 - Stack: Rust/Tauri v2 backend, vanilla JS frontend, CodeMirror 6 editor
 - Test commands: `npm test`, `cargo test --manifest-path src-tauri/Cargo.toml`, `cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings`
+- Extracted a shared `normalize_line_endings()` helper into `src-tauri/src/commands/line_endings.rs` and routed file + git content readers through it without changing CRLF/CR → LF behavior.
+- Rust tests and Vitest both passed after the refactor; existing line-ending coverage still verifies normalized save/load and context listing behavior.
 - Connection/model helper truncation should use UTF-8-safe character iteration (`.chars().take(max).collect::<String>()`) instead of byte slicing so multi-byte bodies cannot panic.
 - A small regression test pair is enough here: keep ASCII truncation stable and verify multi-byte input truncates without panicking.
 
