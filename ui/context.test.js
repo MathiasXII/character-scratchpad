@@ -41,6 +41,7 @@ const mockState = {
 vi.mock('./app.js', () => ({
   dom: mockDom,
   state: mockState,
+  getCharacterDir: (workFolder, characterName) => workFolder + '/' + characterName,
 }));
 
 vi.mock('./editor.js', () => ({
@@ -179,6 +180,7 @@ describe('context module', () => {
     await Promise.resolve();
 
     expect(mockState.activeContextFile).toBeNull();
+    expect(mockState.contextFiles).toEqual([]);
     expect(mockState.tabContents.context).toBe('');
     expect(mockSetEditorValue).toHaveBeenCalledWith('');
     expect(mockSetEditorPlaceholder).toHaveBeenCalledWith('Select a context file...');

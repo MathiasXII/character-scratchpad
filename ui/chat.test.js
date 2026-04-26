@@ -68,6 +68,8 @@ globalThis.DOMPurify = {
   sanitize: vi.fn((html) => html),
 };
 
+globalThis.DOMPURIFY_CONFIG = {};
+
 globalThis.marked = {
   parse: vi.fn((value) => `<p>${value}</p>`),
 };
