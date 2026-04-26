@@ -18,71 +18,26 @@ fn get_settings_path() -> Result<PathBuf, String> {
     Ok(exe_dir.join("settings.json"))
 }
 
-/// Normalizes an endpoint URL into a clean base URL for API calls.
-///
-/// Strategy (user-proof):
-/// 1. Strip leading slashes from the input.
-/// 2. Find the **last** version segment (`/v1`, `/v2`, `/v1beta`, etc.) and
-///    truncate everything after it. This catches typos (`/chat/completion`),
-///    unknown paths, and any trailing junk the user pastes.
-/// 3. If no version segment is found, fall back to stripping known API suffixes
-///    (`/chat/completions`, `/models`, etc.) — handles cases like
-///    `https://api.example.com/chat/completions` with no `/v1` at all.
-/// 4. Strip trailing slashes last.
-pub fn normalize_endpoint(endpoint: &str) -> String {
-    let trimmed = endpoint.trim_matches('/');
-
-    // Try to find the last version segment: /v followed by a digit,
-    // optionally followed by word chars (e.g. /v1beta, /v2preview).
-    let version_idx = trimmed
-        .match_indices("/v")
-        .filter(|(i, _)| {
-            // "/v" must be followed by a digit to be a real version segment
-            let after = &trimmed[*i + 2..];
-            after.chars().next().is_some_and(|c| c.is_ascii_digit())
-        })
-        .last()
-        .map(|(i, _)| i);
-
-    if let Some(start) = version_idx {
-        // Find the end of the version segment (e.g. "/v1" or "/v1beta")
-        let after_v = &trimmed[start + 2..]; // skip "/v"
-        let version_len = after_v
-            .find(|c: char| c == '/')
-            .unwrap_or(after_v.len());
-        let segment_end = start + 2 + version_len;
-        let base = &trimmed[..segment_end];
-        return base.to_string();
+/// Strips `/chat/completions` suffix (with optional trailing `/`) from an endpoint URL,
+/// then strips any remaining trailing `/`. Used for backward migration of old settings.
+fn strip_endpoint_suffix(endpoint: &str) -> String {
+    let mut result = endpoint.to_string();
+    // Strip /chat/completions with optional trailing /
+    if let Some(stripped) = result.strip_suffix("/chat/completions/") {
+        result = stripped.to_string();
+    } else if let Some(stripped) = result.strip_suffix("/chat/completions") {
+        result = stripped.to_string();
     }
-
-    // Fallback: no version segment found — strip known API path suffixes
-    let mut result = trimmed.to_string();
-    let suffixes = [
-        "/chat/completions",
-        "/completions",
-        "/models",
-        "/embeddings",
-        "/images/generations",
-        "/audio/transcriptions",
-        "/audio/translations",
-        "/audio/speech",
-        "/moderations",
-    ];
-
-    loop {
-        let mut stripped = false;
-        for suffix in &suffixes {
-            if let Some(s) = result.strip_suffix(suffix) {
-                result = s.to_string();
-                stripped = true;
-                break;
-            }
-        }
-        if !stripped {
-            break;
-        }
+    // Strip any remaining trailing /
+    while result.ends_with('/') {
+        result.pop();
     }
+    result
+}
 
+/// Strips all trailing `/` characters from an endpoint URL.
+fn normalize_endpoint(endpoint: &str) -> String {
+    let mut result = endpoint.to_string();
     while result.ends_with('/') {
         result.pop();
     }
@@ -98,7 +53,7 @@ fn load_settings_from_file() -> Settings {
                     Ok(content) => match serde_json::from_str::<Settings>(&content) {
                         Ok(mut settings) => {
                             // Migrate old endpoint format (full URL) to base URL
-                            settings.endpoint = normalize_endpoint(&settings.endpoint);
+                            settings.endpoint = strip_endpoint_suffix(&settings.endpoint);
                             eprintln!("Loaded settings from {:?}", path);
                             return settings;
                         }
@@ -184,7 +139,9 @@ pub fn get_settings(state: State<'_, AppState>) -> Result<Settings, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{get_settings_path, load_settings_from_file, normalize_endpoint, save_settings_to_file};
+    use super::{
+        get_settings_path, load_settings_from_file, save_settings_to_file, strip_endpoint_suffix,
+    };
     use crate::types::Settings;
     use std::fs;
     use std::sync::{Mutex, OnceLock};
@@ -276,120 +233,21 @@ mod tests {
     }
 
     #[test]
-    fn normalize_endpoint_truncates_after_version_segment() {
-        // Exact known suffixes
+    fn strip_endpoint_suffix_migrates_old_format() {
         assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/chat/completions"),
+            strip_endpoint_suffix("https://api.openai.com/v1/chat/completions"),
             "https://api.openai.com/v1"
         );
         assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/models"),
+            strip_endpoint_suffix("https://api.openai.com/v1/chat/completions/"),
             "https://api.openai.com/v1"
         );
         assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/embeddings"),
-            "https://api.openai.com/v1"
-        );
-        // Typos — user-proof truncation catches these
-        assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/chat/completion"),
+            strip_endpoint_suffix("https://api.openai.com/v1"),
             "https://api.openai.com/v1"
         );
         assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/model"),
-            "https://api.openai.com/v1"
-        );
-        // Random trailing junk
-        assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/whatever/else"),
-            "https://api.openai.com/v1"
-        );
-    }
-
-    #[test]
-    fn normalize_endpoint_handles_venice_style_paths() {
-        assert_eq!(
-            normalize_endpoint("https://api.venice.ai/api/v1/chat/completions"),
-            "https://api.venice.ai/api/v1"
-        );
-        assert_eq!(
-            normalize_endpoint("https://api.venice.ai/api/v1"),
-            "https://api.venice.ai/api/v1"
-        );
-    }
-
-    #[test]
-    fn normalize_endpoint_handles_version_variants() {
-        assert_eq!(
-            normalize_endpoint("https://api.example.com/v2/chat/completions"),
-            "https://api.example.com/v2"
-        );
-        assert_eq!(
-            normalize_endpoint("https://api.example.com/v1beta/models"),
-            "https://api.example.com/v1beta"
-        );
-        // Picks the LAST version segment when multiple exist
-        assert_eq!(
-            normalize_endpoint("https://api.example.com/v1/proxy/v2/chat/completions"),
-            "https://api.example.com/v1/proxy/v2"
-        );
-    }
-
-    #[test]
-    fn normalize_endpoint_strips_leading_and_trailing_slashes() {
-        assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/"),
-            "https://api.openai.com/v1"
-        );
-        assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1///"),
-            "https://api.openai.com/v1"
-        );
-        assert_eq!(
-            normalize_endpoint("/v1/chat/completions"),
-            "v1" // leading slash stripped, version segment found
-        );
-    }
-
-    #[test]
-    fn normalize_endpoint_leaves_clean_base_url_unchanged() {
-        assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1"),
-            "https://api.openai.com/v1"
-        );
-        assert_eq!(
-            normalize_endpoint("https://api.venice.ai/api/v1"),
-            "https://api.venice.ai/api/v1"
-        );
-    }
-
-    #[test]
-    fn normalize_endpoint_fallback_without_version_segment() {
-        // No /vN segment at all — fall back to stripping known suffixes
-        assert_eq!(
-            normalize_endpoint("https://api.example.com/chat/completions"),
-            "https://api.example.com"
-        );
-        assert_eq!(
-            normalize_endpoint("https://api.example.com/models"),
-            "https://api.example.com"
-        );
-        // Unknown path without version segment — left alone (custom gateway)
-        assert_eq!(
-            normalize_endpoint("https://gateway.example.com/custom"),
-            "https://gateway.example.com/custom"
-        );
-    }
-
-    #[test]
-    fn normalize_endpoint_truncates_everything_after_version() {
-        // Stacked / unknown paths after /v1 all get truncated
-        assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/chat/completions/models"),
-            "https://api.openai.com/v1"
-        );
-        assert_eq!(
-            normalize_endpoint("https://api.openai.com/v1/anything/at/all"),
+            strip_endpoint_suffix("https://api.openai.com/v1/"),
             "https://api.openai.com/v1"
         );
     }
