@@ -1,14 +1,10 @@
 import { buildPromptOnly } from "./chat.js";
+import { renderMarkdown } from "./helpers.js";
 
 const ROLE_LABELS = {
   system: "System",
   user: "User",
   assistant: "Assistant",
-};
-
-const DOMPURIFY_CONFIG = {
-  ADD_TAGS: ["details", "summary"],
-  ADD_ATTR: ["checked", "disabled"],
 };
 
 /**
@@ -30,7 +26,7 @@ export function renderPreviewMessages(messages) {
     for (const msg of messages) {
       let header = `**${ROLE_LABELS[msg.role] || msg.role}**`;
       if (msg.isFile) header += " *(Context)*";
-      const rendered = DOMPurify.sanitize(marked.parse(msg.content), DOMPURIFY_CONFIG);
+      const rendered = renderMarkdown(msg.content);
       parts.push(`<h4 class="preview-role-label preview-role-${msg.role}">${header}</h4>\n${rendered}`);
     }
 

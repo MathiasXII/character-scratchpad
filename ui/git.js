@@ -4,6 +4,7 @@ import { dom, state, TAB_FILE_MAP, TRACKED_FOLDERS } from "./app.js";
 import { showSaveError, saveCurrentTab } from "./editor.js";
 import { reloadAfterRevert } from "./characters.js";
 import { getEditorValue } from "./editor.js";
+import { getCharacterDir, formatError } from "./helpers.js";
 
 let isCommitting = false;
 
@@ -20,7 +21,7 @@ function escapeHtml(text) {
 
 function getRepoPath() {
   if (!state.currentWorkFolder || !state.selectedCharacter) return null;
-  return state.currentWorkFolder + "/" + state.selectedCharacter;
+  return getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
 }
 
 // --- Dirty state indicator ---
@@ -245,7 +246,7 @@ async function handleSaveCheckpoint() {
     // Auto-hide "✓ Saved" after 2 seconds
     setTimeout(hideStatus, 2000);
   } catch (error) {
-    showSaveError("Checkpoint failed: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Checkpoint failed: " + formatError(error));
     hideStatus();
   } finally {
     isCommitting = false;
@@ -321,7 +322,7 @@ export async function openGitHistory() {
       }
     });
   } catch (error) {
-    showSaveError("Failed to load history: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Failed to load history: " + formatError(error));
   }
 }
 
@@ -344,7 +345,7 @@ async function handleGitRevert(commitId) {
     await reloadAfterRevert();
     await checkDirty();
   } catch (error) {
-    showSaveError("Restore failed: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Restore failed: " + formatError(error));
   }
 
   closeGitHistory();

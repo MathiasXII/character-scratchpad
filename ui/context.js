@@ -2,6 +2,7 @@ const { invoke } = window.__TAURI__.core;
 const { getCurrentWebview } = window.__TAURI__.webview;
 
 import { dom, state } from "./app.js";
+import { getCharacterDir, formatError } from "./helpers.js";
 import { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly } from "./editor.js";
 import { checkDirty } from "./git.js";
 
@@ -92,7 +93,7 @@ export async function selectContextFile(filename) {
     if (!currentFile?.isReadOnly) {
       const currentContent = getEditorValue();
       if (currentContent !== state.contextLastSaved[state.activeContextFile]) {
-        const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+        const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
         const path = charDir + "/context/" + state.activeContextFile;
         try {
           await invoke("save_file", { path, content: currentContent });
@@ -101,7 +102,7 @@ export async function selectContextFile(filename) {
           const file = state.contextFiles.find((f) => f.name === state.activeContextFile);
           if (file) file.content = currentContent;
         } catch (error) {
-          console.error("Failed to save context file:", error);
+          console.error("Failed to save context file:", formatError(error));
         }
       }
     }
@@ -138,7 +139,7 @@ export async function handleAddContextFile() {
   if (!filename || filename.trim() === "") return;
 
   const trimmedName = filename.trim();
-  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
 
   try {
     await invoke("create_context_file", {
@@ -162,7 +163,7 @@ export async function handleAddContextFile() {
     checkDirty();
   } catch (error) {
     const message = typeof error === "string" ? error : String(error);
-    console.error("Failed to create context file:", message);
+    console.error("Failed to create context file:", formatError(message));
   }
 }
 
@@ -206,7 +207,7 @@ export function handleDeleteContextFile(filename) {
  * @param {string} filename
  */
 async function performDelete(filename) {
-  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
 
   try {
     await invoke("delete_context_file", {
@@ -232,7 +233,7 @@ async function performDelete(filename) {
     renderContextFileList();
     checkDirty();
   } catch (error) {
-    console.error("Failed to delete context file:", error);
+    console.error("Failed to delete context file:", formatError(error));
   }
 }
 

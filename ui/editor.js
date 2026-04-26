@@ -1,6 +1,7 @@
 const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP } from "./app.js";
+import { getCharacterDir, formatError } from "./helpers.js";
 import { checkDirty } from "./git.js";
 import { renderContextFileList } from "./context.js";
 
@@ -90,7 +91,7 @@ export async function saveCurrentTab() {
       hideSaveError();
       checkDirty();
     } catch (error) {
-      showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
+      showSaveError("Save failed: " + formatError(error));
     }
     return; // IMPORTANT: return early
   }
@@ -111,7 +112,7 @@ export async function saveCurrentTab() {
   }
 
   const filename = TAB_FILE_MAP[tab];
-  const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
+  const path = getCharacterDir(state.currentWorkFolder, state.selectedCharacter) + "/" + filename;
 
   try {
     await invoke("save_file", { path, content });
@@ -119,7 +120,7 @@ export async function saveCurrentTab() {
     hideSaveError();
     checkDirty();
   } catch (error) {
-    showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Save failed: " + formatError(error));
   }
 }
 
@@ -148,7 +149,7 @@ export async function switchTab(tabName) {
     if (!leavingFile?.isReadOnly) {
       const content = getEditorValue();
       if (content !== state.contextLastSaved[state.activeContextFile]) {
-        const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/context/" + state.activeContextFile;
+        const path = getCharacterDir(state.currentWorkFolder, state.selectedCharacter) + "/context/" + state.activeContextFile;
         try {
           await invoke("save_file", { path, content });
           state.contextLastSaved[state.activeContextFile] = content;
@@ -156,7 +157,7 @@ export async function switchTab(tabName) {
           if (file) file.content = content;
           hideSaveError();
         } catch (error) {
-          showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
+          showSaveError("Save failed: " + formatError(error));
         }
       }
     }
@@ -169,7 +170,7 @@ export async function switchTab(tabName) {
     // Only save if content actually changed
     if (content !== state.lastSavedContent[oldTab]) {
       const filename = TAB_FILE_MAP[oldTab];
-      const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
+      const path = getCharacterDir(state.currentWorkFolder, state.selectedCharacter) + "/" + filename;
       invoke("save_file", { path, content })
         .then(() => {
           state.lastSavedContent[oldTab] = content;
@@ -177,7 +178,7 @@ export async function switchTab(tabName) {
           checkDirty();
         })
         .catch((error) =>
-          showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)))
+          showSaveError("Save failed: " + formatError(error))
         );
     }
   }
