@@ -1,6 +1,7 @@
 use futures_util::StreamExt;
 use tauri::{AppHandle, Emitter, State};
 
+use crate::commands::http::{chat_completions_url, with_auth_json};
 use crate::state::AppState;
 use crate::types::{ChatCompletionRequest, ChatMessage};
 
@@ -30,11 +31,7 @@ pub async fn send_message_stream(
         top_p: Some(top_p_val),
     };
 
-    let response = state
-        .client
-        .post(format!("{}/chat/completions", endpoint))
-        .header("Authorization", format!("Bearer {}", api_key))
-        .header("Content-Type", "application/json")
+    let response = with_auth_json(state.client.post(chat_completions_url(&endpoint)), &api_key)
         .json(&request_body)
         .send()
         .await
