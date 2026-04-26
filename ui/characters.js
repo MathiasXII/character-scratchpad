@@ -1,6 +1,7 @@
 const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP, updateUIState } from "./app.js";
+import { getCharacterDir, formatError } from "./helpers.js";
 import { updateTokenCounter, getEditorValue, setEditorValue, setEditorPlaceholder, updateInstructionsVisibility } from "./editor.js";
 import { openSettingsModal } from "./settings.js";
 import { updateGitBarVisibility, checkDirty } from "./git.js";
@@ -46,7 +47,7 @@ export async function loadCharacters() {
     opt.textContent = "Error loading characters";
     opt.value = "";
     dom.characterSelect.appendChild(opt);
-    console.error("Failed to load characters:", error);
+    console.error("Failed to load characters:", formatError(error));
   }
   updateGitBarVisibility();
   checkDirty();
@@ -128,11 +129,11 @@ export async function handleCharacterSelect() {
     // Ensure all necessary character files exist
     await invoke("ensure_character_files", { workFolder: state.currentWorkFolder, name });
   } catch (error) {
-    console.error("Failed to ensure character files:", error);
+    console.error("Failed to ensure character files:", formatError(error));
     // Continue anyway - we'll try to load files even if some are missing
   }
 
-  const charDir = state.currentWorkFolder + "/" + name;
+  const charDir = getCharacterDir(state.currentWorkFolder, name);
   const fileEntries = Object.entries(TAB_FILE_MAP).map(([key, filename]) => [
     key,
     charDir + "/" + filename,
@@ -143,7 +144,7 @@ export async function handleCharacterSelect() {
       invoke("load_file", { path })
         .then((content) => ({ key, content }))
         .catch((error) => {
-          console.error(`Failed to load ${key}:`, error);
+          console.error(`Failed to load ${key}:`, formatError(error));
           return { key, content: "" };
         })
     )
@@ -158,7 +159,7 @@ export async function handleCharacterSelect() {
   try {
     state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
   } catch (error) {
-    console.error("Failed to load context files:", error);
+    console.error("Failed to load context files:", formatError(error));
     state.contextFiles = [];
   }
 
@@ -190,7 +191,7 @@ export async function reloadAfterRevert() {
   clearTimeout(state.saveTimeout);
   state.saveTimeout = null;
 
-  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
   const fileEntries = Object.entries(TAB_FILE_MAP).map(([key, filename]) => [
     key,
     charDir + "/" + filename,
@@ -201,7 +202,7 @@ export async function reloadAfterRevert() {
       invoke("load_file", { path })
         .then((content) => ({ key, content }))
         .catch((error) => {
-          console.error(`Failed to load ${key}:`, error);
+          console.error(`Failed to load ${key}:`, formatError(error));
           return { key, content: "" };
         })
     )
@@ -215,7 +216,7 @@ export async function reloadAfterRevert() {
   try {
     state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
   } catch (error) {
-    console.error("Failed to load context files:", error);
+    console.error("Failed to load context files:", formatError(error));
     state.contextFiles = [];
   }
 

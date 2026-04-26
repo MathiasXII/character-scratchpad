@@ -2,12 +2,8 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
 import { dom, state } from "./app.js";
+import { renderMarkdown } from "./helpers.js";
 import { renderPreviewMessages } from "./preview.js";
-
-const DOMPURIFY_CONFIG = {
-  ADD_TAGS: ["details", "summary"],
-  ADD_ATTR: ["checked", "disabled"],
-};
 
 /**
  * Build the full messages array to send to the LLM API.
@@ -258,7 +254,7 @@ export function initStreamListeners() {
       rafPending = true;
       requestAnimationFrame(() => {
         if (state.currentAssistantEl) {
-          state.currentAssistantEl.querySelector(".content").innerHTML = DOMPurify.sanitize(marked.parse(state.currentAssistantContent), DOMPURIFY_CONFIG);
+          state.currentAssistantEl.querySelector(".content").innerHTML = renderMarkdown(state.currentAssistantContent);
           scrollToBottom();
         }
         rafPending = false;
@@ -269,7 +265,7 @@ export function initStreamListeners() {
   listen("stream-end", () => {
     // Flush any pending rAF render synchronously before clearing state
     if (state.currentAssistantEl) {
-      state.currentAssistantEl.querySelector(".content").innerHTML = DOMPurify.sanitize(marked.parse(state.currentAssistantContent), DOMPURIFY_CONFIG);
+      state.currentAssistantEl.querySelector(".content").innerHTML = renderMarkdown(state.currentAssistantContent);
       state.currentAssistantEl.classList.remove("streaming");
     }
     rafPending = false;
@@ -402,7 +398,7 @@ export function createMessageElement(role, content, index) {
 
   const body = document.createElement("div");
   body.className = "content";
-  body.innerHTML = DOMPurify.sanitize(marked.parse(content), DOMPURIFY_CONFIG);
+  body.innerHTML = renderMarkdown(content);
 
   bubble.appendChild(body);
 
