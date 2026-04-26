@@ -99,13 +99,19 @@
       </div>
       <div class="modal-body">
         <label for="api-key">API Key</label>
-        <input type="password" id="api-key" placeholder="sk-..." />
+        <div class="setting-input-row">
+          <input type="password" id="api-key" placeholder="sk-..." />
+          <button id="test-connection-btn" class="test-btn" title="Test endpoint &amp; API key">Test</button>
+        </div>
 
         <label for="model">Model</label>
-        <div id="model-combobox" class="combobox">
-          <input type="text" id="model" placeholder="gpt-4o-mini" autocomplete="off" />
-          <button type="button" id="model-dropdown-btn" class="combobox-caret" disabled tabindex="-1" aria-label="Select model">&#9662;</button>
-          <div id="model-dropdown" class="combobox-dropdown hidden"></div>
+        <div class="setting-input-row">
+          <div id="model-combobox" class="combobox">
+            <input type="text" id="model" placeholder="gpt-4o-mini" autocomplete="off" />
+            <button type="button" id="model-dropdown-btn" class="combobox-caret" disabled tabindex="-1" aria-label="Select model">&#9662;</button>
+            <div id="model-dropdown" class="combobox-dropdown hidden"></div>
+          </div>
+          <button id="test-model-btn" class="test-btn" title="Test model">Test</button>
         </div>
 
         <label for="endpoint">API Endpoint</label>

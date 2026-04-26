@@ -854,6 +854,70 @@ main {
   flex: 1;
 }
 
+/* Settings: input row with test button */
+.setting-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.setting-input-row > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.setting-input-row > .combobox {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Test button */
+.test-btn {
+  padding: 10px 14px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-width: 52px;
+  text-align: center;
+}
+
+.test-btn:hover {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.test-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.test-btn.success {
+  background: #1a3a1a;
+  color: #4caf50;
+  border-color: #2d5a2d;
+}
+
+.test-btn.error {
+  background: rgba(255, 85, 85, 0.15);
+  color: var(--error);
+  border-color: rgba(255, 85, 85, 0.3);
+}
+
+/* Red highlight for input fields on test failure */
+input.field-error {
+  border-color: var(--error) !important;
+  box-shadow: 0 0 0 1px var(--error);
+}
+
 #browse-folder-btn {
   padding: 10px 14px;
   background: var(--bg-tertiary);
