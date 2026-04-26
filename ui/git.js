@@ -30,9 +30,6 @@ function getRepoPath() {
  * Compare current file contents against the last git commit (HEAD) to determine
  * whether there are pending changes. Only checks files defined in TRACKED_TAB_FILES
  * and TRACKED_FOLDERS — invisible files are ignored.
- *
- * This replaces the old git_is_dirty approach which flagged untracked files and
- * CRLF/LF differences as "dirty" even when the editor content matched HEAD.
  */
 export async function checkDirty() {
   const indicator = dom.gitStatusIndicator;
@@ -326,7 +323,7 @@ export async function openGitHistory() {
   }
 }
 
-export function closeGitHistory() {
+function closeGitHistory() {
   const historyModal = document.getElementById("git-history-modal");
   if (historyModal) historyModal.classList.add("hidden");
 }

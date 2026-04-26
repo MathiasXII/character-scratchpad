@@ -11,7 +11,7 @@ const ROLE_LABELS = {
  * Render an array of ChatMessage objects into the preview modal content.
  * Shared by full preview and per-message preview.
  */
-export function renderPreviewMessages(messages) {
+function renderPreviewMessages(messages) {
   const previewContent = document.getElementById("preview-content");
   if (!previewContent) return;
 
@@ -34,7 +34,7 @@ export function renderPreviewMessages(messages) {
   }
 }
 
-export function openPreview() {
+function openPreview() {
   const previewModal = document.getElementById("preview-modal");
   if (!previewModal) return;
 
@@ -43,7 +43,7 @@ export function openPreview() {
   previewModal.classList.remove("hidden");
 }
 
-export function closePreview() {
+function closePreview() {
   const previewModal = document.getElementById("preview-modal");
   if (previewModal) previewModal.classList.add("hidden");
 }

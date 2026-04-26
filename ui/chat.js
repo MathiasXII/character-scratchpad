@@ -44,6 +44,7 @@ export function buildMessagesArray() {
   return messages;
 }
 
+
 function renderConversationHistory({ showWelcomeIfEmpty = false } = {}) {
   dom.messagesEl.innerHTML = "";
 
@@ -127,7 +128,7 @@ export function buildPromptOnly() {
  * the message at upToIndex, so you can see the full context that led to
  * each message (including the message itself).
  */
-export function buildMessagesArrayUpTo(upToIndex) {
+function buildMessagesArrayUpTo(upToIndex) {
   syncEditorToState(state);
 
   const messages = [];
@@ -153,7 +154,7 @@ export function buildMessagesArrayUpTo(upToIndex) {
  * Open the preview modal showing the prompt that was sent to generate
  * the message at the given index in conversationHistory.
  */
-export function openMessagePreview(index) {
+function openMessagePreview(index) {
   const previewModal = document.getElementById("preview-modal");
   if (!previewModal) return;
 
@@ -324,7 +325,7 @@ export function createMessageElement(role, content, index) {
   return el;
 }
 
-export function addMessage(role, content) {
+function addMessage(role, content) {
   const index = state.conversationHistory.length;
   const el = createMessageElement(role, content, index);
   dom.messagesEl.appendChild(el);
@@ -337,23 +338,23 @@ const errorDismiss = document.getElementById("error-dismiss");
 
 errorDismiss.addEventListener("click", hideErrorNotification);
 
-export function addErrorMessage(text) {
+function addErrorMessage(text) {
   errorText.textContent = text;
   errorNotification.classList.remove("hidden");
   // Scroll to top so user sees the notification
   dom.chatContainer.scrollTop = 0;
 }
 
-export function hideErrorNotification() {
+function hideErrorNotification() {
   errorNotification.classList.add("hidden");
   errorText.textContent = "";
 }
 
-export function scrollToBottom() {
+function scrollToBottom() {
   dom.chatContainer.scrollTop = dom.chatContainer.scrollHeight;
 }
 
-export function autoResizeInput() {
+function autoResizeInput() {
   dom.userInput.style.height = "auto";
   dom.userInput.style.height = Math.min(dom.userInput.scrollHeight, 120) + "px";
 }
@@ -449,7 +450,7 @@ export function startEdit(index) {
   });
 }
 
-export function cancelEdit() {
+function cancelEdit() {
   if (state.editingIndex === null) return;
   const el = dom.messagesEl.querySelector(`[data-index="${state.editingIndex}"]`);
   if (el) {
