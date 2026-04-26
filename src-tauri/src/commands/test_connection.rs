@@ -211,9 +211,21 @@ fn extract_error_code(body: &str) -> String {
 }
 
 fn truncate(s: &str, max: usize) -> String {
-    if s.len() <= max {
-        s.to_string()
-    } else {
-        format!("{}...", &s[..max])
+    s.chars().take(max).collect::<String>()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::truncate;
+
+    #[test]
+    fn truncate_preserves_ascii_behavior() {
+        assert_eq!(truncate("abcdefghijklmnopqrstuvwxyz", 5), "abcde");
+    }
+
+    #[test]
+    fn truncate_handles_multibyte_characters_without_panicking() {
+        let result = truncate("héllo🙂world", 5);
+        assert_eq!(result, "héllo");
     }
 }
