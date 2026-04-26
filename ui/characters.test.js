@@ -11,6 +11,7 @@ const mockOpenSettingsModal = vi.fn();
 const mockUpdateGitBarVisibility = vi.fn();
 const mockCheckDirty = vi.fn();
 const mockRenderContextFileList = vi.fn();
+const mockSyncFirstResponse = vi.fn();
 
 const mockDom = {
   characterSelect: document.createElement('select'),
@@ -33,6 +34,7 @@ const mockState = {
   },
   contextFiles: [{ name: 'old.md', content: 'old' }],
   activeContextFile: 'old.md',
+  conversationHistory: [{ role: 'user', content: 'keep me' }],
   lastSavedContent: {
     instructions: '',
     prompt: '',
@@ -76,6 +78,10 @@ vi.mock('./context.js', () => ({
   renderContextFileList: mockRenderContextFileList,
 }));
 
+vi.mock('./chat.js', () => ({
+  syncFirstResponse: mockSyncFirstResponse,
+}));
+
 globalThis.window.__TAURI__ = {
   core: {
     invoke: mockInvoke,
@@ -100,6 +106,7 @@ mockUpdateInstructionsVisibility.mockReset();
   mockUpdateGitBarVisibility.mockReset();
   mockCheckDirty.mockReset();
   mockRenderContextFileList.mockReset();
+  mockSyncFirstResponse.mockReset();
 
   mockDom.characterSelect.innerHTML = '';
   mockDom.characterSelect.disabled = false;
@@ -122,6 +129,7 @@ mockUpdateInstructionsVisibility.mockReset();
   };
   mockState.contextFiles = [{ name: 'old.md', content: 'old' }];
   mockState.activeContextFile = 'old.md';
+  mockState.conversationHistory = [{ role: 'user', content: 'keep me' }];
   mockState.lastSavedContent = {
     instructions: '',
     prompt: '',
@@ -229,5 +237,76 @@ describe('characters module', () => {
     expect(mockSetEditorValue).toHaveBeenCalledWith('Instructions');
     expect(mockSetEditorPlaceholder).toHaveBeenCalledWith('Start editing...');
     expect(mockState.isLoadingCharacter).toBe(false);
+  });
+
+  describe('first-response integration', () => {
+    it('syncs first-response content after selecting a character with intro text', async () => {
+      mockState.currentWorkFolder = 'C:/chars';
+      const opt = document.createElement('option');
+      opt.value = 'Alice';
+      opt.textContent = 'Alice';
+      mockDom.characterSelect.appendChild(opt);
+      mockDom.characterSelect.value = 'Alice';
+      mockInvoke.mockImplementation(async (command, payload) => {
+        if (command === 'ensure_character_files') {
+          return undefined;
+        }
+        if (command === 'load_file') {
+          const suffix = payload.path.replace('C:/chars/Alice/', '');
+          const contents = {
+            'instructions.txt': 'Instructions',
+            'system-prompt.txt': 'Prompt',
+            'description.txt': 'Description',
+            'intro.txt': 'Intro',
+          };
+          return contents[suffix];
+        }
+        if (command === 'list_context_files') {
+          return [];
+        }
+        throw new Error(`Unexpected command: ${command}`);
+      });
+
+      await characters.handleCharacterSelect();
+
+      expect(mockSyncFirstResponse).toHaveBeenCalled();
+    });
+
+    it('preserves scratchpad chat history and skips first-response sync', async () => {
+      const previousHistory = [...mockState.conversationHistory];
+      mockDom.characterSelect.value = '';
+
+      await characters.handleCharacterSelect();
+
+      expect(mockSyncFirstResponse).not.toHaveBeenCalled();
+      expect(mockState.conversationHistory).toEqual(previousHistory);
+      expect(mockState.conversationHistory).toHaveLength(1);
+    });
+
+    it('resyncs first-response content after reverting when intro text changes', async () => {
+      mockState.currentWorkFolder = 'C:/chars';
+      mockState.selectedCharacter = 'Alice';
+      mockState.activeTab = 'first-response';
+      mockInvoke.mockImplementation(async (command, payload) => {
+        if (command === 'load_file') {
+          const suffix = payload.path.replace('C:/chars/Alice/', '');
+          const contents = {
+            'instructions.txt': 'Instructions v2',
+            'system-prompt.txt': 'Prompt v2',
+            'description.txt': 'Description v2',
+            'intro.txt': 'Intro v2',
+          };
+          return contents[suffix];
+        }
+        if (command === 'list_context_files') {
+          return [{ name: 'lore.md', content: 'Lore' }];
+        }
+        throw new Error(`Unexpected command: ${command}`);
+      });
+
+      await characters.reloadAfterRevert();
+
+      expect(mockSyncFirstResponse).toHaveBeenCalled();
+    });
   });
 });

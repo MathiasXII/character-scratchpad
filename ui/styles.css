@@ -85,31 +85,6 @@ header h1 {
   flex: 1;
 }
 
-#clear-chat-btn {
-  padding: 6px 12px;
-  background: #8b2252;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.2s;
-  flex-shrink: 0;
-  line-height: 1;
-  align-self: stretch;
-}
-
-#clear-chat-btn:hover {
-  background: var(--error);
-}
-
-#clear-chat-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 #character-select {
   padding: 6px 12px;
   background: var(--input-bg);
@@ -702,6 +677,16 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-secondary);
+}
+
+.message.first-response .role-label::after {
+  content: " ✦ First Response";
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--accent);
+  opacity: 0.85;
 }
 
 .message.streaming .content::after {

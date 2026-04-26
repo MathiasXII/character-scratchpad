@@ -142,7 +142,7 @@ llm-chat/
 
 Notes:
 
-- `intro.txt` exists and is editable, but **first-response injection is not implemented yet**.
+- `intro.txt` content is synced to a first-response assistant bubble via `syncFirstResponse()` in `chat.js`. The bubble is injected on character load and on intro edits, removed when intro is cleared, and guarded against mutating non-empty chats. An internal `_isFirstResponse` marker is stripped from API payloads.
 - Context files support `.txt`, `.md`, and `.pdf`.
 - PDFs are read-only in the editor; text is extracted backend-side with `lopdf`.
 
@@ -183,9 +183,9 @@ Notes:
 
 | Module | Responsibility |
 |---|---|
-| `app.js` | Global state/DOM registry, app bootstrap, event wiring, settings-driven UI enable/disable |
-| `chat.js` | Streaming chat, message rendering, delete/edit/resend, prompt assembly, per-message preview |
-| `characters.js` | Work-folder character list, create modal, character load/reload logic, scratchpad mode |
+| `app.js` | Global state/DOM registry, app bootstrap, event wiring, settings-driven UI enable/disable, first-response sync on intro edits |
+| `chat.js` | Streaming chat, message rendering, delete/edit/resend, prompt assembly, per-message preview, first-response sync |
+| `characters.js` | Work-folder character list, create modal, character load/reload logic, scratchpad mode, first-response sync on load/revert |
 | `context.js` | Context sidebar rendering, select/create/delete, native drag & drop imports |
 | `editor.js` | CodeMirror helpers, autosave, tab switching, token counter, instructions visibility warning |
 | `git.js` | Dirty detection against HEAD, checkpoint save flow, history modal, restore flow |
@@ -256,11 +256,11 @@ Node.js in CI is currently pinned to **24**.
 - ✅ Temperature / top-p controls
 - ✅ Error notification bar in chat
 - ✅ Instructions invisibility warning/banner
+- ✅ First-response injection from `intro.txt` with guarded sync, visual label, and API serialization
 - ✅ Rust + Vitest automated test suites
 
 ### Still incomplete
 
-- 🔲 First-response injection from `intro.txt`
 - 🔲 Venice.ai preset/polish work still tracked in `TODO.md`
 
 ---
