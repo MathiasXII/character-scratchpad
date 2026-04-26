@@ -72,6 +72,26 @@ function updateInstructionsVisibility() {
 
 export { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly, updateInstructionsVisibility };
 
+/**
+ * Persist a tab file to disk, update lastSavedContent, and refresh dirty state.
+ * Returns a Promise — callers may await it or fire-and-forget.
+ * On success: updates lastSavedContent, hides the save-error banner, and checks dirty state.
+ * On failure: shows the save-error banner.
+ */
+function persistTabFile(tab, content) {
+  const filename = TAB_FILE_MAP[tab];
+  const path = getCharacterDir(state.currentWorkFolder, state.selectedCharacter) + "/" + filename;
+  return Promise.resolve(invoke("save_file", { path, content }))
+    .then(() => {
+      state.lastSavedContent[tab] = content;
+      hideSaveError();
+      checkDirty();
+    })
+    .catch((error) => {
+      showSaveError("Save failed: " + formatError(error));
+    });
+}
+
 export async function saveCurrentTab() {
   const tab = state.activeTab;
 
@@ -103,17 +123,7 @@ export async function saveCurrentTab() {
     return;
   }
 
-  const filename = TAB_FILE_MAP[tab];
-  const path = getCharacterDir(state.currentWorkFolder, state.selectedCharacter) + "/" + filename;
-
-  try {
-    await invoke("save_file", { path, content });
-    state.lastSavedContent[tab] = content;
-    hideSaveError();
-    checkDirty();
-  } catch (error) {
-    showSaveError("Save failed: " + formatError(error));
-  }
+  await persistTabFile(tab, content);
 }
 
 export function showSaveError(message) {
@@ -151,17 +161,7 @@ export async function switchTab(tabName) {
 
     // Only save if content actually changed
     if (content !== state.lastSavedContent[oldTab]) {
-      const filename = TAB_FILE_MAP[oldTab];
-      const path = getCharacterDir(state.currentWorkFolder, state.selectedCharacter) + "/" + filename;
-      invoke("save_file", { path, content })
-        .then(() => {
-          state.lastSavedContent[oldTab] = content;
-          hideSaveError();
-          checkDirty();
-        })
-        .catch((error) =>
-          showSaveError("Save failed: " + formatError(error))
-        );
+      persistTabFile(oldTab, content);
     }
   }
 

@@ -103,7 +103,7 @@ export function syncFirstResponse() {
  * WITHOUT any conversation history. Used by the left-pane Preview button
  * to show what the assembled prompt looks like before any chat.
  */
-export function buildPromptOnly() {
+function buildPromptOnly() {
   syncEditorToState(state);
 
   const messages = [];
