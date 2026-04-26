@@ -8,6 +8,11 @@ import { getCharacterDir, formatError } from "./helpers.js";
 
 let isCommitting = false;
 
+function getRepoPath() {
+  if (!state.currentWorkFolder || !state.selectedCharacter) return null;
+  return getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+}
+
 function formatTimestamp(unix) {
   const date = new Date(unix * 1000);
   return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -19,9 +24,22 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function getRepoPath() {
-  if (!state.currentWorkFolder || !state.selectedCharacter) return null;
-  return getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+function setDirtyIndicator(isDirty) {
+  const indicator = dom.gitStatusIndicator;
+  const saveBtn = dom.gitCommitBtn;
+  if (!indicator || !saveBtn) return;
+
+  if (isDirty) {
+    indicator.textContent = "Pending changes";
+    indicator.className = "git-status-indicator dirty";
+    saveBtn.classList.add("has-changes");
+    saveBtn.disabled = false;
+  } else {
+    indicator.textContent = "All saved";
+    indicator.className = "git-status-indicator clean";
+    saveBtn.classList.remove("has-changes");
+    saveBtn.disabled = true;
+  }
 }
 
 // --- Dirty state indicator ---
@@ -142,33 +160,13 @@ export async function checkDirty() {
       }
     }
 
-    if (hasPendingChanges) {
-      indicator.textContent = "Pending changes";
-      indicator.className = "git-status-indicator dirty";
-      saveBtn.classList.add("has-changes");
-      saveBtn.disabled = false;
-    } else {
-      indicator.textContent = "All saved";
-      indicator.className = "git-status-indicator clean";
-      saveBtn.classList.remove("has-changes");
-      saveBtn.disabled = true;
-    }
+    setDirtyIndicator(hasPendingChanges);
   } catch (error) {
     // If the repo is empty or git commands fail, fall back to git_is_dirty
     // (e.g. brand-new character with no commits yet)
     try {
       const dirty = await invoke("git_is_dirty", { repoPath });
-      if (dirty) {
-        indicator.textContent = "Pending changes";
-        indicator.className = "git-status-indicator dirty";
-        saveBtn.classList.add("has-changes");
-        saveBtn.disabled = false;
-      } else {
-        indicator.textContent = "All saved";
-        indicator.className = "git-status-indicator clean";
-        saveBtn.classList.remove("has-changes");
-        saveBtn.disabled = true;
-      }
+      setDirtyIndicator(dirty);
     } catch {
       // If both approaches fail (e.g. no git repo yet), just leave the indicator empty
       indicator.textContent = "";

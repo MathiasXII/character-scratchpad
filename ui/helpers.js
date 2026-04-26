@@ -20,6 +20,10 @@ export function getCharacterDir(workFolder, characterName) {
 }
 
 /**
+ * Get the active character directory from app state.
+ * Returns null when no character is selected or no work folder exists.
+ */
+/**
  * Sync the current CodeMirror editor content back into the shared state
  * so that prompt-building and dirty-checking always see what's on screen,
  * even if the debounced save hasn't fired yet.
