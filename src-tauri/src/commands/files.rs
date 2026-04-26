@@ -3,6 +3,7 @@ use std::path::Path;
 
 use lopdf::Document;
 
+use crate::commands::line_endings::normalize_line_endings;
 use crate::types::ContextFile;
 
 /// Reject paths that contain traversal components (e.g. ".." or "." segments).
@@ -45,7 +46,7 @@ pub fn load_file(path: String) -> Result<String, String> {
     let content =
         fs::read_to_string(&path).map_err(|e| format!("Failed to read '{}': {}", path, e))?;
     // Normalize line endings to LF — prevents spurious saves on Windows (CRLF vs LF)
-    Ok(content.replace("\r\n", "\n").replace('\r', "\n"))
+    Ok(normalize_line_endings(&content))
 }
 
 #[tauri::command]
@@ -57,7 +58,7 @@ pub fn save_file(path: String, content: String) -> Result<(), String> {
             .map_err(|e| format!("Failed to create directory '{}': {}", parent.display(), e))?;
     }
     // Normalize line endings to LF — prevents CRLF/LF mismatch on Windows
-    let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
+    let normalized = normalize_line_endings(&content);
     fs::write(&path, &normalized).map_err(|e| format!("Failed to write '{}': {}", path, e))
 }
 
@@ -108,7 +109,7 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
             let content = fs::read_to_string(&path)
                 .map_err(|e| format!("Failed to read '{}': {}", path.display(), e))?;
             // Normalize line endings to LF for consistency
-            let content = content.replace("\r\n", "\n").replace('\r', "\n");
+            let content = normalize_line_endings(&content);
             (content, false)
         };
 
