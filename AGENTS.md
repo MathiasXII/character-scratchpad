@@ -129,9 +129,9 @@ llm-chat/
 | `app.js` | `state`, `dom`, `TAB_FILE_MAP`, `TRACKED_FOLDERS` | All other modules (imports them), `tracked-paths.js` |
 | `chat.js` | `initStreamListeners`, `handleSend`, `createMessageElement`, `addMessage`, `addErrorMessage`, `scrollToBottom`, `autoResizeInput`, `showWelcome` | `app.js` (state, dom) |
 | `settings.js` | `openSettingsModal`, `closeSettingsModal`, `loadSettingsFromStorage`, `syncSettingsToBackend`, `handleSaveSettings` | `app.js` (state, dom), `characters.js` (loadCharacters), `editor.js` (updateTokenCounter) |
-| `characters.js` | `loadCharacters`, `handleCharacterSelect`, `openNewCharacterModal`, `closeNewCharacterModal`, `handleCreateCharacter` | `app.js` (state, dom), `editor.js` (updateTokenCounter), `settings.js` (openSettingsModal) |
+| `characters.js` | `loadCharacters`, `handleCharacterSelect`, `openNewCharacterModal`, `closeNewCharacterModal`, `handleCreateCharacter` | `app.js` (state, dom), `editor.js` (updateTokenCounter, updateInstructionsVisibility), `settings.js` (openSettingsModal) |
 | `context.js` | `renderContextFileList`, `loadContextFiles`, `selectContextFile`, `addContextFile`, `deleteContextFile`, `clearContextSelection`, `initContext` | `app.js` (state, dom), `editor.js` (setEditorValue, setEditorPlaceholder, getEditorValue, setEditorReadOnly), `git.js` (checkDirty) |
-| `editor.js` | `saveCurrentTab`, `showSaveError`, `hideSaveError`, `switchTab`, `updateTokenCounter`, `setEditorReadOnly` | `app.js` (state, dom), `git.js` (checkDirty) |
+| `editor.js` | `saveCurrentTab`, `showSaveError`, `hideSaveError`, `switchTab`, `updateTokenCounter`, `setEditorReadOnly`, `updateInstructionsVisibility` | `app.js` (state, dom), `git.js` (checkDirty) |
 | `divider.js` | `initPaneDivider` | None (uses DOM directly) |
 | `git.js` | `initGit`, `updateGitBarVisibility`, `checkDirty`, `openGitHistory`, `closeGitHistory` | `app.js` (state, dom, TAB_FILE_MAP, TRACKED_FOLDERS), `editor.js` (showSaveError, getEditorValue), `characters.js` (handleCharacterSelect) |
 | `tracked-paths.js` | `TRACKED_TAB_FILES`, `TRACKED_FOLDERS` | None (config module) |

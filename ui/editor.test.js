@@ -40,6 +40,26 @@ const placeholder = document.createElement('div');
 placeholder.className = 'cm-placeholder';
 mockDom.editorEl.appendChild(placeholder);
 
+// --- DOM elements for updateInstructionsVisibility ---
+const instructionsTab = createTab('instructions');
+instructionsTab.id = 'tab-instructions';
+instructionsTab.classList.add('tab');
+const instructionsIcon = document.createElement('span');
+instructionsIcon.className = 'tab-warning-icon hidden';
+instructionsIcon.id = 'instructions-invisible-icon';
+instructionsTab.appendChild(instructionsIcon);
+
+const instructionsBanner = document.createElement('div');
+instructionsBanner.className = 'instructions-invisible-banner hidden';
+instructionsBanner.id = 'instructions-invisible-banner';
+
+// Build a tab-bar container so document.querySelector('#tab-bar .tab[data-tab="instructions"]') works
+const tabBar = document.createElement('div');
+tabBar.id = 'tab-bar';
+tabBar.appendChild(instructionsTab);
+document.body.appendChild(tabBar);
+document.body.appendChild(instructionsBanner);
+
 const mockState = {
   activeTab: 'instructions',
   selectedCharacter: 'hero',
@@ -48,11 +68,13 @@ const mockState = {
   saveTimeout: 7,
   tabContents: {
     instructions: 'Initial instructions',
+    prompt: '',
     description: 'Saved description',
     context: '',
   },
   lastSavedContent: {
     instructions: 'Old instructions',
+    prompt: '',
     description: 'Saved description',
     context: '',
   },
@@ -112,11 +134,13 @@ beforeEach(() => {
   mockState.saveTimeout = 7;
   mockState.tabContents = {
     instructions: 'Initial instructions',
+    prompt: '',
     description: 'Saved description',
     context: '',
   };
   mockState.lastSavedContent = {
     instructions: 'Old instructions',
+    prompt: '',
     description: 'Saved description',
     context: '',
   };
@@ -124,6 +148,11 @@ beforeEach(() => {
   mockState.activeContextFile = 'lore.md';
   mockState.contextLastSaved = { 'lore.md': 'Old lore' };
   mockState.cmView = createCmView('Updated instructions');
+
+  // Reset instructions-visibility DOM state between tests
+  instructionsTab.classList.remove('tab-warning');
+  instructionsIcon.classList.add('hidden');
+  instructionsBanner.classList.add('hidden');
 });
 
 describe('editor module', () => {
@@ -185,5 +214,96 @@ describe('editor module', () => {
     editor.updateTokenCounter();
 
     expect(mockDom.tokenCounter.textContent).toBe('2 tokens');
+  });
+
+  describe('updateInstructionsVisibility', () => {
+    it('shows warning when instructions exist but %%CHARACTER_INSTRUCTIONS%% is missing from system prompt', () => {
+      mockState.tabContents.instructions = 'Be helpful and concise.';
+      mockState.tabContents.prompt = 'You are an assistant.';
+      mockState.activeTab = 'prompt';
+
+      editor.updateInstructionsVisibility();
+
+      expect(instructionsIcon.classList.contains('hidden')).toBe(false);
+      expect(instructionsTab.classList.contains('tab-warning')).toBe(true);
+      expect(instructionsBanner.classList.contains('hidden')).toBe(false);
+    });
+
+    it('hides warning when %%CHARACTER_INSTRUCTIONS%% is present in system prompt', () => {
+      mockState.tabContents.instructions = 'Be helpful and concise.';
+      mockState.tabContents.prompt = 'System: %%CHARACTER_INSTRUCTIONS%%';
+      mockState.activeTab = 'prompt';
+
+      editor.updateInstructionsVisibility();
+
+      expect(instructionsIcon.classList.contains('hidden')).toBe(true);
+      expect(instructionsTab.classList.contains('tab-warning')).toBe(false);
+      expect(instructionsBanner.classList.contains('hidden')).toBe(true);
+    });
+
+    it('hides warning when instructions are empty', () => {
+      mockState.tabContents.instructions = '';
+      mockState.tabContents.prompt = 'You are an assistant.';
+      mockState.activeTab = 'prompt';
+
+      editor.updateInstructionsVisibility();
+
+      expect(instructionsIcon.classList.contains('hidden')).toBe(true);
+      expect(instructionsTab.classList.contains('tab-warning')).toBe(false);
+      expect(instructionsBanner.classList.contains('hidden')).toBe(true);
+    });
+
+    it('hides warning when instructions are whitespace only', () => {
+      mockState.tabContents.instructions = '   \n  ';
+      mockState.tabContents.prompt = 'You are an assistant.';
+
+      editor.updateInstructionsVisibility();
+
+      expect(instructionsIcon.classList.contains('hidden')).toBe(true);
+      expect(instructionsTab.classList.contains('tab-warning')).toBe(false);
+    });
+
+    it('hides banner when not on the prompt tab, even if instructions are invisible', () => {
+      mockState.tabContents.instructions = 'Be helpful.';
+      mockState.tabContents.prompt = 'You are an assistant.';
+      mockState.activeTab = 'instructions';
+
+      editor.updateInstructionsVisibility();
+
+      // Tab icon and warning class should still show
+      expect(instructionsIcon.classList.contains('hidden')).toBe(false);
+      expect(instructionsTab.classList.contains('tab-warning')).toBe(true);
+      // But banner should be hidden because we're not on the prompt tab
+      expect(instructionsBanner.classList.contains('hidden')).toBe(true);
+    });
+
+    it('shows banner when on the prompt tab and instructions are invisible', () => {
+      mockState.tabContents.instructions = 'Be helpful.';
+      mockState.tabContents.prompt = 'You are an assistant.';
+      mockState.activeTab = 'prompt';
+
+      editor.updateInstructionsVisibility();
+
+      expect(instructionsBanner.classList.contains('hidden')).toBe(false);
+    });
+
+    it('clears warning when switching from invisible to visible state', () => {
+      // First set to invisible state
+      mockState.tabContents.instructions = 'Be helpful.';
+      mockState.tabContents.prompt = 'You are an assistant.';
+
+      editor.updateInstructionsVisibility();
+
+      expect(instructionsTab.classList.contains('tab-warning')).toBe(true);
+
+      // Now add the placeholder — should clear warning
+      mockState.tabContents.prompt = 'You are an assistant.\n%%CHARACTER_INSTRUCTIONS%%';
+
+      editor.updateInstructionsVisibility();
+
+      expect(instructionsIcon.classList.contains('hidden')).toBe(true);
+      expect(instructionsTab.classList.contains('tab-warning')).toBe(false);
+      expect(instructionsBanner.classList.contains('hidden')).toBe(true);
+    });
   });
 });

@@ -27,7 +27,49 @@ function setEditorReadOnly(readOnly) {
   if (state.cmView?.setReadOnly) state.cmView.setReadOnly(readOnly);
 }
 
-export { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly };
+/**
+ * Update the visibility warning for the Instructions tab.
+ *
+ * When the Instructions tab has non-empty content but %%CHARACTER_INSTRUCTIONS%%
+ * is missing from the System Prompt tab, the instructions won't be injected
+ * into the prompt at send time. This function:
+ *   - Adds a warning icon next to the Instructions tab label
+ *   - Tints the Instructions tab with a warning color
+ *   - Shows a banner above the editor when the System Prompt tab is active
+ */
+function updateInstructionsVisibility() {
+  const instructionsContent = (state.tabContents.instructions || "").trim();
+  const systemPromptContent = state.tabContents.prompt || "";
+  const isInvisible = instructionsContent.length > 0 && !systemPromptContent.includes("%%CHARACTER_INSTRUCTIONS%%");
+
+  const instructionsTab = document.querySelector('#tab-bar .tab[data-tab="instructions"]');
+  const iconEl = document.getElementById("instructions-invisible-icon");
+  const bannerEl = document.getElementById("instructions-invisible-banner");
+
+  if (isInvisible) {
+    // Show warning icon on the Instructions tab
+    if (iconEl) iconEl.classList.remove("hidden");
+    // Tint the Instructions tab with warning color
+    if (instructionsTab) instructionsTab.classList.add("tab-warning");
+    // Show banner only when viewing the System Prompt tab
+    if (bannerEl) {
+      if (state.activeTab === "prompt") {
+        bannerEl.classList.remove("hidden");
+      } else {
+        bannerEl.classList.add("hidden");
+      }
+    }
+  } else {
+    // Hide warning icon
+    if (iconEl) iconEl.classList.add("hidden");
+    // Remove warning tint
+    if (instructionsTab) instructionsTab.classList.remove("tab-warning");
+    // Hide banner
+    if (bannerEl) bannerEl.classList.add("hidden");
+  }
+}
+
+export { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly, updateInstructionsVisibility };
 
 export async function saveCurrentTab() {
   const tab = state.activeTab;
@@ -161,6 +203,7 @@ export async function switchTab(tabName) {
   }
   state.cmView.focus();
   updateTokenCounter();
+  updateInstructionsVisibility();
 }
 
 export function updateTokenCounter() {

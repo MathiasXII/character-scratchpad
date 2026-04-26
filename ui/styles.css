@@ -261,6 +261,62 @@ main {
   border-bottom-color: var(--accent);
 }
 
+/* Instructions tab warning state — shown when instructions content exists
+   but %%CHARACTER_INSTRUCTIONS%% is missing from the system prompt */
+#tab-bar .tab.tab-warning {
+  color: var(--warning);
+  border-bottom-color: var(--warning);
+}
+
+#tab-bar .tab.tab-warning:hover {
+  color: var(--warning);
+  background: rgba(230, 168, 23, 0.08);
+}
+
+.tab-warning-icon {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--warning);
+  line-height: 1;
+}
+
+.tab-warning-icon.hidden {
+  display: none;
+}
+
+/* Warning banner: instructions invisible because %%CHARACTER_INSTRUCTIONS%% is missing */
+.instructions-invisible-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(230, 168, 23, 0.12);
+  color: var(--warning);
+  border-bottom: 1px solid rgba(230, 168, 23, 0.25);
+  font-size: 12px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.instructions-invisible-banner.hidden {
+  display: none !important;
+}
+
+.instructions-invisible-banner svg {
+  flex-shrink: 0;
+}
+
+.instructions-invisible-banner code {
+  background: rgba(230, 168, 23, 0.15);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: "Cascadia Code", "Fira Code", monospace;
+  font-size: 11px;
+  user-select: all;
+}
+
 /* Editor (CodeMirror container) */
 #editor {
   flex: 1;
