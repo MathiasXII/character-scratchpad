@@ -80,3 +80,17 @@
 - Privatized internal-only helpers that are only used within their own modules: preview modal internals, the git history close helper, the context refresh helper, and the settings model-dropdown fetch/render helpers.
 - Preserved exports that are part of the public UI module surface or are imported by `app.js` and Vitest mocks, so the event-driven wiring stayed intact.
 - `npm test` completed cleanly after the export tightening: all 70 Vitest tests and the Rust test suite passed.
+## 2026-04-26 T14 dirty-check and save helper dedup
+
+- Extracted `getRepoPath(state)` into `ui/helpers.js` to replace 8 repeated `getCharacterDir(state.currentWorkFolder, state.selectedCharacter)` calls across `git.js`, `editor.js`, `context.js`, and `characters.js`.
+- `getRepoPath` returns `null` when no character is selected (matching the old local `getRepoPath()` in git.js), while `getCharacterDir` returns `""`. Callers already guard against the missing case, so the null return is safe.
+- Extracted `setDirtyIndicator(isDirty)` in `git.js` to reduce the 4x indicator-update duplication inside `checkDirty()` (2x dirty, 2x clean). The fallback error path still sets indicator state directly since it clears rather than shows dirty/clean.
+- Extracted `persistTabFile(tab, content)` in `editor.js` to consolidate the save-file-to-disk + lastSavedContent update + error handling pattern shared between `saveCurrentTab()` and `switchTab()`. Returns a Promise so callers can either `await` it or fire-and-forget.
+- `refreshContextFiles` in `context.js` was accidentally un-exported during editing; restored the `export` keyword.
+- Test files still mock `getCharacterDir` from `./app.js` — these mocks are dead code since the production modules now import from `./helpers.js`. The real `getRepoPath` from `helpers.js` is used instead, which works because it calls the real `getCharacterDir`.
+- All 70 Vitest tests + 19 Rust unit tests + 6 integration tests pass.
+
+## 2026-04-26 F2 review follow-up
+- `chat.js` now exports the input/scroll helpers that `app.js` imports, and message edits reuse shared `renderMarkdown()` instead of a dangling sanitize config reference.
+- `helpers.js` now keeps its markdown config, character-dir helper, and context intro internal to the module since no other module imports them.
+- Rust command helpers in `validation.rs` and `line_endings.rs` were narrowed to `pub(crate)`; the public API surface stays focused on actual Tauri commands.

@@ -350,11 +350,11 @@ function hideErrorNotification() {
   errorText.textContent = "";
 }
 
-function scrollToBottom() {
+export function scrollToBottom() {
   dom.chatContainer.scrollTop = dom.chatContainer.scrollHeight;
 }
 
-function autoResizeInput() {
+export function autoResizeInput() {
   dom.userInput.style.height = "auto";
   dom.userInput.style.height = Math.min(dom.userInput.scrollHeight, 120) + "px";
 }
@@ -473,7 +473,7 @@ export function saveEdit(index) {
 
   // Update the rendered content in the message element
   const contentDiv = el.querySelector('.content');
-  contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(newContent), DOMPURIFY_CONFIG);
+  contentDiv.innerHTML = renderMarkdown(newContent);
   contentDiv.style.display = '';
 
   // Remove textarea and Save/Cancel
