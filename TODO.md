@@ -1,65 +1,85 @@
-# TODO — Character Scratch Pad → Venice.ai Character Workbench
+# TODO — Character Scratch Pad
+
+This file tracks the original vertical-slice roadmap plus newer completed improvements so the current state is clear.
 
 **RULE: For every unchecked item, follow this workflow IN ORDER:**
 
-1. **Create a feature branch** from `master` before writing any code.
-   - Branch naming: `feature/<step-letter>-<short-description>` (e.g. `feature/a-work-folder-character-list`).
-   - If you start implementing without creating a branch first, STOP — go back and create the branch.
-2. **Complete ONE unchecked item.** Do not start the next item until the current one is accepted.
-3. **Test the change.** Run `npm run dev` and verify the feature works.
+1. **Create a feature branch** from `main` before writing code.
+   - Branch naming: `feature/<step-letter>-<short-description>` (example: `feature/h-first-response-injection`).
+2. **Complete ONE unchecked item.** Do not start the next unchecked item until the current one is accepted.
+3. **Test the change.** Run the relevant automated checks and verify the feature manually in the app when appropriate.
 4. **Commit** the change on the feature branch.
-5. **STOP.** Wait for the user to review.
-6. **When accepted**, merge the feature branch into `master` using `--no-ff` (never fast-forward) so the branch is visible in the git graph.
+5. **STOP.** Wait for review.
+6. **When accepted**, merge the feature branch into `main` using `--no-ff` so the branch remains visible in git history.
 
-**RULE: The user will either ask you to do some changes or say it is acceptable. When it is acceptable, merge branch into the main one with `--no-ff`.**
-
-**RULE: Each item is a vertical slice — backend + frontend together, testable end-to-end.**
+**RULE: Each unchecked item is a vertical slice — backend + frontend together, testable end-to-end.**
 
 ---
 
-## Phase 1 — Two-Pane Layout ✅
+## Core Roadmap
+
+### Phase 1 — Two-Pane Layout ✅
 
 - [x] **1.1** Restructure `index.html` into a two-pane horizontal layout.
 - [x] **1.2** Add a resizable divider between the two panes.
-- [x] **1.3** Add a horizontal tab bar with four tabs and a shared textarea.
-- [x] **1.4** Style the left pane, tab bar, and textarea to match the dark theme.
-- [x] **1.5** Add a token counter below the textarea.
+- [x] **1.3** Add a horizontal tab bar with four character tabs plus a context tab.
+- [x] **1.4** Style the left pane, tab bar, and editor to match the dark theme.
+- [x] **1.5** Add a token counter below the editor.
 
-## Phase 2 — Filesystem Backend ✅
+### Phase 2 — Filesystem Backend ✅
 
 - [x] **2.1** Add a `load_file` Tauri command.
 - [x] **2.2** Add a `save_file` Tauri command.
 - [x] **2.3** Add a `list_characters` Tauri command.
 - [x] **2.4** Add a `create_character` Tauri command.
-- [x] **2.5** Register all new commands in `invoke_handler`.
+- [x] **2.5** Register the commands in `src-tauri/src/lib.rs` `invoke_handler![]`.
 
 ---
 
-## Remaining Work — Vertical Slices (each item is testable end-to-end)
+## Remaining Work — Original Vertical Slices
 
 - [x] **A. Work Folder Setting + Character List**
-  Add a "Work Folder" input to the Settings modal. Store it in `localStorage` under key `llm-work-folder`. Default value: a `characters` folder next to the app executable. On app init (and whenever the work folder setting changes), call `list_characters` and populate a character selector dropdown in the header. If no characters exist, show a "No characters yet — create one" prompt in the dropdown area.
+  Add a Work Folder picker to Settings, store it in `localStorage`, and load the character selector from that folder. When no character is selected, the app should support a scratchpad mode with no file-backed saving.
 
 - [x] **B. New Character Creation**
-  Add a "+" button next to the character selector. Clicking it prompts the user for a character name (simple browser `prompt()`), then calls `create_character`. On success, refresh the character list and auto-select the new character.
+  Add a dedicated create-character modal, create the folder, refresh the list, and auto-select the new character.
 
 - [x] **C. Editor ↔ File Wiring (Load + Auto-Save)**
-  When a character is selected, call `load_file` for all four character files (`instructions.md`, `prompt.md`, `description.md`, `first-response.md`) in parallel and populate the corresponding tabs. Add an `oninput` listener on the textarea that, after a 1-second debounce, calls `save_file` to write the current tab's content to the corresponding file. If `save_file` returns an error, display a non-blocking red error banner at the top of the left pane. Dismiss it on the next successful save.
+  When a character is selected, load `instructions.txt`, `system-prompt.txt`, `description.txt`, and `intro.txt` in parallel and wire the shared editor to auto-save changes with a debounce. Surface save failures in a dismissible error banner.
 
 - [x] **D. Git Versioning (full stack)**
-  Add `git2` crate to `Cargo.toml`. Add Tauri commands: `git_commit` (stages all + commits with message), `git_log` (returns last 50 commits), `git_revert` (hard-checkout a commit's tree), `git_is_dirty` (checks for uncommitted changes), `git_diff_last` (returns diff of last commit), `git_commit_amend` (renames last commit message), `generate_checkpoint_name` (LLM-generated checkpoint name from diff). Update `create_character` to `git2::Repository::init()` + initial commit after creating files. Version control bar at bottom of left pane: [⏱ History] ··· status indicator ··· [💾 Save checkpoint]. One-click checkpoint with timestamp message, background LLM rename via amend. "Unsaved changes" / "All saved" dirty indicator. "Saving..." → "✓ Saved" toast with fade animation. Save checkpoint disabled when no changes. History modal lists commits with "Restore this version" buttons.
+  Add per-character git repositories, checkpoint commits, history, restore, dirty-state indication, and background AI checkpoint renaming.
 
 - [x] **E. Chat: Markdown Rendering**
-  Add `marked.js` (via CDN or bundled). Render assistant message bubbles as markdown (`body.innerHTML = marked.parse(content)`). Render user message bubbles as markdown too. The edit input box (item F) shows raw text, not rendered markdown.
+  Render both user and assistant message bubbles as sanitized markdown.
 
 - [x] **F. Chat: Delete, Edit, Resend**
-  Add a delete button (trash icon) and edit button (pencil icon) to each message bubble on hover. Delete removes that message + all messages below it from `conversationHistory` and the DOM. Edit replaces the message content with a `<textarea>` pre-filled with raw text, plus "Save" and "Cancel" buttons. On Save: truncate `conversationHistory` at that point, remove subsequent DOM elements, and re-trigger streaming. Add a "Resend" button next to Send: it takes current input text, deletes the last user message, appends the new one, and triggers a new stream.
+  Support deleting a message and all later messages, editing a message in place, and re-running the conversation from the last user turn.
 
 - [x] **G. Context Folder (full stack)**
-  Add `list_context_files` Tauri command (returns `.md`/`.txt`/`.pdf` files from `context/` subdirectory, with `isReadOnly` flag for PDFs). Add `create_context_file` Tauri command (creates empty file in `context/`). Add `delete_context_file` Tauri command (deletes a file from `context/`). Add `copy_file_to_context` Tauri command (copies an external `.txt`/`.md`/`.pdf` file into `context/`, resolving name collisions). Add `lopdf` dependency for PDF text extraction. Add a persistent context sidebar in the left pane with a "Context" tab listing context files for the current character with "New File" and delete buttons. PDF files show a badge and open as read-only in the editor. Support drag & drop to copy files into the context sidebar. When building the messages array for an API call, read all context files and append their contents to the system prompt. Context file deletions are detected in the dirty check via `git_list_head_folder`.
+  Add context file list/create/delete/copy support, drag & drop import, PDF extraction with read-only editing, and include non-empty context files as separate prompt messages.
 
 - [ ] **H. First Response Injection**
-  When sending the first user message in a conversation, check if `first-response.md` has non-empty content. If it does, prepend an assistant message with that content to `conversationHistory` before the user message. Display this assistant message as the first bubble in the chat with a subtle "First Response" label.
+  When sending the first user message in a conversation, check whether `intro.txt` has non-empty content. If it does, prepend an assistant message with that content before the first user turn and display it with a subtle First Response label.
 
 - [ ] **I. Venice.ai Compatibility & Polish**
-  Add `https://api.venice.ai/api/v3/chat/completions` as a preset endpoint option in the Settings modal (button or dropdown to auto-fill). Label the description tab content clearly as "public-facing" for Venice.ai listings (add placeholder text). Increase default window width to ~1200 in `tauri.conf.json`. Final pass: clean up CSS inconsistencies, verify error handling paths, end-to-end test.
+  Add a built-in Venice.ai settings preset using the base URL `https://api.venice.ai/api/v1`, label the description content clearly as public-facing, and do a final polish pass on UX and error handling.
+
+---
+
+## Additional Work Already Completed After The Original Plan
+
+- [x] **J. Prompt Preview**
+  Add a Preview modal for the assembled prompt and per-message preview buttons that show the exact context used for a given chat turn.
+
+- [x] **K. Provider Tooling In Settings**
+  Persist backend settings to `settings.json`, fetch models from `/models`, add Test Connection and Test Model actions, and expose temperature/top-p controls.
+
+- [x] **L. Error Notification UX**
+  Add a dismissible chat error notification area so API and streaming failures are visible without corrupting the conversation layout.
+
+- [x] **M. Instructions Visibility Warning**
+  Warn the user when `instructions.txt` has content but `system-prompt.txt` does not include `%%CHARACTER_INSTRUCTIONS%%`, so the instructions would be ignored at send time.
+
+- [x] **N. Automated Tests & CI**
+  Add Vitest coverage for UI modules, Rust integration tests for backend workflows, and CI that runs cargo checks/tests plus JS tests.

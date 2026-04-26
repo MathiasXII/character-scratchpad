@@ -1,56 +1,84 @@
 # AGENTS.md — AI Context File
 
-Purpose: Help any AI assistant quickly understand this project's structure, conventions, and current state.
+Purpose: help any AI assistant quickly understand this project's current structure, conventions, and feature status.
 
 ---
 
 ## What This Project Is
 
-**Character Scratch Pad** — a Tauri v2 desktop app for developing and testing AI characters (targeting Venice.ai compatibility). Two-pane layout: left pane edits character files, right pane is a chat interface that streams from OpenAI-compatible APIs.
+**Character Scratch Pad** is a Tauri v2 desktop app for creating, editing, and testing AI characters against OpenAI-compatible chat APIs, with Venice.ai as a primary target.
 
-- **Stack**: Rust backend (Tauri v2), vanilla HTML/CSS/JS frontend (no framework, no bundler)
-- **Runtime**: Desktop app, no Node server at runtime
-- **Dev command**: `npm run dev` (from project root)
+- **Stack**: Rust backend (Tauri v2), vanilla HTML/CSS/JS frontend, CodeMirror 6 editor bundle
+- **Runtime**: desktop app only; no Node server at runtime
+- **Dev command**: `npm run dev`
+- **Bundle step**: `npm run bundle` builds `ui/lib/editor-cm.bundle.js` from `ui/src/editor-cm.mjs`
+
+The UI is a two-pane workbench:
+
+- **Left pane**: character files, context files, prompt preview, checkpoint/history controls
+- **Right pane**: streaming chat, message editing/deleting/resending, prompt preview per message
+
+There is also a **Scratchpad (no save)** mode when no character is selected.
 
 ---
 
 ## Project Structure
 
-```
+```text
 llm-chat/
-├── package.json                # npm scripts: dev, build (tauri dev/build)
-├── TODO.md                     # Feature checklist with branching rules — READ BEFORE WORKING
-├── DOCUMENTATION.md             # Full design spec (outdated file layout, update when structure changes)
-├── AGENTS.md                   # This file
+├── README.md
+├── DOCUMENTATION.md
+├── TODO.md
+├── AGENTS.md
+├── package.json                # npm scripts: dev, build, bundle, test, clean
+├── vitest.config.js            # Vitest config for ui/**/*.test.js
+├── .github/
+│   └── workflows/
+│       ├── ci.yml              # cargo check/clippy/test + vitest
+│       └── release.yml
 ├── src-tauri/
-│   ├── Cargo.toml              # Rust dependencies
-│   ├── tauri.conf.json         # Tauri window config, CSP, allowlist
-│   └── src/
-│       ├── main.rs             # Entry point: windows_subsystem, calls lib
-│       ├── lib.rs              # tauri::Builder, AppState init, invoke_handler, plugin registration
-│       ├── state.rs            # AppState struct (api_key, model, endpoint, client)
-│       ├── types.rs            # ChatMessage, Settings, ChatCompletionRequest, ContextFile (with is_read_only)
-│       └── commands/
-│           ├── mod.rs           # Pub mod declarations
-│           ├── stream_chat.rs   # send_message_stream — SSE streaming to frontend
-│           ├── settings.rs      # update_settings, get_settings
-│           ├── files.rs         # load_file, save_file, list_context_files, create_context_file, delete_context_file, copy_file_to_context, extract_pdf_text
-│           ├── characters.rs    # list_characters, create_character, ensure_character_files (file integrity + git init)
-│           └── git.rs           # git_commit, git_log, git_revert, git_is_dirty, git_diff_last, git_commit_amend, generate_checkpoint_name, git_list_head_folder, git_get_head_content
+│   ├── Cargo.toml
+│   ├── tauri.conf.json
+│   ├── src/
+│   │   ├── main.rs             # Windows subsystem stub, calls lib::run()
+│   │   ├── lib.rs              # Tauri builder, AppState init, invoke_handler registration
+│   │   ├── state.rs            # AppState: api_key, model, endpoint, temperature, top_p, client
+│   │   ├── types.rs            # ChatMessage, Settings, ContextFile, TestConnectionResult
+│   │   └── commands/
+│   │       ├── mod.rs
+│   │       ├── characters.rs   # character list/create + ensure files/repo
+│   │       ├── files.rs        # load/save/context file management + PDF extraction
+│   │       ├── git.rs          # checkpoint/history/revert/head-content helpers
+│   │       ├── models.rs       # fetch_models from <base>/models
+│   │       ├── settings.rs     # settings.json persistence + endpoint migration
+│   │       ├── stream_chat.rs  # streaming chat completions
+│   │       └── test_connection.rs # endpoint/key/model test helpers
+│   └── tests/
+│       ├── character_workflow.rs
+│       ├── context_files.rs
+│       ├── files_edge_cases.rs
+│       ├── git_workflow.rs
+│       └── common.rs
 └── ui/
-    ├── index.html              # SPA markup (script type="module")
-    ├── styles.css              # Dark theme (CSS variables in :root)
-    ├── app.js                  # Orchestrator: shared state/dom, init(), event wiring
-    ├── chat.js                 # Send, stream listeners, message DOM helpers
-    ├── settings.js             # Settings load/sync/save, modal open/close
-    ├── characters.js           # Character list, select, create, file loading
-    ├── context.js              # Context file sidebar: list, select, add, delete, drag & drop, PDF badge
-    ├── editor.js               # Tab switching, auto-save, token counter, error banner, read-only mode
-    ├── git.js                  # Git bar, history modal, dirty check
-    ├── tracked-paths.js        # Tracked file/folder config constants
-    ├── divider.js              # Pane divider drag logic
+    ├── index.html
+    ├── styles.css
+    ├── app.js
+    ├── characters.js
+    ├── chat.js
+    ├── context.js
+    ├── divider.js
+    ├── editor.js
+    ├── git.js
+    ├── preview.js
+    ├── settings.js
+    ├── tracked-paths.js
+    ├── *.test.js               # Vitest coverage for core UI modules
+    ├── lib/
+    │   ├── dompurify.min.js
+    │   ├── marked.min.js
+    │   └── editor-cm.bundle.js
     └── src/
-        └── editor-cm.mjs       # CodeMirror 6 editor setup, dark theme, read-only compartment
+        └── editor-cm.mjs       # CodeMirror source bundled into ui/lib/
 ```
 
 ---
@@ -58,134 +86,201 @@ llm-chat/
 ## Key Conventions
 
 ### Git Workflow
-- Branch from `master` for each feature: `feature/<letter>-<short-description>`
-- ONE feature per branch, ONE unchecked TODO item at a time
-- Merge with `--no-ff` (never fast-forward) after user acceptance
-- See `TODO.md` for the full workflow rules
+
+- The active primary branch in this repo is **`main`**.
+- If you are working from `TODO.md`, use one feature branch per unchecked item: `feature/<step-letter>-<short-description>`.
+- Merge accepted feature branches back into `main` with `--no-ff`.
+- Character folders created by the app each get their **own local git repo** for checkpointing.
 
 ### Rust Backend
-- Tauri commands are `#[tauri::command]` functions in `commands/` modules
-- Each command module is focused on one domain (streaming, settings, files, characters)
-- `AppState` holds runtime config (api_key, model, endpoint) behind `Mutex<String>`
-- New commands must be registered in `lib.rs` `invoke_handler![]`
-- Frontend calls Rust via `window.__TAURI__.invoke("command_name", { args })`
+
+- Tauri commands live in `src-tauri/src/commands/`.
+- Every new command must be registered in `src-tauri/src/lib.rs`.
+- `AppState` stores runtime settings in `Mutex`s:
+  - `api_key`
+  - `model`
+  - `endpoint`
+  - `temperature`
+  - `top_p`
+  - shared `reqwest::Client`
+- The app stores the **API base URL**, not the full chat-completions URL.
+  - Example stored value: `https://api.openai.com/v1`
+  - Rust appends `/chat/completions` when sending chat requests
+  - Model fetching uses `/models`
+- Settings persist to `settings.json` next to the executable; `get_settings` also migrates older saved endpoints that included `/chat/completions`.
 
 ### Frontend
-- ES modules: `app.js` is the orchestrator, imports from domain modules
-- Shared mutable state lives in `app.js` as `export const state = { ... }` — modules import and mutate directly
-- Shared DOM refs live in `app.js` as `export const dom = { ... }` — modules access via `dom.elementId`
-- Tauri APIs: `const { invoke } = window.__TAURI__;` at top of each module that needs it
-- No framework, no bundler — plain JS with `<script type="module">`
-- Dark theme uses CSS variables defined in `:root` block of `styles.css`
 
-### Character File Layout (on disk)
-```
+- ES modules; `ui/app.js` owns shared `state` and `dom` exports.
+- Frontend invokes Tauri with `window.__TAURI__.core.invoke(...)`.
+- Shared editor state lives in `state.tabContents`; context files live in `state.contextFiles`.
+- The editor is **CodeMirror 6**, not a plain `<textarea>`.
+- Markdown rendering uses local `marked.min.js` + `dompurify.min.js` from `ui/lib/`.
+- Settings UI supports:
+  - model discovery from `/models`
+  - endpoint/API key connection testing
+  - model testing
+  - temperature and top-p sliders
+- A warning banner/icon appears if `instructions.txt` has content but `system-prompt.txt` does **not** contain `%%CHARACTER_INSTRUCTIONS%%`.
+
+### Character File Layout
+
+```text
 <work-folder>/
 └── <character-name>/
-    ├── instructions.txt       # Character personality, traits, behaviour rules
-    ├── system-prompt.txt      # System prompt for LLM
-    ├── description.txt        # Public-facing description (for Venice.ai)
-    ├── intro.txt              # Opening message the character "already said"
-    └── context/              # Optional supplementary context files
+    ├── .git/
+    ├── instructions.txt
+    ├── system-prompt.txt
+    ├── description.txt
+    ├── intro.txt
+    └── context/
         ├── lore.md
+        ├── notes.txt
+        ├── reference.pdf
         └── ...
 ```
+
+Notes:
+
+- `intro.txt` exists and is editable, but **first-response injection is not implemented yet**.
+- Context files support `.txt`, `.md`, and `.pdf`.
+- PDFs are read-only in the editor; text is extracted backend-side with `lopdf`.
 
 ---
 
 ## Tauri Commands (Current)
 
 | Command | File | Purpose |
-|---------|------|---------|
-| `send_message_stream` | `commands/stream_chat.rs` | Stream chat completions via SSE, emits `stream-token` and `stream-end` events |
-| `update_settings` | `commands/settings.rs` | Sync API key/model/endpoint to Rust state |
-| `get_settings` | `commands/settings.rs` | Read current settings from Rust state |
-| `load_file` | `commands/files.rs` | Read a file from disk |
-| `save_file` | `commands/files.rs` | Write content to file (creates parent dirs) |
-| `list_context_files` | `commands/files.rs` | List `.md`/`.txt`/`.pdf` files in a character's `context/` dir, return name + content + isReadOnly; PDFs have text extracted via lopdf |
-| `create_context_file` | `commands/files.rs` | Create a new empty file in a character's `context/` dir |
-| `delete_context_file` | `commands/files.rs` | Delete a file from a character's `context/` dir |
-| `copy_file_to_context` | `commands/files.rs` | Copy an external file into a character's `context/` dir (supports `.txt`/`.md`/`.pdf`, resolves name collisions) |
-| `extract_pdf_text` | `commands/files.rs` | Extract text from a PDF file using lopdf (internal helper, not a Tauri command) |
-| `list_characters` | `commands/characters.rs` | List non-hidden directories in work folder |
-| `create_character` | `commands/characters.rs` | Create character dir + delegate to `ensure_character_files` |
-| `ensure_character_files` | `commands/characters.rs` | Ensure all essential files, context dir, and git repo exist for a character; create missing ones and make initial commit if repo is empty |
-| `git_commit` | `commands/git.rs` | Stage all + commit with message |
-| `git_log` | `commands/git.rs` | Return last 50 commits as { id, message, timestamp } |
-| `git_revert` | `commands/git.rs` | Hard-reset to a commit's tree, reload files |
-| `git_is_dirty` | `commands/git.rs` | Check if working tree has uncommitted changes (used as fallback for empty repos) |
-| `git_get_head_content` | `commands/git.rs` | Read a file's content at HEAD commit; returns `null` if file doesn't exist at HEAD, repo is empty, or content is binary |
-| `git_list_head_folder` | `commands/git.rs` | List files in a folder at HEAD commit; used to detect context file deletions in dirty check |
-| `git_diff_last` | `commands/git.rs` | Return diff of last commit (truncated to 4000 chars) |
-| `git_commit_amend` | `commands/git.rs` | Rename last commit's message |
-| `generate_checkpoint_name` | `commands/git.rs` | Call LLM to generate a 3-6 word checkpoint name from diff |
+|---|---|---|
+| `send_message_stream` | `commands/stream_chat.rs` | POSTs to `<endpoint>/chat/completions`, streams SSE tokens back as `stream-token` / `stream-end` |
+| `update_settings` | `commands/settings.rs` | Updates in-memory settings and persists them to `settings.json` |
+| `get_settings` | `commands/settings.rs` | Loads settings from disk, migrates legacy endpoints, syncs AppState |
+| `load_file` | `commands/files.rs` | Reads a text file from disk and normalizes line endings to LF |
+| `save_file` | `commands/files.rs` | Writes a text file, creating parent dirs and normalizing line endings |
+| `list_context_files` | `commands/files.rs` | Lists `.md` / `.txt` / `.pdf` context files; PDFs return extracted text and `isReadOnly` |
+| `create_context_file` | `commands/files.rs` | Creates a new empty context file (defaults to `.txt` if no supported extension is supplied) |
+| `delete_context_file` | `commands/files.rs` | Deletes a context file safely from `context/` |
+| `copy_file_to_context` | `commands/files.rs` | Copies an external `.txt` / `.md` / `.pdf` file into `context/`, resolving collisions |
+| `list_characters` | `commands/characters.rs` | Lists non-hidden directories in the configured work folder |
+| `create_character` | `commands/characters.rs` | Creates a character directory and delegates initialization to `ensure_character_files` |
+| `ensure_character_files` | `commands/characters.rs` | Ensures required files, `context/`, and local git repo exist; creates initial commit if needed |
+| `git_commit` | `commands/git.rs` | Stages everything except `.git` internals and creates a commit |
+| `git_log` | `commands/git.rs` | Returns recent commit history plus `is_current` flag |
+| `git_revert` | `commands/git.rs` | Hard-resets a character repo to a chosen commit |
+| `git_is_dirty` | `commands/git.rs` | Fallback dirty-state check |
+| `git_get_head_content` | `commands/git.rs` | Reads a file from HEAD for clean/dirty comparisons |
+| `git_list_head_folder` | `commands/git.rs` | Lists folder contents from HEAD for deleted-context-file detection |
+| `git_diff_last` | `commands/git.rs` | Returns the latest commit diff, truncated for checkpoint naming |
+| `git_commit_amend` | `commands/git.rs` | Renames the latest commit |
+| `generate_checkpoint_name` | `commands/git.rs` | Uses the configured LLM to generate a short checkpoint name from a diff |
+| `fetch_models` | `commands/models.rs` | GETs `<base>/models` and returns model IDs |
+| `test_connection` | `commands/test_connection.rs` | Tests endpoint + API key with structured error classification |
+| `test_model` | `commands/test_connection.rs` | Tests whether a specific model works at the configured provider |
 
 ---
 
 ## Frontend Module Map
 
-| Module | Exports | Depends On |
-|--------|---------|-------------|
-| `app.js` | `state`, `dom`, `TAB_FILE_MAP`, `TRACKED_FOLDERS` | All other modules (imports them), `tracked-paths.js` |
-| `chat.js` | `initStreamListeners`, `handleSend`, `createMessageElement`, `addMessage`, `addErrorMessage`, `scrollToBottom`, `autoResizeInput`, `showWelcome` | `app.js` (state, dom) |
-| `settings.js` | `openSettingsModal`, `closeSettingsModal`, `loadSettingsFromStorage`, `syncSettingsToBackend`, `handleSaveSettings` | `app.js` (state, dom), `characters.js` (loadCharacters), `editor.js` (updateTokenCounter) |
-| `characters.js` | `loadCharacters`, `handleCharacterSelect`, `openNewCharacterModal`, `closeNewCharacterModal`, `handleCreateCharacter` | `app.js` (state, dom), `editor.js` (updateTokenCounter, updateInstructionsVisibility), `settings.js` (openSettingsModal) |
-| `context.js` | `renderContextFileList`, `loadContextFiles`, `selectContextFile`, `addContextFile`, `deleteContextFile`, `clearContextSelection`, `initContext` | `app.js` (state, dom), `editor.js` (setEditorValue, setEditorPlaceholder, getEditorValue, setEditorReadOnly), `git.js` (checkDirty) |
-| `editor.js` | `saveCurrentTab`, `showSaveError`, `hideSaveError`, `switchTab`, `updateTokenCounter`, `setEditorReadOnly`, `updateInstructionsVisibility` | `app.js` (state, dom), `git.js` (checkDirty) |
-| `divider.js` | `initPaneDivider` | None (uses DOM directly) |
-| `git.js` | `initGit`, `updateGitBarVisibility`, `checkDirty`, `openGitHistory`, `closeGitHistory` | `app.js` (state, dom, TAB_FILE_MAP, TRACKED_FOLDERS), `editor.js` (showSaveError, getEditorValue), `characters.js` (handleCharacterSelect) |
-| `tracked-paths.js` | `TRACKED_TAB_FILES`, `TRACKED_FOLDERS` | None (config module) |
-
-**Circular dependency note**: `settings.js` ↔ `characters.js` — both import from each other. This works with ES modules because imports are resolved lazily (functions are called at runtime, not at module evaluation time).
-
----
-
-## Dependencies
-
-### Rust (src-tauri/Cargo.toml)
-- `tauri` 2.x — desktop framework, IPC, events (no extra features required)
-- `tauri-plugin-dialog` 2.x — native file/message dialogs
-- `tauri-plugin-shell` 2.x — shell open utility
-- `reqwest` 0.13 — HTTP client with streaming (`features = ["json", "stream"]`)
-- `serde` 1 — serialization (`features = ["derive"]`)
-- `serde_json` 1 — JSON handling
-- `futures-util` 0.3 — SSE stream processing (`StreamExt`)
-- `git2` 0.20 — local git operations for version control
-- `lopdf` 0.34 — PDF text extraction for context files
-
-### JS (no package.json deps at runtime)
-- `@tauri-apps/cli` — dev tool only
-- No npm runtime dependencies — Tauri exposes `window.__TAURI__` globals
+| Module | Responsibility |
+|---|---|
+| `app.js` | Global state/DOM registry, app bootstrap, event wiring, settings-driven UI enable/disable |
+| `chat.js` | Streaming chat, message rendering, delete/edit/resend, prompt assembly, per-message preview |
+| `characters.js` | Work-folder character list, create modal, character load/reload logic, scratchpad mode |
+| `context.js` | Context sidebar rendering, select/create/delete, native drag & drop imports |
+| `editor.js` | CodeMirror helpers, autosave, tab switching, token counter, instructions visibility warning |
+| `git.js` | Dirty detection against HEAD, checkpoint save flow, history modal, restore flow |
+| `preview.js` | Full prompt preview modal and shared preview rendering |
+| `settings.js` | Settings load/save/sync, `/models` combobox, connection/model tests |
+| `tracked-paths.js` | Tracked files/folders config for dirty checking |
+| `divider.js` | Resizable left/right pane divider |
 
 ---
 
-## Current TODO Status (summary)
+## Testing & Automation
 
-- ✅ Phase 1: Two-pane layout
-- ✅ Phase 2: Filesystem backend commands
-- ✅ A: Work folder setting + character list
-- ✅ B: New character creation
-- ✅ C: Editor ↔ file wiring (load + auto-save)
-- ✅ D: Git versioning (commit/log/revert + dirty indicator + AI checkpoint naming)
-- ✅ E: Chat markdown rendering
-- ✅ F: Message delete/edit/resend
-- ✅ G: Context folder management
-- 🔲 H: First response injection
-- 🔲 I: Venice.ai compatibility & polish
+### Rust
+
+- Integration tests live in `src-tauri/tests/`
+- Coverage currently includes:
+  - character lifecycle
+  - git workflow
+  - context file workflow
+  - file edge cases / path safety / line ending normalization
+
+### Frontend
+
+- Vitest runs in `jsdom`
+- Test files live beside the UI modules, for example:
+  - `chat.test.js`
+  - `characters.test.js`
+  - `context.test.js`
+  - `editor.test.js`
+  - `git.test.js`
+  - `settings.test.js`
+  - `tracked-paths.test.js`
+
+### CI
+
+`.github/workflows/ci.yml` runs:
+
+- `cargo check`
+- `cargo clippy -- -D warnings`
+- `cargo test`
+- `npm test`
+
+Node.js in CI is currently pinned to **24**.
+
+---
+
+## Current Feature Status (Summary)
+
+### Core feature slices
+
+- ✅ Two-pane layout
+- ✅ Character file load/save
+- ✅ Work folder and character list
+- ✅ Character creation modal
+- ✅ Git-backed checkpoints/history/revert
+- ✅ Markdown chat rendering
+- ✅ Message delete/edit/resend
+- ✅ Context folder management with PDF extraction
+
+### Additional shipped improvements beyond the original slices
+
+- ✅ Prompt preview modal
+- ✅ Per-message preview of the assembled prompt context
+- ✅ Settings persisted to `settings.json`
+- ✅ Provider model discovery from `/models`
+- ✅ Endpoint/API key test button
+- ✅ Model test button
+- ✅ Temperature / top-p controls
+- ✅ Error notification bar in chat
+- ✅ Instructions invisibility warning/banner
+- ✅ Rust + Vitest automated test suites
+
+### Still incomplete
+
+- 🔲 First-response injection from `intro.txt`
+- 🔲 Venice.ai preset/polish work still tracked in `TODO.md`
 
 ---
 
 ## Dependency Policy
-- NEVER assume a dependency version from memory
-- ALWAYS verify the latest stable version via web search or Context7 before writing it
-- If a dependency has a major version bump since the model's training, use the new major version and adapt the API accordingly
-- 
+
+- Never assume dependency versions from memory.
+- Verify versions from the actual repo (`package.json`, `Cargo.toml`) or authoritative docs.
+- Prefer documenting **current repository reality** over older plans.
+
+---
+
 ## Quick Reference
 
-- **Start dev**: `cd llm-chat && npm run dev`
-- **Build**: `npm run build`
-- **Check Rust**: `cd src-tauri && cargo check`
+- **Install deps**: `npm install`
+- **Start dev app**: `npm run dev`
+- **Bundle editor only**: `npm run bundle`
+- **Run JS tests**: `npm test`
+- **Run Rust tests**: `cargo test` (from `src-tauri/`)
+- **Check Rust compile**: `cargo check` (from `src-tauri/`)
+- **Build desktop app**: `npm run build`
+- **Settings file**: next to the built executable as `settings.json`
 - **Tauri config**: `src-tauri/tauri.conf.json`
-- **Add new Tauri command**: Create in `commands/`, pub mod in `commands/mod.rs`, register in `main.rs` invoke_handler
-- **Add new JS module**: Import in `app.js`, wire event listeners in `init()`
-- **Theme variables**: `ui/styles.css` `:root` block
