@@ -1,3 +1,4 @@
+use crate::commands::settings::normalize_endpoint;
 use crate::types::TestConnectionResult;
 
 /// Test the API key + endpoint by sending a minimal chat completion request.
@@ -6,7 +7,7 @@ use crate::types::TestConnectionResult;
 /// Only 401 = bad key, connection failure = bad endpoint.
 #[tauri::command]
 pub async fn test_connection(base_url: String, api_key: String) -> TestConnectionResult {
-    let base = base_url.trim_end_matches('/');
+    let base = normalize_endpoint(&base_url);
     let url = format!("{}/chat/completions", base);
 
     // Use a dummy model — we don't care if it exists, only whether auth passes
@@ -100,7 +101,7 @@ pub async fn test_connection(base_url: String, api_key: String) -> TestConnectio
 /// Returns structured result so the frontend can highlight the model field on failure.
 #[tauri::command]
 pub async fn test_model(base_url: String, api_key: String, model: String) -> TestConnectionResult {
-    let base = base_url.trim_end_matches('/');
+    let base = normalize_endpoint(&base_url);
     let url = format!("{}/chat/completions", base);
 
     let request_body = serde_json::json!({
