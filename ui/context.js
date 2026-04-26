@@ -7,6 +7,45 @@ import { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly
 import { checkDirty } from "./git.js";
 
 /**
+ * Save the active context file if it has unsaved changes.
+ * Returns true if a save was performed, false if skipped (no active file,
+ * read-only, unchanged, or no character selected).
+ * Throws on save failure — caller should handle errors.
+ */
+export async function saveActiveContextFile() {
+  if (!state.activeContextFile || !state.selectedCharacter || state.isLoadingCharacter) {
+    return false;
+  }
+  const activeFile = state.contextFiles.find(f => f.name === state.activeContextFile);
+  if (activeFile?.isReadOnly) {
+    return false;
+  }
+  const content = getEditorValue();
+  if (content === state.contextLastSaved[state.activeContextFile]) {
+    return false;
+  }
+  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
+  const path = charDir + "/context/" + state.activeContextFile;
+  await invoke("save_file", { path, content });
+  state.contextLastSaved[state.activeContextFile] = content;
+  const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+  if (file) file.content = content;
+  return true;
+}
+
+/**
+ * Refresh the context file list from disk and update state.
+ */
+export async function refreshContextFiles(charDir) {
+  try {
+    state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
+  } catch (error) {
+    console.error("Failed to load context files:", formatError(error));
+    state.contextFiles = [];
+  }
+}
+
+/**
  * Render the sidebar based on the active tab.
  * Clears the list and rebuilds content appropriate for the current tab.
  */
@@ -89,22 +128,10 @@ export function renderContextFileList() {
 export async function selectContextFile(filename) {
   // Save current context file before switching
   if (state.activeContextFile && state.activeContextFile !== filename) {
-    const currentFile = state.contextFiles.find((f) => f.name === state.activeContextFile);
-    if (!currentFile?.isReadOnly) {
-      const currentContent = getEditorValue();
-      if (currentContent !== state.contextLastSaved[state.activeContextFile]) {
-        const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
-        const path = charDir + "/context/" + state.activeContextFile;
-        try {
-          await invoke("save_file", { path, content: currentContent });
-          state.contextLastSaved[state.activeContextFile] = currentContent;
-          // Sync back to state.contextFiles
-          const file = state.contextFiles.find((f) => f.name === state.activeContextFile);
-          if (file) file.content = currentContent;
-        } catch (error) {
-          console.error("Failed to save context file:", formatError(error));
-        }
-      }
+    try {
+      await saveActiveContextFile();
+    } catch (error) {
+      console.error("Failed to save context file:", formatError(error));
     }
   }
 
@@ -148,9 +175,7 @@ export async function handleAddContextFile() {
     });
 
     // Refresh file list
-    state.contextFiles = await invoke("list_context_files", {
-      characterDir: charDir,
-    });
+    await refreshContextFiles(charDir);
 
     // Find the created file (may have .txt appended)
     const created = state.contextFiles.find(
@@ -216,9 +241,7 @@ async function performDelete(filename) {
     });
 
     // Refresh file list
-    state.contextFiles = await invoke("list_context_files", {
-      characterDir: charDir,
-    });
+    await refreshContextFiles(charDir);
 
     // If deleting the active file, clear editor
     if (state.activeContextFile === filename) {
@@ -263,7 +286,7 @@ async function handleDroppedFiles(paths) {
     return;
   }
 
-  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
   const allowedExtensions = ["txt", "md", "pdf"];
   let copiedCount = 0;
   const errors = [];
@@ -290,9 +313,7 @@ async function handleDroppedFiles(paths) {
 
   // Refresh the file list if any files were copied
   if (copiedCount > 0) {
-    state.contextFiles = await invoke("list_context_files", {
-      characterDir: charDir,
-    });
+    await refreshContextFiles(charDir);
     renderContextFileList();
     checkDirty();
   }

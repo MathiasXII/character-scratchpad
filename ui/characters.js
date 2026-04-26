@@ -8,6 +8,56 @@ import { updateGitBarVisibility, checkDirty } from "./git.js";
 import { renderContextFileList } from "./context.js";
 import { syncFirstResponse } from "./chat.js";
 
+/**
+ * Load all character tab files and context files from disk.
+ * Returns { tabContents, lastSavedContent, contextFiles } without modifying state.
+ */
+async function loadCharacterFiles(charDir) {
+  const fileEntries = Object.entries(TAB_FILE_MAP).map(([key, filename]) => [
+    key,
+    charDir + "/" + filename,
+  ]);
+
+  const results = await Promise.all(
+    fileEntries.map(([key, path]) =>
+      invoke("load_file", { path })
+        .then((content) => ({ key, content }))
+        .catch((error) => {
+          console.error(`Failed to load ${key}:`, formatError(error));
+          return { key, content: "" };
+        })
+    )
+  );
+
+  const tabContents = {};
+  const lastSavedContent = {};
+  for (const { key, content } of results) {
+    tabContents[key] = content;
+    lastSavedContent[key] = content;
+  }
+
+  let contextFiles = [];
+  try {
+    contextFiles = await invoke("list_context_files", { characterDir: charDir });
+  } catch (error) {
+    console.error("Failed to load context files:", formatError(error));
+  }
+
+  return { tabContents, lastSavedContent, contextFiles };
+}
+
+/**
+ * Refresh UI elements after character data changes.
+ */
+function refreshCharacterUI() {
+  updateTokenCounter();
+  updateInstructionsVisibility();
+  updateGitBarVisibility();
+  checkDirty();
+  updateUIState();
+  syncFirstResponse();
+}
+
 export async function loadCharacters() {
   dom.characterSelect.innerHTML = "";
   dom.characterSelect.disabled = true;
@@ -95,8 +145,6 @@ export async function handleCreateCharacter() {
   }
 }
 
-// NOTE: When updating the file-loading logic in this function,
-// also update reloadAfterRevert() below to stay in sync.
 export async function handleCharacterSelect() {
   const name = dom.characterSelect.value;
 
@@ -134,48 +182,22 @@ export async function handleCharacterSelect() {
   }
 
   const charDir = getCharacterDir(state.currentWorkFolder, name);
-  const fileEntries = Object.entries(TAB_FILE_MAP).map(([key, filename]) => [
-    key,
-    charDir + "/" + filename,
-  ]);
+  const { tabContents, lastSavedContent, contextFiles } = await loadCharacterFiles(charDir);
 
-  const results = await Promise.all(
-    fileEntries.map(([key, path]) =>
-      invoke("load_file", { path })
-        .then((content) => ({ key, content }))
-        .catch((error) => {
-          console.error(`Failed to load ${key}:`, formatError(error));
-          return { key, content: "" };
-        })
-    )
-  );
-
-  for (const { key, content } of results) {
-    state.tabContents[key] = content;
-    state.lastSavedContent[key] = content;
+  for (const key in tabContents) {
+    state.tabContents[key] = tabContents[key];
+    state.lastSavedContent[key] = lastSavedContent[key];
   }
 
-  // Load context files from the character's context/ directory
-  try {
-    state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
-  } catch (error) {
-    console.error("Failed to load context files:", formatError(error));
-    state.contextFiles = [];
-  }
-
+  state.contextFiles = contextFiles;
   state.activeContextFile = null;
   state.contextLastSaved = {};
   renderContextFileList();
 
   setEditorValue(state.tabContents[state.activeTab]);
   setEditorPlaceholder("Start editing...");
-  updateTokenCounter();
-  updateInstructionsVisibility();
   state.isLoadingCharacter = false;
-  updateGitBarVisibility();
-  checkDirty();
-  updateUIState();
-  syncFirstResponse();
+  refreshCharacterUI();
 }
 
 /**
@@ -183,42 +205,20 @@ export async function handleCharacterSelect() {
  * Unlike handleCharacterSelect, this does NOT call ensure_character_files
  * (which would recreate missing files and overwrite the reverted state)
  * and preserves the active context file if it still exists.
- *
- * If you update the file-loading logic in handleCharacterSelect,
- * you MUST also update this function to stay in sync.
  */
 export async function reloadAfterRevert() {
   clearTimeout(state.saveTimeout);
   state.saveTimeout = null;
 
   const charDir = getCharacterDir(state.currentWorkFolder, state.selectedCharacter);
-  const fileEntries = Object.entries(TAB_FILE_MAP).map(([key, filename]) => [
-    key,
-    charDir + "/" + filename,
-  ]);
+  const { tabContents, lastSavedContent, contextFiles } = await loadCharacterFiles(charDir);
 
-  const results = await Promise.all(
-    fileEntries.map(([key, path]) =>
-      invoke("load_file", { path })
-        .then((content) => ({ key, content }))
-        .catch((error) => {
-          console.error(`Failed to load ${key}:`, formatError(error));
-          return { key, content: "" };
-        })
-    )
-  );
-
-  for (const { key, content } of results) {
-    state.tabContents[key] = content;
-    state.lastSavedContent[key] = content;
+  for (const key in tabContents) {
+    state.tabContents[key] = tabContents[key];
+    state.lastSavedContent[key] = lastSavedContent[key];
   }
 
-  try {
-    state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
-  } catch (error) {
-    console.error("Failed to load context files:", formatError(error));
-    state.contextFiles = [];
-  }
+  state.contextFiles = contextFiles;
 
   if (state.activeContextFile) {
     const stillExists = state.contextFiles.find((f) => f.name === state.activeContextFile);
@@ -248,10 +248,5 @@ export async function reloadAfterRevert() {
     setEditorPlaceholder("Start editing...");
   }
 
-updateTokenCounter();
-  updateInstructionsVisibility();
-  updateGitBarVisibility();
-  checkDirty();
-  updateUIState();
-  syncFirstResponse();
+  refreshCharacterUI();
 }
