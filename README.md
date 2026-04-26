@@ -73,8 +73,8 @@ On first launch, open **Settings** and configure:
 | Setting | Description | Default in frontend UI |
 |---------|-------------|------------------------|
 | API Key | Your API key for the LLM provider | *(empty)* |
-| Model | Model identifier (example: `gpt-4o-mini`) | `gpt-4o-mini` |
-| Endpoint | OpenAI-compatible **base URL** | `https://api.openai.com/v1` |
+| Model | Model identifier (example: `zai-org-glm-4.6`) | `zai-org-glm-4.6` |
+| Endpoint | OpenAI-compatible **base URL** | `https://api.venice.ai/api/v1` |
 | Temperature | Sampling temperature | `0.7` |
 | Top P | Nucleus sampling value | `1.0` |
 | Work Folder | Directory where character folders are stored | chosen by the user |

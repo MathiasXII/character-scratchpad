@@ -1,11 +1,16 @@
 use serde::{Deserialize, Serialize};
 
+pub const DEFAULT_MODEL: &str = "zai-org-glm-4.6";
+pub const DEFAULT_ENDPOINT: &str = "https://api.venice.ai/api/v1";
+pub const DEFAULT_TEMPERATURE: f32 = 0.7;
+pub const DEFAULT_TOP_P: f32 = 1.0;
+
 fn default_temperature() -> f32 {
-    0.7
+    DEFAULT_TEMPERATURE
 }
 
 fn default_top_p() -> f32 {
-    1.0
+    DEFAULT_TOP_P
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]

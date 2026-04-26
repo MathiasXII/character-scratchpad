@@ -18,6 +18,7 @@ use commands::settings::{get_settings, update_settings};
 use commands::stream_chat::send_message_stream;
 use commands::test_connection::{test_connection, test_model};
 use state::AppState;
+use types::{DEFAULT_ENDPOINT, DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_TOP_P};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -26,10 +27,10 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .manage(AppState {
             api_key: Mutex::new(String::new()),
-            model: Mutex::new("zai-org-glm-4.6".to_string()),
-            endpoint: Mutex::new("https://api.venice.ai/api/v1".to_string()),
-            temperature: Mutex::new(0.7f32),
-            top_p: Mutex::new(1.0f32),
+            model: Mutex::new(DEFAULT_MODEL.to_string()),
+            endpoint: Mutex::new(DEFAULT_ENDPOINT.to_string()),
+            temperature: Mutex::new(DEFAULT_TEMPERATURE),
+            top_p: Mutex::new(DEFAULT_TOP_P),
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(30))
                 .build()
