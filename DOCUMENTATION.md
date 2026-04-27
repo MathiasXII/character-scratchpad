@@ -47,6 +47,8 @@ The project is no longer a basic chat prototype. The current app includes:
 - **Markdown rendering** for both user and assistant messages
 - **Delete, edit, and resend** chat actions
 - **Prompt preview** for the assembled prompt and per-message context
+- **Thinking/reasoning display** for providers that stream `reasoning_content` or `reasoning` deltas
+- **Modal-based context file creation** instead of browser-native prompts
 - **Per-character git checkpoints** with restore/history support
 - **Provider tooling in Settings**:
   - fetch models from `/models`
@@ -90,10 +92,13 @@ llm-chat/
 │   │       ├── characters.rs
 │   │       ├── files.rs
 │   │       ├── git.rs
+│   │       ├── http.rs
+│   │       ├── line_endings.rs
 │   │       ├── models.rs
 │   │       ├── settings.rs
 │   │       ├── stream_chat.rs
-│   │       └── test_connection.rs
+│   │       ├── test_connection.rs
+│   │       └── validation.rs
 │   └── tests/
 │       ├── character_workflow.rs
 │       ├── context_files.rs
@@ -110,6 +115,7 @@ llm-chat/
     ├── divider.js
     ├── editor.js
     ├── git.js
+    ├── helpers.js
     ├── preview.js
     ├── settings.js
     ├── tracked-paths.js
@@ -150,7 +156,7 @@ Each character is stored as a folder inside the configured work folder:
 | `instructions.txt` | Character behaviour, tone, personality, rules |
 | `system-prompt.txt` | Main system prompt template sent to the model |
 | `description.txt` | Public-facing description text |
-| `intro.txt` | Reserved for the planned first-response feature |
+| `intro.txt` | First assistant response injected into an empty chat on character load |
 | `context/*` | Optional supporting documents injected as prompt context |
 
 ### Creation and integrity rules
@@ -226,6 +232,18 @@ The current Tauri command surface is:
 | `test_connection` | Validate endpoint/API key and classify the failure mode |
 | `test_model` | Validate a concrete model name |
 
+### Internal backend helper modules
+
+The branch also centralizes repeated backend logic into internal command helper modules:
+
+| Module | Purpose |
+|---|---|
+| `commands/http.rs` | Builds `<base>/chat/completions` and `<base>/models` URLs, formats bearer auth, and applies common request headers |
+| `commands/line_endings.rs` | Normalizes CRLF and lone CR text to LF for file and git-content reads |
+| `commands/validation.rs` | Validates paths and bare filenames for character/context operations, including traversal and hidden-name rejection |
+
+Runtime defaults are defined once in `src-tauri/src/types.rs` as `DEFAULT_MODEL`, `DEFAULT_ENDPOINT`, `DEFAULT_TEMPERATURE`, and `DEFAULT_TOP_P`.
+
 ---
 
 ## 8. Frontend Architecture
@@ -258,8 +276,9 @@ The project intentionally uses simple shared state rather than a UI framework. I
 | `app.js` | App bootstrap, event wiring, chat/settings gating, shared state/dom |
 | `characters.js` | Character dropdown, create modal, load/reload flows, scratchpad mode |
 | `editor.js` | CodeMirror sync, autosave, tab switching, token counter, instructions visibility warning |
-| `context.js` | Context sidebar rendering, context CRUD, drag & drop imports, delete modal |
-| `chat.js` | Message assembly, send/stream lifecycle, message actions, per-message previews |
+| `context.js` | Context sidebar rendering, context CRUD, new/delete modals, active-file saving, drag & drop imports |
+| `chat.js` | Message assembly, send/stream lifecycle, thinking modal, message actions, per-message previews |
+| `helpers.js` | Shared markdown rendering, prompt-building helpers, live editor-state sync, error formatting, character path helpers |
 | `preview.js` | Shared preview rendering and preview modal lifecycle |
 | `git.js` | Dirty detection, checkpoint save flow, history modal, restore flow |
 | `settings.js` | Settings load/save/sync, model fetching, connection/model test flows |
@@ -320,12 +339,20 @@ There are two preview flows:
 
 Both use the shared rendering logic in `ui/preview.js`.
 
-### 9.6 Chat controls
+### 9.6 Context file creation modal
+
+Clicking the context add button opens the in-app **New Context File** modal. The modal accepts a filename, creates the file through `create_context_file`, refreshes the context list, selects the created file, and closes on **Cancel**, close button, or **Escape**. Invalid names keep focus in the modal and surface the backend validation message through the input placeholder/border.
+
+### 9.7 Chat controls
 
 - **Send**: appends the user message and starts a streaming assistant response
 - **Resend**: truncates history at the last user turn and regenerates from there
 - **Delete**: removes the selected message and everything after it
 - **Edit**: edits a message inline and updates the conversation history from that point
+
+### 9.8 Thinking/reasoning modal
+
+When the backend receives streaming reasoning deltas (`reasoning_content` or `reasoning`), it emits `stream-thinking`. The frontend stores the content on the assistant turn as internal `_thinking` metadata and shows a 🧠 button next to the assistant label. Clicking the button opens the **Thinking Process** modal, which renders the reasoning with the same sanitized markdown pipeline used for chat messages.
 
 ---
 
@@ -364,6 +391,7 @@ Rust backend
 Provider returns SSE stream
         ↓
 Rust emits:
+  - stream-thinking  (optional reasoning/thinking deltas)
   - stream-token
   - stream-end
         ↓
@@ -408,11 +436,11 @@ If that rename fails, the timestamp-based name remains valid.
 
 ### Validation and safety
 
-The backend rejects:
+The backend centralizes path and filename checks in `commands/validation.rs`. It rejects:
 
 - path traversal via `..`
 - blocked `.` path components in validated paths
-- hidden context filenames that start with `.`
+- hidden character and context filenames that start with `.`
 - unsupported context file extensions
 
 ### Supported context files
@@ -475,6 +503,7 @@ The CI workflow currently runs:
 | Prompt preview | ✅ Done |
 | Model discovery/testing in Settings | ✅ Done |
 | First response injection from `intro.txt` | ✅ Done |
+| Thinking/reasoning stream display | ✅ Done |
 | Venice.ai preset/polish pass | ✅ Done |
 
 ---
@@ -487,3 +516,5 @@ The CI workflow currently runs:
   - the docs in `README.md`, `TODO.md`, `AGENTS.md`, and this file
 - If you change character load logic, keep `handleCharacterSelect()` and `reloadAfterRevert()` in sync.
 - If you add new prompt-visible inputs, update both the send path and the preview path.
+- Reuse `ui/helpers.js` for shared prompt assembly, markdown rendering, state sync, and path helpers before adding new duplicated frontend helpers.
+- Reuse backend helpers in `commands/http.rs`, `commands/line_endings.rs`, and `commands/validation.rs` before adding command-local URL, text-normalization, or path-safety logic.
