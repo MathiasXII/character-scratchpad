@@ -21,6 +21,7 @@ A desktop application for developing and testing AI characters against OpenAI-co
 - **Auto-save** — edits are silently persisted to disk and save errors are surfaced immediately
 - **Provider tooling** — fetch models, test endpoint/API key, test a model, and tune `temperature` / `top_p`
 - **First-response injection** — `intro.txt` content appears as an assistant bubble on character load, with a subtle "✦ First Response" label
+- **Thinking/reasoning display** — providers that stream `reasoning_content` or `reasoning` expose it behind a brain icon on assistant messages
 
 ---
 
@@ -153,10 +154,18 @@ At send time:
 - markdown rendering for both user and assistant messages
 - streaming token updates
 - first-response injection from `intro.txt` with guarded sync and subtle label
+- optional thinking/reasoning modal when a provider streams reasoning deltas
 - delete message + following history
 - edit message in place
 - resend from the last user turn
 - dismissible error notification bar
+
+### Context workflow
+
+- context tab appears only when a character is selected
+- custom **New Context File** modal for creating `.txt` / `.md` files without relying on browser prompts
+- drag & drop imports for `.txt`, `.md`, and `.pdf` files
+- read-only PDF context display after backend text extraction
 
 ### Prompt inspection
 
@@ -208,6 +217,9 @@ llm-chat/
 │       ├── state.rs          # AppState (api_key, model, endpoint, temperature, top_p)
 │       ├── types.rs          # Shared types: ChatMessage, Settings, ContextFile, etc.
 │       └── commands/
+│           ├── http.rs           # Shared URL/auth request helpers for OpenAI-compatible calls
+│           ├── line_endings.rs   # Shared CRLF/CR → LF normalization helper
+│           ├── validation.rs     # Shared path and filename safety validation
 │           ├── stream_chat.rs    # Streaming chat completions (SSE → Tauri events)
 │           ├── settings.rs       # update_settings / get_settings
 │           ├── files.rs          # load_file, save_file, context file management
@@ -223,6 +235,7 @@ llm-chat/
     ├── editor.js             # Tab switching, auto-save, token counter, warnings
     ├── characters.js         # Character list, select, create, reload-after-revert, first-response sync
     ├── context.js            # Context sidebar and drag & drop imports
+    ├── helpers.js            # Shared markdown, prompt-building, state-sync, and path helpers
     ├── settings.js           # Settings modal load/save/sync + model tooling
     ├── git.js                # Checkpoint bar, history modal, dirty checks
     ├── preview.js            # Prompt preview modal rendering
