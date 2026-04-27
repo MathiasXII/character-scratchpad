@@ -49,10 +49,13 @@ llm-chat/
 │   │       ├── characters.rs   # character list/create + ensure files/repo
 │   │       ├── files.rs        # load/save/context file management + PDF extraction
 │   │       ├── git.rs          # checkpoint/history/revert/head-content helpers
+│   │       ├── http.rs         # shared OpenAI-compatible URL/auth request helpers
+│   │       ├── line_endings.rs # shared CRLF/CR → LF normalization helper
 │   │       ├── models.rs       # fetch_models from <base>/models
 │   │       ├── settings.rs     # settings.json persistence + endpoint migration
 │   │       ├── stream_chat.rs  # streaming chat completions
-│   │       └── test_connection.rs # endpoint/key/model test helpers
+│   │       ├── test_connection.rs # endpoint/key/model test helpers
+│   │       └── validation.rs   # shared path/filename safety checks
 │   └── tests/
 │       ├── character_workflow.rs
 │       ├── context_files.rs
@@ -69,6 +72,7 @@ llm-chat/
     ├── divider.js
     ├── editor.js
     ├── git.js
+    ├── helpers.js              # shared markdown, prompt, state-sync, path/error helpers
     ├── preview.js
     ├── settings.js
     ├── tracked-paths.js
@@ -108,6 +112,10 @@ llm-chat/
   - Rust appends `/chat/completions` when sending chat requests
   - Model fetching uses `/models`
 - Settings persist to `settings.json` next to the executable; `get_settings` also migrates older saved endpoints that included `/chat/completions`.
+- Reuse shared backend helpers before adding command-local duplication:
+  - `commands/http.rs` for OpenAI-compatible URL construction and auth headers
+  - `commands/line_endings.rs` for CRLF/CR → LF text normalization
+  - `commands/validation.rs` for path traversal and hidden-name checks
 
 ### Frontend
 
@@ -116,12 +124,15 @@ llm-chat/
 - Shared editor state lives in `state.tabContents`; context files live in `state.contextFiles`.
 - The editor is **CodeMirror 6**, not a plain `<textarea>`.
 - Markdown rendering uses local `marked.min.js` + `dompurify.min.js` from `ui/lib/`.
+- Shared frontend helper seams live in `ui/helpers.js` for sanitized markdown rendering, prompt assembly, live editor-state sync, error formatting, and character path helpers.
 - Settings UI supports:
   - model discovery from `/models`
   - endpoint/API key connection testing
   - model testing
   - temperature and top-p sliders
 - A warning banner/icon appears if `instructions.txt` has content but `system-prompt.txt` does **not** contain `%%CHARACTER_INSTRUCTIONS%%`.
+- Providers that stream `reasoning_content` or `reasoning` emit a `stream-thinking` event; assistant messages with thinking content show a 🧠 button that opens the Thinking Process modal.
+- Context file creation uses the in-app New Context File modal instead of `prompt()`.
 
 ### Character File Layout
 
@@ -177,6 +188,8 @@ Notes:
 | `test_connection` | `commands/test_connection.rs` | Tests endpoint + API key with structured error classification |
 | `test_model` | `commands/test_connection.rs` | Tests whether a specific model works at the configured provider |
 
+Internal helper modules in `commands/http.rs`, `commands/line_endings.rs`, and `commands/validation.rs` are not Tauri commands, but they are part of the current architecture and should be reused when touching HTTP calls, text normalization, or path/filename validation.
+
 ---
 
 ## Frontend Module Map
@@ -184,11 +197,12 @@ Notes:
 | Module | Responsibility |
 |---|---|
 | `app.js` | Global state/DOM registry, app bootstrap, event wiring, settings-driven UI enable/disable, first-response sync on intro edits |
-| `chat.js` | Streaming chat, message rendering, delete/edit/resend, prompt assembly, per-message preview, first-response sync |
+| `chat.js` | Streaming chat, thinking modal, message rendering, delete/edit/resend, prompt assembly, per-message preview, first-response sync |
 | `characters.js` | Work-folder character list, create modal, character load/reload logic, scratchpad mode, first-response sync on load/revert |
-| `context.js` | Context sidebar rendering, select/create/delete, native drag & drop imports |
+| `context.js` | Context sidebar rendering, modal-based create/delete flows, active-file saving, native drag & drop imports |
 | `editor.js` | CodeMirror helpers, autosave, tab switching, token counter, instructions visibility warning |
 | `git.js` | Dirty detection against HEAD, checkpoint save flow, history modal, restore flow |
+| `helpers.js` | Shared markdown rendering, prompt builders, live editor-state sync, error formatting, character path helpers |
 | `preview.js` | Full prompt preview modal and shared preview rendering |
 | `settings.js` | Settings load/save/sync, `/models` combobox, connection/model tests |
 | `tracked-paths.js` | Tracked files/folders config for dirty checking |
@@ -257,6 +271,8 @@ Node.js in CI is currently pinned to **24**.
 - ✅ Error notification bar in chat
 - ✅ Instructions invisibility warning/banner
 - ✅ First-response injection from `intro.txt` with guarded sync, visual label, and API serialization
+- ✅ Thinking/reasoning streaming display with brain-icon modal
+- ✅ Modal-based context file creation flow
 - ✅ Rust + Vitest automated test suites
 
 ### Still incomplete
