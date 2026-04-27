@@ -127,7 +127,12 @@ Each character is stored as a folder inside the work folder:
 
 ### Character Studio compatibility
 
-This project uses the same core file names as Character Studio-style folder projects (`instructions.txt`, `system-prompt.txt`, `description.txt`, `intro.txt`, `context/`). In practice that makes cross-tool workflows plausible, but this README intentionally avoids claiming formal compatibility beyond the shared on-disk file layout.
+This project uses the same core file names as [Character Studio](https://characterbrowser.app/studio) by [Ominous](https://ko-fi.com/omnius42) — a browser-based Venice.ai character editor. Projects created in either tool can be opened in the other:
+
+- **This app → Character Studio**: point Character Studio's *Open Project* at your character folder via the Local Folder (FSA) option.
+- **Character Studio → this app**: set your work folder to the directory containing the Character Studio project folder.
+
+Both tools read and write the same files (`instructions.txt`, `system-prompt.txt`, `description.txt`, `intro.txt`, `context/`), so they stay in sync automatically.
 
 ### System prompt injection
 
