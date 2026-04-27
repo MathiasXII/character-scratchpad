@@ -61,15 +61,6 @@ export function initPreview() {
     previewClose.addEventListener("click", closePreview);
   }
 
-  // Close modal on backdrop click
-  if (previewModal) {
-    previewModal.addEventListener("click", (e) => {
-      if (e.target === previewModal) {
-        closePreview();
-      }
-    });
-  }
-
   // Close modal on Escape key
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && previewModal && !previewModal.classList.contains("hidden")) {
