@@ -163,8 +163,52 @@ function openMessagePreview(index) {
   previewModal.classList.remove("hidden");
 }
 
+/**
+ * Open a modal displaying the thinking/reasoning content for a message.
+ */
+function openThinkingModal(thinkingContent) {
+  let modal = document.getElementById("thinking-modal");
+  if (!modal) return;
+
+  const body = modal.querySelector(".thinking-modal-body");
+  if (body) {
+    body.innerHTML = renderMarkdown(thinkingContent);
+  }
+  modal.classList.remove("hidden");
+}
+
+function closeThinkingModal() {
+  const modal = document.getElementById("thinking-modal");
+  if (modal) {
+    modal.classList.add("hidden");
+  }
+}
+
 export function initStreamListeners() {
   let rafPending = false;
+  let thinkingRafPending = false;
+
+  listen("stream-thinking", (event) => {
+    state.currentThinkingContent += event.payload;
+    // Show brain icon as soon as thinking content arrives
+    if (state.currentAssistantEl) {
+      const brainBtn = state.currentAssistantEl.querySelector(".thinking-toggle");
+      if (brainBtn) brainBtn.classList.remove("hidden");
+    }
+    // Stream thinking into modal if it's open
+    const modal = document.getElementById("thinking-modal");
+    if (modal && !modal.classList.contains("hidden") && !thinkingRafPending) {
+      thinkingRafPending = true;
+      requestAnimationFrame(() => {
+        const body = document.getElementById("thinking-modal")?.querySelector(".thinking-modal-body");
+        if (body) {
+          body.innerHTML = renderMarkdown(state.currentThinkingContent);
+          body.scrollTop = body.scrollHeight;
+        }
+        thinkingRafPending = false;
+      });
+    }
+  });
 
   listen("stream-token", (event) => {
     state.currentAssistantContent += event.payload;  // always synchronous
@@ -187,13 +231,19 @@ export function initStreamListeners() {
       state.currentAssistantEl.classList.remove("streaming");
     }
     rafPending = false;
-    state.conversationHistory.push({ role: "assistant", content: state.currentAssistantContent });
+    thinkingRafPending = false;
+    state.conversationHistory.push({
+      role: "assistant",
+      content: state.currentAssistantContent,
+      ...(state.currentThinkingContent ? { _thinking: state.currentThinkingContent } : {}),
+    });
     state.isStreaming = false;
     dom.sendBtn.disabled = false;
     dom.resendBtn.disabled = state.conversationHistory.length === 0;
     dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = "";
+    state.currentThinkingContent = "";
   });
 
   listen("stream-error", (event) => {
@@ -204,6 +254,7 @@ export function initStreamListeners() {
     dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = "";
+    state.currentThinkingContent = "";
   });
 }
 
@@ -233,6 +284,7 @@ export async function handleSend() {
   state.currentAssistantEl.classList.add("streaming");
   dom.messagesEl.appendChild(state.currentAssistantEl);
   state.currentAssistantContent = "";
+  state.currentThinkingContent = "";
   scrollToBottom();
 
   try {
@@ -247,6 +299,7 @@ export async function handleSend() {
     dom.sendBtn.disabled = false;
     state.currentAssistantEl = null;
     state.currentAssistantContent = "";
+    state.currentThinkingContent = "";
   }
 }
 
@@ -261,9 +314,36 @@ export function createMessageElement(role, content, index) {
     el.classList.add("first-response");
   }
 
+  const thinkingContent = index !== undefined
+    ? (state.conversationHistory[index]?._thinking || "")
+    : "";
+
   const label = document.createElement("div");
   label.className = "role-label";
   label.textContent = role === "user" ? "You" : (state.selectedCharacter || "Assistant");
+
+  // Brain icon sits right beside the assistant name
+  let brainBtn = null;
+  if (role === "assistant") {
+    brainBtn = document.createElement("button");
+    brainBtn.className = "thinking-toggle";
+    brainBtn.title = "View thinking process";
+    brainBtn.setAttribute("aria-label", "View thinking process");
+    brainBtn.innerHTML = "&#x1F9E0;"; // 🧠
+    brainBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const thinking = index !== undefined
+        ? (state.conversationHistory[index]?._thinking || state.currentThinkingContent)
+        : state.currentThinkingContent;
+      if (thinking) {
+        openThinkingModal(thinking);
+      }
+    });
+    if (!thinkingContent) {
+      brainBtn.classList.add("hidden");
+    }
+    label.appendChild(brainBtn);
+  }
 
   // Add action buttons (preview, edit and delete)
   const actionsDiv = document.createElement("div");
@@ -337,6 +417,18 @@ const errorText = document.getElementById("error-text");
 const errorDismiss = document.getElementById("error-dismiss");
 
 errorDismiss.addEventListener("click", hideErrorNotification);
+
+const thinkingModalClose = document.getElementById("thinking-close");
+if (thinkingModalClose) {
+  thinkingModalClose.addEventListener("click", closeThinkingModal);
+}
+const thinkingModal = document.getElementById("thinking-modal");
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && thinkingModal && !thinkingModal.classList.contains("hidden")) {
+    closeThinkingModal();
+  }
+});
 
 function addErrorMessage(text) {
   errorText.textContent = text;
@@ -529,6 +621,7 @@ export async function handleResend() {
   state.currentAssistantEl.classList.add('streaming');
   dom.messagesEl.appendChild(state.currentAssistantEl);
   state.currentAssistantContent = '';
+  state.currentThinkingContent = '';
   scrollToBottom();
 
   try {
@@ -545,5 +638,6 @@ export async function handleResend() {
     dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = '';
+    state.currentThinkingContent = '';
   }
 }

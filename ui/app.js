@@ -16,6 +16,7 @@ export const state = {
   editingIndex: null,
   currentAssistantEl: null,
   currentAssistantContent: "",
+  currentThinkingContent: "",
   tabContents: initialTabContents,
   contextFiles: [],
   activeContextFile: null,

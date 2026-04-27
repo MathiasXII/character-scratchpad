@@ -62,9 +62,24 @@ pub async fn send_message_stream(
                 }
 
                 if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(data) {
-                    if let Some(content) = parsed["choices"][0]["delta"]["content"].as_str() {
-                        app.emit("stream-token", content)
-                            .map_err(|e| format!("Event error: {}", e))?;
+                    if let Some(choice) = parsed["choices"].get(0) {
+                        let delta = &choice["delta"];
+
+                        // Thinking/reasoning content (DeepSeek reasoning_content,
+                        // Venice.ai, and some providers use "reasoning" instead)
+                        if let Some(reasoning) = delta["reasoning_content"].as_str() {
+                            app.emit("stream-thinking", reasoning)
+                                .map_err(|e| format!("Event error: {}", e))?;
+                        } else if let Some(reasoning) = delta["reasoning"].as_str() {
+                            app.emit("stream-thinking", reasoning)
+                                .map_err(|e| format!("Event error: {}", e))?;
+                        }
+
+                        // Regular response content
+                        if let Some(content) = delta["content"].as_str() {
+                            app.emit("stream-token", content)
+                                .map_err(|e| format!("Event error: {}", e))?;
+                        }
                     }
                 }
             }
