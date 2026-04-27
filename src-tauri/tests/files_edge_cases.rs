@@ -3,7 +3,7 @@ mod common;
 use std::fs;
 
 use common::TempTestDir;
-use llm_chat_lib::commands::files::{
+use character_scratch_pad_lib::commands::files::{
     copy_file_to_context, delete_context_file, list_context_files, load_file, save_file,
 };
 

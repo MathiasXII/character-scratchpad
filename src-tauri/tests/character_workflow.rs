@@ -2,8 +2,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use llm_chat_lib::commands::characters::{create_character, ensure_character_files, list_characters};
-use llm_chat_lib::commands::files::{load_file, save_file};
+use character_scratch_pad_lib::commands::characters::{create_character, ensure_character_files, list_characters};
+use character_scratch_pad_lib::commands::files::{load_file, save_file};
 
 struct TempWorkspace {
     path: PathBuf,

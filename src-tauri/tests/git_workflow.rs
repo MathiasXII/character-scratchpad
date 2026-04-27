@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use llm_chat_lib::commands::characters::create_character;
-use llm_chat_lib::commands::files::save_file;
-use llm_chat_lib::commands::git::{git_commit, git_commit_amend, git_diff_last, git_get_head_content, git_is_dirty, git_list_head_folder, git_log, git_revert};
+use character_scratch_pad_lib::commands::characters::create_character;
+use character_scratch_pad_lib::commands::files::save_file;
+use character_scratch_pad_lib::commands::git::{git_commit, git_commit_amend, git_diff_last, git_get_head_content, git_is_dirty, git_list_head_folder, git_log, git_revert};
 
 struct TempWorkspace {
     path: PathBuf,

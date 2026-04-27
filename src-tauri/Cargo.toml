@@ -1,12 +1,12 @@
 [package]
-name = "llm-chat"
-version = "0.1.0"
-description = "A lightweight LLM chat application"
+name = "character-scratch-pad"
+version = "1.0.0"
+description = "A desktop application for developing and testing AI characters against OpenAI-compatible chat APIs"
 authors = ["MathiasXII"]
 edition = "2021"
 
 [lib]
-name = "llm_chat_lib"
+name = "character_scratch_pad_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

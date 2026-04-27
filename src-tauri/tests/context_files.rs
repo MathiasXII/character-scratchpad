@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use llm_chat_lib::commands::files::{copy_file_to_context, create_context_file, delete_context_file, list_context_files};
+use character_scratch_pad_lib::commands::files::{copy_file_to_context, create_context_file, delete_context_file, list_context_files};
 
 struct TempWorkspace {
     path: PathBuf,
