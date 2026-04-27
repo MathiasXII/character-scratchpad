@@ -2,12 +2,8 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
 import { dom, state } from "./app.js";
+import { renderMarkdown, syncEditorToState, buildSystemPrompt, buildContextMessages } from "./helpers.js";
 import { renderPreviewMessages } from "./preview.js";
-
-const DOMPURIFY_CONFIG = {
-  ADD_TAGS: ["details", "summary"],
-  ADD_ATTR: ["checked", "disabled"],
-};
 
 /**
  * Build the full messages array to send to the LLM API.
@@ -27,47 +23,18 @@ const DOMPURIFY_CONFIG = {
  *   3. CONVERSATION HISTORY — the actual user/assistant messages as-is.
  */
 export function buildMessagesArray() {
-  // Sync active context file content to state.contextFiles before building messages
-  if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
-    const editorContent = state.cmView.state.doc.toString();
-    const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-    if (file) file.content = editorContent;
-  }
-
-  // Sync current editor content to state so we always use what's on screen,
-  // even if the debounced save hasn't fired yet
-  if (state.cmView) {
-    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
-  }
+  syncEditorToState(state);
 
   const messages = [];
 
   // 1. System message: system-prompt.txt with %%CHARACTER_INSTRUCTIONS%% replaced
-  const systemPrompt = state.tabContents.prompt || "";
-  const instructions = state.tabContents.instructions || "";
-
-  if (systemPrompt.trim() || instructions.trim()) {
-    const systemContent = systemPrompt.replace(
-      "%%CHARACTER_INSTRUCTIONS%%",
-      instructions
-    );
+  const systemContent = buildSystemPrompt(state);
+  if (systemContent !== null) {
     messages.push({ role: "system", content: systemContent });
   }
 
   // 2. Context files as user messages with isFile flag
-  const CONTEXT_INTRO =
-    "The following information is provided as background context for this character. " +
-    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
-
-  for (const file of state.contextFiles) {
-    if (file.content && file.content.trim()) {
-      messages.push({
-        role: "user",
-        content: CONTEXT_INTRO + file.content,
-        isFile: true,
-      });
-    }
-  }
+  messages.push(...buildContextMessages(state));
 
   // 3. Conversation history
   for (const msg of state.conversationHistory) {
@@ -76,6 +43,7 @@ export function buildMessagesArray() {
 
   return messages;
 }
+
 
 function renderConversationHistory({ showWelcomeIfEmpty = false } = {}) {
   dom.messagesEl.innerHTML = "";
@@ -136,45 +104,18 @@ export function syncFirstResponse() {
  * to show what the assembled prompt looks like before any chat.
  */
 export function buildPromptOnly() {
-  // Sync editor content first (same as buildMessagesArray)
-  if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
-    const editorContent = state.cmView.state.doc.toString();
-    const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-    if (file) file.content = editorContent;
-  }
-
-  if (state.cmView) {
-    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
-  }
+  syncEditorToState(state);
 
   const messages = [];
 
   // 1. System message
-  const systemPrompt = state.tabContents.prompt || "";
-  const instructions = state.tabContents.instructions || "";
-
-  if (systemPrompt.trim() || instructions.trim()) {
-    const systemContent = systemPrompt.replace(
-      "%%CHARACTER_INSTRUCTIONS%%",
-      instructions
-    );
+  const systemContent = buildSystemPrompt(state);
+  if (systemContent !== null) {
     messages.push({ role: "system", content: systemContent });
   }
 
   // 2. Context files
-  const CONTEXT_INTRO =
-    "The following information is provided as background context for this character. " +
-    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
-
-  for (const file of state.contextFiles) {
-    if (file.content && file.content.trim()) {
-      messages.push({
-        role: "user",
-        content: CONTEXT_INTRO + file.content,
-        isFile: true,
-      });
-    }
-  }
+  messages.push(...buildContextMessages(state));
 
   return messages;
 }
@@ -187,46 +128,19 @@ export function buildPromptOnly() {
  * the message at upToIndex, so you can see the full context that led to
  * each message (including the message itself).
  */
-export function buildMessagesArrayUpTo(upToIndex) {
-  // Sync editor content first (same as buildMessagesArray)
-  if (state.activeTab === "context" && state.activeContextFile && state.cmView) {
-    const editorContent = state.cmView.state.doc.toString();
-    const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-    if (file) file.content = editorContent;
-  }
-
-  if (state.cmView) {
-    state.tabContents[state.activeTab] = state.cmView.state.doc.toString();
-  }
+function buildMessagesArrayUpTo(upToIndex) {
+  syncEditorToState(state);
 
   const messages = [];
 
   // 1. System message
-  const systemPrompt = state.tabContents.prompt || "";
-  const instructions = state.tabContents.instructions || "";
-
-  if (systemPrompt.trim() || instructions.trim()) {
-    const systemContent = systemPrompt.replace(
-      "%%CHARACTER_INSTRUCTIONS%%",
-      instructions
-    );
+  const systemContent = buildSystemPrompt(state);
+  if (systemContent !== null) {
     messages.push({ role: "system", content: systemContent });
   }
 
   // 2. Context files
-  const CONTEXT_INTRO =
-    "The following information is provided as background context for this character. " +
-    "It is not always relevant. Only refer to it if it's relevant to the discussion: ";
-
-  for (const file of state.contextFiles) {
-    if (file.content && file.content.trim()) {
-      messages.push({
-        role: "user",
-        content: CONTEXT_INTRO + file.content,
-        isFile: true,
-      });
-    }
-  }
+  messages.push(...buildContextMessages(state));
 
   // 3. Conversation history — up to and including the clicked message
   for (const msg of state.conversationHistory.slice(0, upToIndex + 1)) {
@@ -240,7 +154,7 @@ export function buildMessagesArrayUpTo(upToIndex) {
  * Open the preview modal showing the prompt that was sent to generate
  * the message at the given index in conversationHistory.
  */
-export function openMessagePreview(index) {
+function openMessagePreview(index) {
   const previewModal = document.getElementById("preview-modal");
   if (!previewModal) return;
 
@@ -249,8 +163,52 @@ export function openMessagePreview(index) {
   previewModal.classList.remove("hidden");
 }
 
+/**
+ * Open a modal displaying the thinking/reasoning content for a message.
+ */
+function openThinkingModal(thinkingContent) {
+  let modal = document.getElementById("thinking-modal");
+  if (!modal) return;
+
+  const body = modal.querySelector(".thinking-modal-body");
+  if (body) {
+    body.innerHTML = renderMarkdown(thinkingContent);
+  }
+  modal.classList.remove("hidden");
+}
+
+function closeThinkingModal() {
+  const modal = document.getElementById("thinking-modal");
+  if (modal) {
+    modal.classList.add("hidden");
+  }
+}
+
 export function initStreamListeners() {
   let rafPending = false;
+  let thinkingRafPending = false;
+
+  listen("stream-thinking", (event) => {
+    state.currentThinkingContent += event.payload;
+    // Show brain icon as soon as thinking content arrives
+    if (state.currentAssistantEl) {
+      const brainBtn = state.currentAssistantEl.querySelector(".thinking-toggle");
+      if (brainBtn) brainBtn.classList.remove("hidden");
+    }
+    // Stream thinking into modal if it's open
+    const modal = document.getElementById("thinking-modal");
+    if (modal && !modal.classList.contains("hidden") && !thinkingRafPending) {
+      thinkingRafPending = true;
+      requestAnimationFrame(() => {
+        const body = document.getElementById("thinking-modal")?.querySelector(".thinking-modal-body");
+        if (body) {
+          body.innerHTML = renderMarkdown(state.currentThinkingContent);
+          body.scrollTop = body.scrollHeight;
+        }
+        thinkingRafPending = false;
+      });
+    }
+  });
 
   listen("stream-token", (event) => {
     state.currentAssistantContent += event.payload;  // always synchronous
@@ -258,7 +216,7 @@ export function initStreamListeners() {
       rafPending = true;
       requestAnimationFrame(() => {
         if (state.currentAssistantEl) {
-          state.currentAssistantEl.querySelector(".content").innerHTML = DOMPurify.sanitize(marked.parse(state.currentAssistantContent), DOMPURIFY_CONFIG);
+          state.currentAssistantEl.querySelector(".content").innerHTML = renderMarkdown(state.currentAssistantContent);
           scrollToBottom();
         }
         rafPending = false;
@@ -269,17 +227,23 @@ export function initStreamListeners() {
   listen("stream-end", () => {
     // Flush any pending rAF render synchronously before clearing state
     if (state.currentAssistantEl) {
-      state.currentAssistantEl.querySelector(".content").innerHTML = DOMPurify.sanitize(marked.parse(state.currentAssistantContent), DOMPURIFY_CONFIG);
+      state.currentAssistantEl.querySelector(".content").innerHTML = renderMarkdown(state.currentAssistantContent);
       state.currentAssistantEl.classList.remove("streaming");
     }
     rafPending = false;
-    state.conversationHistory.push({ role: "assistant", content: state.currentAssistantContent });
+    thinkingRafPending = false;
+    state.conversationHistory.push({
+      role: "assistant",
+      content: state.currentAssistantContent,
+      ...(state.currentThinkingContent ? { _thinking: state.currentThinkingContent } : {}),
+    });
     state.isStreaming = false;
     dom.sendBtn.disabled = false;
     dom.resendBtn.disabled = state.conversationHistory.length === 0;
     dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = "";
+    state.currentThinkingContent = "";
   });
 
   listen("stream-error", (event) => {
@@ -290,6 +254,7 @@ export function initStreamListeners() {
     dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = "";
+    state.currentThinkingContent = "";
   });
 }
 
@@ -319,6 +284,7 @@ export async function handleSend() {
   state.currentAssistantEl.classList.add("streaming");
   dom.messagesEl.appendChild(state.currentAssistantEl);
   state.currentAssistantContent = "";
+  state.currentThinkingContent = "";
   scrollToBottom();
 
   try {
@@ -333,6 +299,7 @@ export async function handleSend() {
     dom.sendBtn.disabled = false;
     state.currentAssistantEl = null;
     state.currentAssistantContent = "";
+    state.currentThinkingContent = "";
   }
 }
 
@@ -347,9 +314,36 @@ export function createMessageElement(role, content, index) {
     el.classList.add("first-response");
   }
 
+  const thinkingContent = index !== undefined
+    ? (state.conversationHistory[index]?._thinking || "")
+    : "";
+
   const label = document.createElement("div");
   label.className = "role-label";
   label.textContent = role === "user" ? "You" : (state.selectedCharacter || "Assistant");
+
+  // Brain icon sits right beside the assistant name
+  let brainBtn = null;
+  if (role === "assistant") {
+    brainBtn = document.createElement("button");
+    brainBtn.className = "thinking-toggle";
+    brainBtn.title = "View thinking process";
+    brainBtn.setAttribute("aria-label", "View thinking process");
+    brainBtn.innerHTML = "&#x1F9E0;"; // 🧠
+    brainBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const thinking = index !== undefined
+        ? (state.conversationHistory[index]?._thinking || state.currentThinkingContent)
+        : state.currentThinkingContent;
+      if (thinking) {
+        openThinkingModal(thinking);
+      }
+    });
+    if (!thinkingContent) {
+      brainBtn.classList.add("hidden");
+    }
+    label.appendChild(brainBtn);
+  }
 
   // Add action buttons (preview, edit and delete)
   const actionsDiv = document.createElement("div");
@@ -402,7 +396,7 @@ export function createMessageElement(role, content, index) {
 
   const body = document.createElement("div");
   body.className = "content";
-  body.innerHTML = DOMPurify.sanitize(marked.parse(content), DOMPURIFY_CONFIG);
+  body.innerHTML = renderMarkdown(content);
 
   bubble.appendChild(body);
 
@@ -411,7 +405,7 @@ export function createMessageElement(role, content, index) {
   return el;
 }
 
-export function addMessage(role, content) {
+function addMessage(role, content) {
   const index = state.conversationHistory.length;
   const el = createMessageElement(role, content, index);
   dom.messagesEl.appendChild(el);
@@ -424,14 +418,26 @@ const errorDismiss = document.getElementById("error-dismiss");
 
 errorDismiss.addEventListener("click", hideErrorNotification);
 
-export function addErrorMessage(text) {
+const thinkingModalClose = document.getElementById("thinking-close");
+if (thinkingModalClose) {
+  thinkingModalClose.addEventListener("click", closeThinkingModal);
+}
+const thinkingModal = document.getElementById("thinking-modal");
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && thinkingModal && !thinkingModal.classList.contains("hidden")) {
+    closeThinkingModal();
+  }
+});
+
+function addErrorMessage(text) {
   errorText.textContent = text;
   errorNotification.classList.remove("hidden");
   // Scroll to top so user sees the notification
   dom.chatContainer.scrollTop = 0;
 }
 
-export function hideErrorNotification() {
+function hideErrorNotification() {
   errorNotification.classList.add("hidden");
   errorText.textContent = "";
 }
@@ -536,7 +542,7 @@ export function startEdit(index) {
   });
 }
 
-export function cancelEdit() {
+function cancelEdit() {
   if (state.editingIndex === null) return;
   const el = dom.messagesEl.querySelector(`[data-index="${state.editingIndex}"]`);
   if (el) {
@@ -559,7 +565,7 @@ export function saveEdit(index) {
 
   // Update the rendered content in the message element
   const contentDiv = el.querySelector('.content');
-  contentDiv.innerHTML = DOMPurify.sanitize(marked.parse(newContent), DOMPURIFY_CONFIG);
+  contentDiv.innerHTML = renderMarkdown(newContent);
   contentDiv.style.display = '';
 
   // Remove textarea and Save/Cancel
@@ -615,6 +621,7 @@ export async function handleResend() {
   state.currentAssistantEl.classList.add('streaming');
   dom.messagesEl.appendChild(state.currentAssistantEl);
   state.currentAssistantContent = '';
+  state.currentThinkingContent = '';
   scrollToBottom();
 
   try {
@@ -631,5 +638,6 @@ export async function handleResend() {
     dom.clearChatBtn.disabled = state.conversationHistory.length === 0;
     state.currentAssistantEl = null;
     state.currentAssistantContent = '';
+    state.currentThinkingContent = '';
   }
 }

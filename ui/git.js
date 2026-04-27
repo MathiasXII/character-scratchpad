@@ -4,6 +4,7 @@ import { dom, state, TAB_FILE_MAP, TRACKED_FOLDERS } from "./app.js";
 import { showSaveError, saveCurrentTab } from "./editor.js";
 import { reloadAfterRevert } from "./characters.js";
 import { getEditorValue } from "./editor.js";
+import { getRepoPath, formatError } from "./helpers.js";
 
 let isCommitting = false;
 
@@ -18,9 +19,22 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function getRepoPath() {
-  if (!state.currentWorkFolder || !state.selectedCharacter) return null;
-  return state.currentWorkFolder + "/" + state.selectedCharacter;
+function setDirtyIndicator(isDirty) {
+  const indicator = dom.gitStatusIndicator;
+  const saveBtn = dom.gitCommitBtn;
+  if (!indicator || !saveBtn) return;
+
+  if (isDirty) {
+    indicator.textContent = "Pending changes";
+    indicator.className = "git-status-indicator dirty";
+    saveBtn.classList.add("has-changes");
+    saveBtn.disabled = false;
+  } else {
+    indicator.textContent = "All saved";
+    indicator.className = "git-status-indicator clean";
+    saveBtn.classList.remove("has-changes");
+    saveBtn.disabled = true;
+  }
 }
 
 // --- Dirty state indicator ---
@@ -29,16 +43,13 @@ function getRepoPath() {
  * Compare current file contents against the last git commit (HEAD) to determine
  * whether there are pending changes. Only checks files defined in TRACKED_TAB_FILES
  * and TRACKED_FOLDERS — invisible files are ignored.
- *
- * This replaces the old git_is_dirty approach which flagged untracked files and
- * CRLF/LF differences as "dirty" even when the editor content matched HEAD.
  */
 export async function checkDirty() {
   const indicator = dom.gitStatusIndicator;
   const saveBtn = dom.gitCommitBtn;
   if (!indicator || !saveBtn) return;
 
-  const repoPath = getRepoPath();
+  const repoPath = getRepoPath(state);
   if (!repoPath) {
     indicator.textContent = "";
     indicator.className = "git-status-indicator";
@@ -144,33 +155,13 @@ export async function checkDirty() {
       }
     }
 
-    if (hasPendingChanges) {
-      indicator.textContent = "Pending changes";
-      indicator.className = "git-status-indicator dirty";
-      saveBtn.classList.add("has-changes");
-      saveBtn.disabled = false;
-    } else {
-      indicator.textContent = "All saved";
-      indicator.className = "git-status-indicator clean";
-      saveBtn.classList.remove("has-changes");
-      saveBtn.disabled = true;
-    }
+    setDirtyIndicator(hasPendingChanges);
   } catch (error) {
     // If the repo is empty or git commands fail, fall back to git_is_dirty
     // (e.g. brand-new character with no commits yet)
     try {
       const dirty = await invoke("git_is_dirty", { repoPath });
-      if (dirty) {
-        indicator.textContent = "Pending changes";
-        indicator.className = "git-status-indicator dirty";
-        saveBtn.classList.add("has-changes");
-        saveBtn.disabled = false;
-      } else {
-        indicator.textContent = "All saved";
-        indicator.className = "git-status-indicator clean";
-        saveBtn.classList.remove("has-changes");
-        saveBtn.disabled = true;
-      }
+      setDirtyIndicator(dirty);
     } catch {
       // If both approaches fail (e.g. no git repo yet), just leave the indicator empty
       indicator.textContent = "";
@@ -220,7 +211,7 @@ async function handleSaveCheckpoint() {
   if (!state.selectedCharacter || isCommitting) return;
   isCommitting = true;
 
-  const repoPath = getRepoPath();
+  const repoPath = getRepoPath(state);
   if (!repoPath) { isCommitting = false; return; }
 
   const saveBtn = dom.gitCommitBtn;
@@ -245,7 +236,7 @@ async function handleSaveCheckpoint() {
     // Auto-hide "✓ Saved" after 2 seconds
     setTimeout(hideStatus, 2000);
   } catch (error) {
-    showSaveError("Checkpoint failed: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Checkpoint failed: " + formatError(error));
     hideStatus();
   } finally {
     isCommitting = false;
@@ -272,7 +263,7 @@ async function renameCheckpointInBackground(repoPath) {
 export async function openGitHistory() {
   if (!state.selectedCharacter) return;
 
-  const repoPath = getRepoPath();
+  const repoPath = getRepoPath(state);
   if (!repoPath) return;
 
   const historyList = document.getElementById("git-history-list");
@@ -321,11 +312,11 @@ export async function openGitHistory() {
       }
     });
   } catch (error) {
-    showSaveError("Failed to load history: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Failed to load history: " + formatError(error));
   }
 }
 
-export function closeGitHistory() {
+function closeGitHistory() {
   const historyModal = document.getElementById("git-history-modal");
   if (historyModal) historyModal.classList.add("hidden");
 }
@@ -336,7 +327,7 @@ async function handleGitRevert(commitId) {
   const confirmed = window.confirm("Restore this version? Your current changes will be replaced by the selected checkpoint.");
   if (!confirmed) return;
 
-  const repoPath = getRepoPath();
+  const repoPath = getRepoPath(state);
   if (!repoPath) return;
 
   try {
@@ -344,7 +335,7 @@ async function handleGitRevert(commitId) {
     await reloadAfterRevert();
     await checkDirty();
   } catch (error) {
-    showSaveError("Restore failed: " + (typeof error === "string" ? error : String(error)));
+    showSaveError("Restore failed: " + formatError(error));
   }
 
   closeGitHistory();
@@ -369,6 +360,12 @@ export function initGit() {
   if (historyClose) {
     historyClose.addEventListener("click", closeGitHistory);
   }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && historyModal && !historyModal.classList.contains("hidden")) {
+      closeGitHistory();
+    }
+  });
 
 
 

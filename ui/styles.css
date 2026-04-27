@@ -677,7 +677,118 @@ main {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
+
+/* Brain icon beside assistant name — opens thinking modal */
+.thinking-toggle {
+  background: none;
+  border: none;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.7;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.thinking-toggle:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+.thinking-toggle.hidden {
+  display: none !important;
+}
+
+/* Thinking modal body */
+.thinking-modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  line-height: 1.6;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.thinking-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.thinking-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thinking-modal-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.thinking-modal-body p {
+  margin-bottom: 8px;
+}
+
+.thinking-modal-body p:last-child {
+  margin-bottom: 0;
+}
+
+.thinking-modal-body code {
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "Cascadia Code", "Fira Code", monospace;
+  font-size: 13px;
+}
+
+.thinking-modal-body pre {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+.thinking-modal-body pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: 13px;
+}
+
+.thinking-modal-body ul,
+.thinking-modal-body ol {
+  padding-left: 20px;
+  margin-bottom: 8px;
+}
+
+.thinking-modal-body li {
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.thinking-modal-body blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 4px 12px;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  background: rgba(108, 99, 255, 0.05);
+  border-radius: 0 4px 4px 0;
+}
+
+.thinking-modal-body h1,
+.thinking-modal-body h2,
+.thinking-modal-body h3 {
+  color: var(--text-primary);
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+
+.thinking-modal-body h1 { font-size: 20px; }
+.thinking-modal-body h2 { font-size: 18px; }
+.thinking-modal-body h3 { font-size: 16px; }
 
 .message.first-response .role-label::after {
   content: " ✦ First Response";

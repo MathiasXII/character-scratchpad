@@ -16,6 +16,7 @@ export const state = {
   editingIndex: null,
   currentAssistantEl: null,
   currentAssistantContent: "",
+  currentThinkingContent: "",
   tabContents: initialTabContents,
   contextFiles: [],
   activeContextFile: null,
@@ -75,6 +76,11 @@ export const dom = {
   contextSidebarTitle: document.getElementById("context-sidebar-title"),
   contextFileList: document.getElementById("context-file-list"),
   contextAddBtn: document.getElementById("context-add-btn"),
+  newContextModal: document.getElementById("new-context-modal"),
+  newContextNameInput: document.getElementById("new-context-name"),
+  newContextClose: document.getElementById("new-context-close"),
+  newContextCancel: document.getElementById("new-context-cancel"),
+  newContextCreate: document.getElementById("new-context-create"),
   deleteContextModal: document.getElementById("delete-context-modal"),
   deleteContextClose: document.getElementById("delete-context-close"),
   deleteContextMessage: document.getElementById("delete-context-message"),
@@ -119,7 +125,7 @@ import {
   clearTestResults,
   applyEndpointNormalization,
 } from "./settings.js";
-import { initContext } from "./context.js";
+import { initContext, handleCreateContextFile, closeNewContextModal } from "./context.js";
 import { initPreview } from "./preview.js";
 
 const { open } = window.__TAURI__.dialog;
@@ -263,6 +269,16 @@ async function init() {
       handleCreateCharacter();
     }
     dom.newCharacterNameInput.style.borderColor = "";
+  });
+
+  dom.newContextClose.addEventListener("click", closeNewContextModal);
+  dom.newContextCancel.addEventListener("click", closeNewContextModal);
+  dom.newContextCreate.addEventListener("click", handleCreateContextFile);
+  dom.newContextNameInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      handleCreateContextFile();
+    }
+    dom.newContextNameInput.style.borderColor = "";
   });
 
   dom.characterSelect.addEventListener("change", handleCharacterSelect);

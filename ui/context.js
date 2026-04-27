@@ -2,8 +2,48 @@ const { invoke } = window.__TAURI__.core;
 const { getCurrentWebview } = window.__TAURI__.webview;
 
 import { dom, state } from "./app.js";
+import { getRepoPath, formatError } from "./helpers.js";
 import { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly } from "./editor.js";
 import { checkDirty } from "./git.js";
+
+/**
+ * Save the active context file if it has unsaved changes.
+ * Returns true if a save was performed, false if skipped (no active file,
+ * read-only, unchanged, or no character selected).
+ * Throws on save failure — caller should handle errors.
+ */
+export async function saveActiveContextFile() {
+  if (!state.activeContextFile || !state.selectedCharacter || state.isLoadingCharacter) {
+    return false;
+  }
+  const activeFile = state.contextFiles.find(f => f.name === state.activeContextFile);
+  if (activeFile?.isReadOnly) {
+    return false;
+  }
+  const content = getEditorValue();
+  if (content === state.contextLastSaved[state.activeContextFile]) {
+    return false;
+  }
+  const charDir = getRepoPath(state);
+  const path = charDir + "/context/" + state.activeContextFile;
+  await invoke("save_file", { path, content });
+  state.contextLastSaved[state.activeContextFile] = content;
+  const file = state.contextFiles.find(f => f.name === state.activeContextFile);
+  if (file) file.content = content;
+  return true;
+}
+
+/**
+ * Refresh the context file list from disk and update state.
+ */
+export async function refreshContextFiles(charDir) {
+  try {
+    state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
+  } catch (error) {
+    console.error("Failed to load context files:", formatError(error));
+    state.contextFiles = [];
+  }
+}
 
 /**
  * Render the sidebar based on the active tab.
@@ -88,22 +128,10 @@ export function renderContextFileList() {
 export async function selectContextFile(filename) {
   // Save current context file before switching
   if (state.activeContextFile && state.activeContextFile !== filename) {
-    const currentFile = state.contextFiles.find((f) => f.name === state.activeContextFile);
-    if (!currentFile?.isReadOnly) {
-      const currentContent = getEditorValue();
-      if (currentContent !== state.contextLastSaved[state.activeContextFile]) {
-        const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
-        const path = charDir + "/context/" + state.activeContextFile;
-        try {
-          await invoke("save_file", { path, content: currentContent });
-          state.contextLastSaved[state.activeContextFile] = currentContent;
-          // Sync back to state.contextFiles
-          const file = state.contextFiles.find((f) => f.name === state.activeContextFile);
-          if (file) file.content = currentContent;
-        } catch (error) {
-          console.error("Failed to save context file:", error);
-        }
-      }
+    try {
+      await saveActiveContextFile();
+    } catch (error) {
+      console.error("Failed to save context file:", formatError(error));
     }
   }
 
@@ -129,41 +157,77 @@ export async function selectContextFile(filename) {
 }
 
 /**
- * Prompt for a filename, create the file, and select it.
+ * Open the new context file modal.
  */
-export async function handleAddContextFile() {
+export function openNewContextModal() {
   if (!state.selectedCharacter) return;
 
-  const filename = prompt("Enter filename (e.g. lore.md):");
-  if (!filename || filename.trim() === "") return;
+  dom.newContextNameInput.value = "";
+  dom.newContextNameInput.style.borderColor = "";
+  dom.newContextModal.classList.remove("hidden");
+  dom.newContextNameInput.focus();
+}
 
-  const trimmedName = filename.trim();
-  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+/**
+ * Close the new context file modal.
+ */
+export function closeNewContextModal() {
+  dom.newContextModal.classList.add("hidden");
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !dom.newContextModal.classList.contains("hidden")) {
+    closeNewContextModal();
+  }
+});
+
+/**
+ * Create the context file from the modal input.
+ */
+export async function handleCreateContextFile() {
+  const filename = dom.newContextNameInput.value.trim();
+  if (!filename) {
+    dom.newContextNameInput.style.borderColor = "var(--error)";
+    dom.newContextNameInput.focus();
+    return;
+  }
+
+  dom.newContextCreate.disabled = true;
+  const charDir = getRepoPath(state);
 
   try {
     await invoke("create_context_file", {
       characterDir: charDir,
-      filename: trimmedName,
+      filename,
     });
 
-    // Refresh file list
-    state.contextFiles = await invoke("list_context_files", {
-      characterDir: charDir,
-    });
+    await refreshContextFiles(charDir);
 
-    // Find the created file (may have .txt appended)
     const created = state.contextFiles.find(
-      (f) => f.name === trimmedName || f.name === trimmedName + ".txt" || f.name === trimmedName.replace(/\.md$/, "") + ".txt"
+      (f) => f.name === filename || f.name === filename + ".txt" || f.name === filename.replace(/\.md$/, "") + ".txt"
     );
     if (created) {
       await selectContextFile(created.name);
     }
 
     checkDirty();
+    closeNewContextModal();
   } catch (error) {
-    const message = typeof error === "string" ? error : String(error);
-    console.error("Failed to create context file:", message);
+    dom.newContextNameInput.style.borderColor = "var(--error)";
+    dom.newContextNameInput.value = "";
+    dom.newContextNameInput.placeholder =
+      typeof error === "string" ? error : String(error);
+    dom.newContextNameInput.focus();
+  } finally {
+    dom.newContextCreate.disabled = false;
   }
+}
+
+/**
+ * Open the new context file modal when the add button is clicked.
+ */
+export async function handleAddContextFile() {
+  openNewContextModal();
 }
 
 /**
@@ -201,12 +265,18 @@ export function handleDeleteContextFile(filename) {
 
 }
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !dom.deleteContextModal.classList.contains("hidden")) {
+    dom.deleteContextModal.classList.add("hidden");
+  }
+});
+
 /**
  * Actually delete the file after user confirms.
  * @param {string} filename
  */
 async function performDelete(filename) {
-  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const charDir = getRepoPath(state);
 
   try {
     await invoke("delete_context_file", {
@@ -215,9 +285,7 @@ async function performDelete(filename) {
     });
 
     // Refresh file list
-    state.contextFiles = await invoke("list_context_files", {
-      characterDir: charDir,
-    });
+    await refreshContextFiles(charDir);
 
     // If deleting the active file, clear editor
     if (state.activeContextFile === filename) {
@@ -232,7 +300,7 @@ async function performDelete(filename) {
     renderContextFileList();
     checkDirty();
   } catch (error) {
-    console.error("Failed to delete context file:", error);
+    console.error("Failed to delete context file:", formatError(error));
   }
 }
 
@@ -262,7 +330,7 @@ async function handleDroppedFiles(paths) {
     return;
   }
 
-  const charDir = state.currentWorkFolder + "/" + state.selectedCharacter;
+  const charDir = getRepoPath(state);
   const allowedExtensions = ["txt", "md", "pdf"];
   let copiedCount = 0;
   const errors = [];
@@ -289,9 +357,7 @@ async function handleDroppedFiles(paths) {
 
   // Refresh the file list if any files were copied
   if (copiedCount > 0) {
-    state.contextFiles = await invoke("list_context_files", {
-      characterDir: charDir,
-    });
+    await refreshContextFiles(charDir);
     renderContextFileList();
     checkDirty();
   }

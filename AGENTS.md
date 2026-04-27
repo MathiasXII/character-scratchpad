@@ -261,7 +261,7 @@ Node.js in CI is currently pinned to **24**.
 
 ### Still incomplete
 
-- 🔲 Venice.ai preset/polish work still tracked in `TODO.md`
+- ✅ Venice.ai preset/polish work completed
 
 ---
 

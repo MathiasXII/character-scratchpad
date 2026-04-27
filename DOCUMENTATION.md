@@ -58,12 +58,9 @@ The project is no longer a basic chat prototype. The current app includes:
 
 ### Still incomplete
 
-Two roadmap items remain unfinished:
+All original roadmap items are now complete. The app is in a stable v1.0 state.
 
-1. **First response injection** from `intro.txt`
-2. **Venice.ai compatibility & polish** work, such as a built-in Venice preset in Settings and final UX cleanup
-
-`intro.txt` is already created, loaded, and editable, but its content is **not yet injected into the chat automatically**.
+`intro.txt` content is automatically injected into the chat as a guarded first-response assistant bubble.
 
 ---
 
@@ -351,9 +348,9 @@ When the frontend builds the messages array, it uses this order:
 3. **Conversation history**
    - user/assistant chat turns only
 
-### Current limitation
+### First response injection
 
-`intro.txt` is **not** injected yet. That feature is still planned.
+`intro.txt` content is synced to a first-response assistant bubble on character load and on intro edits. The bubble is injected only when the chat is empty or contains exactly one existing first-response message; it is removed when `intro.txt` is cleared. The internal `_isFirstResponse` marker is stripped from API payloads so the message serializes as a normal assistant turn. A subtle "✦ First Response" label distinguishes it visually.
 
 ### Chat request flow
 
@@ -477,8 +474,8 @@ The CI workflow currently runs:
 | Context folder with PDF support | ✅ Done |
 | Prompt preview | ✅ Done |
 | Model discovery/testing in Settings | ✅ Done |
-| First response injection from `intro.txt` | 🔲 Not done |
-| Venice.ai preset/polish pass | 🔲 Partially pending |
+| First response injection from `intro.txt` | ✅ Done |
+| Venice.ai preset/polish pass | ✅ Done |
 
 ---
 

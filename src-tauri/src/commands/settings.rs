@@ -4,7 +4,9 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::state::AppState;
-use crate::types::Settings;
+use crate::types::{
+    Settings, DEFAULT_ENDPOINT, DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_TOP_P,
+};
 
 /// Returns the path to settings.json.
 /// In production: next to the executable.
@@ -75,10 +77,10 @@ fn load_settings_from_file() -> Settings {
     // Return defaults if file doesn't exist or failed to read
     Settings {
         api_key: String::new(),
-        model: "gpt-4o-mini".to_string(),
-        endpoint: "https://api.openai.com/v1".to_string(),
-        temperature: 0.7,
-        top_p: 1.0,
+        model: DEFAULT_MODEL.to_string(),
+        endpoint: DEFAULT_ENDPOINT.to_string(),
+        temperature: DEFAULT_TEMPERATURE,
+        top_p: DEFAULT_TOP_P,
     }
 }
 
@@ -142,7 +144,9 @@ mod tests {
     use super::{
         get_settings_path, load_settings_from_file, save_settings_to_file, strip_endpoint_suffix,
     };
-    use crate::types::Settings;
+    use crate::types::{
+        Settings, DEFAULT_ENDPOINT, DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_TOP_P,
+    };
     use std::fs;
     use std::sync::{Mutex, OnceLock};
 
@@ -177,10 +181,10 @@ mod tests {
             let settings = load_settings_from_file();
 
             assert_eq!(settings.api_key, "");
-            assert_eq!(settings.model, "gpt-4o-mini");
-            assert_eq!(settings.endpoint, "https://api.openai.com/v1");
-            assert_eq!(settings.temperature, 0.7);
-            assert_eq!(settings.top_p, 1.0);
+            assert_eq!(settings.model, DEFAULT_MODEL);
+            assert_eq!(settings.endpoint, DEFAULT_ENDPOINT);
+            assert_eq!(settings.temperature, DEFAULT_TEMPERATURE);
+            assert_eq!(settings.top_p, DEFAULT_TOP_P);
         });
     }
 
@@ -227,8 +231,8 @@ mod tests {
             assert_eq!(loaded.api_key, "partial");
             assert_eq!(loaded.model, "model-x");
             assert_eq!(loaded.endpoint, "https://example.test");
-            assert_eq!(loaded.temperature, 0.7);
-            assert_eq!(loaded.top_p, 1.0);
+            assert_eq!(loaded.temperature, DEFAULT_TEMPERATURE);
+            assert_eq!(loaded.top_p, DEFAULT_TOP_P);
         });
     }
 
