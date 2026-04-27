@@ -48,6 +48,7 @@ const mockState = {
 vi.mock('./app.js', () => ({
   dom: mockDom,
   state: mockState,
+  getCharacterDir: (workFolder, characterName) => workFolder + '/' + characterName,
   TAB_FILE_MAP: {
     instructions: 'instructions.txt',
     description: 'description.txt',

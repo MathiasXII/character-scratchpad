@@ -27,6 +27,7 @@ impl TempTestDir {
         &self.path
     }
 
+    #[allow(dead_code)]
     pub fn join(&self, child: &str) -> PathBuf {
         self.path.join(child)
     }

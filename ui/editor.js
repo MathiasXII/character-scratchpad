@@ -1,8 +1,9 @@
 const { invoke } = window.__TAURI__.core;
 
 import { dom, state, TAB_FILE_MAP } from "./app.js";
+import { getRepoPath, formatError } from "./helpers.js";
 import { checkDirty } from "./git.js";
-import { renderContextFileList } from "./context.js";
+import { renderContextFileList, saveActiveContextFile } from "./context.js";
 
 function getEditorValue() {
   return state.cmView ? state.cmView.state.doc.toString() : "";
@@ -71,26 +72,38 @@ function updateInstructionsVisibility() {
 
 export { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly, updateInstructionsVisibility };
 
+/**
+ * Persist a tab file to disk, update lastSavedContent, and refresh dirty state.
+ * Returns a Promise — callers may await it or fire-and-forget.
+ * On success: updates lastSavedContent, hides the save-error banner, and checks dirty state.
+ * On failure: shows the save-error banner.
+ */
+function persistTabFile(tab, content) {
+  const filename = TAB_FILE_MAP[tab];
+  const path = getRepoPath(state) + "/" + filename;
+  return Promise.resolve(invoke("save_file", { path, content }))
+    .then(() => {
+      state.lastSavedContent[tab] = content;
+      hideSaveError();
+      checkDirty();
+    })
+    .catch((error) => {
+      showSaveError("Save failed: " + formatError(error));
+    });
+}
+
 export async function saveCurrentTab() {
   const tab = state.activeTab;
 
   if (tab === "context") {
-    if (!state.activeContextFile || !state.selectedCharacter || state.isLoadingCharacter) return;
-    const activeFile = state.contextFiles.find(f => f.name === state.activeContextFile);
-    if (activeFile?.isReadOnly) return;
-    const content = getEditorValue();
-    if (content === state.contextLastSaved[state.activeContextFile]) return;
-    const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/context/" + state.activeContextFile;
     try {
-      await invoke("save_file", { path, content });
-      state.contextLastSaved[state.activeContextFile] = content;
-      // Sync back to state.contextFiles
-      const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-      if (file) file.content = content;
-      hideSaveError();
-      checkDirty();
+      const saved = await saveActiveContextFile();
+      if (saved) {
+        hideSaveError();
+        checkDirty();
+      }
     } catch (error) {
-      showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
+      showSaveError("Save failed: " + formatError(error));
     }
     return; // IMPORTANT: return early
   }
@@ -110,17 +123,7 @@ export async function saveCurrentTab() {
     return;
   }
 
-  const filename = TAB_FILE_MAP[tab];
-  const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
-
-  try {
-    await invoke("save_file", { path, content });
-    state.lastSavedContent[tab] = content;
-    hideSaveError();
-    checkDirty();
-  } catch (error) {
-    showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
-  }
+  await persistTabFile(tab, content);
 }
 
 export function showSaveError(message) {
@@ -143,22 +146,12 @@ export async function switchTab(tabName) {
   state.saveTimeout = null;
 
   // If leaving Context tab, save current context file first
-  if (state.activeTab === "context" && state.activeContextFile && state.selectedCharacter && !state.isLoadingCharacter) {
-    const leavingFile = state.contextFiles.find(f => f.name === state.activeContextFile);
-    if (!leavingFile?.isReadOnly) {
-      const content = getEditorValue();
-      if (content !== state.contextLastSaved[state.activeContextFile]) {
-        const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/context/" + state.activeContextFile;
-        try {
-          await invoke("save_file", { path, content });
-          state.contextLastSaved[state.activeContextFile] = content;
-          const file = state.contextFiles.find(f => f.name === state.activeContextFile);
-          if (file) file.content = content;
-          hideSaveError();
-        } catch (error) {
-          showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)));
-        }
-      }
+  if (state.activeTab === "context") {
+    try {
+      const saved = await saveActiveContextFile();
+      if (saved) hideSaveError();
+    } catch (error) {
+      showSaveError("Save failed: " + formatError(error));
     }
   }
 
@@ -168,17 +161,7 @@ export async function switchTab(tabName) {
 
     // Only save if content actually changed
     if (content !== state.lastSavedContent[oldTab]) {
-      const filename = TAB_FILE_MAP[oldTab];
-      const path = state.currentWorkFolder + "/" + state.selectedCharacter + "/" + filename;
-      invoke("save_file", { path, content })
-        .then(() => {
-          state.lastSavedContent[oldTab] = content;
-          hideSaveError();
-          checkDirty();
-        })
-        .catch((error) =>
-          showSaveError("Save failed: " + (typeof error === "string" ? error : String(error)))
-        );
+      persistTabFile(oldTab, content);
     }
   }
 

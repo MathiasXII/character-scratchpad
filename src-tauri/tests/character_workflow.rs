@@ -1,39 +1,15 @@
-use std::fs;
+mod common;
+
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use character_scratch_pad_lib::commands::characters::{create_character, ensure_character_files, list_characters};
 use character_scratch_pad_lib::commands::files::{load_file, save_file};
 
-struct TempWorkspace {
-    path: PathBuf,
-}
-
-impl TempWorkspace {
-    fn new(prefix: &str) -> Self {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock before UNIX_EPOCH")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("llm-chat-{}-{}-{}", prefix, std::process::id(), unique));
-        fs::create_dir_all(&path).expect("failed to create temp workspace");
-        Self { path }
-    }
-
-    fn path(&self) -> &PathBuf {
-        &self.path
-    }
-}
-
-impl Drop for TempWorkspace {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
+use common::TempTestDir;
 
 #[test]
 fn character_lifecycle_workflow() {
-    let workspace = TempWorkspace::new("character-workflow");
+    let workspace = TempTestDir::new("character-workflow");
     let work_folder = workspace.path().to_string_lossy().to_string();
     let character_name = "test-character".to_string();
 

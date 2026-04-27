@@ -1,14 +1,10 @@
 import { buildPromptOnly } from "./chat.js";
+import { renderMarkdown } from "./helpers.js";
 
 const ROLE_LABELS = {
   system: "System",
   user: "User",
   assistant: "Assistant",
-};
-
-const DOMPURIFY_CONFIG = {
-  ADD_TAGS: ["details", "summary"],
-  ADD_ATTR: ["checked", "disabled"],
 };
 
 /**
@@ -30,7 +26,7 @@ export function renderPreviewMessages(messages) {
     for (const msg of messages) {
       let header = `**${ROLE_LABELS[msg.role] || msg.role}**`;
       if (msg.isFile) header += " *(Context)*";
-      const rendered = DOMPurify.sanitize(marked.parse(msg.content), DOMPURIFY_CONFIG);
+      const rendered = renderMarkdown(msg.content);
       parts.push(`<h4 class="preview-role-label preview-role-${msg.role}">${header}</h4>\n${rendered}`);
     }
 
@@ -38,7 +34,7 @@ export function renderPreviewMessages(messages) {
   }
 }
 
-export function openPreview() {
+function openPreview() {
   const previewModal = document.getElementById("preview-modal");
   if (!previewModal) return;
 
@@ -47,7 +43,7 @@ export function openPreview() {
   previewModal.classList.remove("hidden");
 }
 
-export function closePreview() {
+function closePreview() {
   const previewModal = document.getElementById("preview-modal");
   if (previewModal) previewModal.classList.add("hidden");
 }
@@ -63,15 +59,6 @@ export function initPreview() {
 
   if (previewClose) {
     previewClose.addEventListener("click", closePreview);
-  }
-
-  // Close modal on backdrop click
-  if (previewModal) {
-    previewModal.addEventListener("click", (e) => {
-      if (e.target === previewModal) {
-        closePreview();
-      }
-    });
   }
 
   // Close modal on Escape key

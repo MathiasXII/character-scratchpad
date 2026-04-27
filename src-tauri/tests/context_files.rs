@@ -1,38 +1,15 @@
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use character_scratch_pad_lib::commands::files::{copy_file_to_context, create_context_file, delete_context_file, list_context_files};
 
-struct TempWorkspace {
-    path: PathBuf,
-}
-
-impl TempWorkspace {
-    fn new(prefix: &str) -> Self {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock before UNIX_EPOCH")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("llm-chat-{}-{}-{}", prefix, std::process::id(), unique));
-        fs::create_dir_all(&path).expect("failed to create temp workspace");
-        Self { path }
-    }
-
-    fn path(&self) -> &PathBuf {
-        &self.path
-    }
-}
-
-impl Drop for TempWorkspace {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
+use common::TempTestDir;
 
 #[test]
 fn context_file_workflow() {
-    let workspace = TempWorkspace::new("context-files");
+    let workspace = TempTestDir::new("context-files");
     let character_dir = workspace.path().join("context-character");
     fs::create_dir_all(character_dir.join("context")).expect("failed to create character structure");
 

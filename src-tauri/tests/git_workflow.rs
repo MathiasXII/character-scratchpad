@@ -1,41 +1,19 @@
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::Duration;
 
 use character_scratch_pad_lib::commands::characters::create_character;
 use character_scratch_pad_lib::commands::files::save_file;
 use character_scratch_pad_lib::commands::git::{git_commit, git_commit_amend, git_diff_last, git_get_head_content, git_is_dirty, git_list_head_folder, git_log, git_revert};
 
-struct TempWorkspace {
-    path: PathBuf,
-}
-
-impl TempWorkspace {
-    fn new(prefix: &str) -> Self {
-        let unique = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock before UNIX_EPOCH")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("llm-chat-{}-{}-{}", prefix, std::process::id(), unique));
-        fs::create_dir_all(&path).expect("failed to create temp workspace");
-        Self { path }
-    }
-
-    fn path(&self) -> &PathBuf {
-        &self.path
-    }
-}
-
-impl Drop for TempWorkspace {
-    fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
-    }
-}
+use common::TempTestDir;
 
 #[test]
 fn git_workflow_round_trip() {
-    let workspace = TempWorkspace::new("git-workflow");
+    let workspace = TempTestDir::new("git-workflow");
     let work_folder = workspace.path().to_string_lossy().to_string();
     let character_name = "git-character".to_string();
 

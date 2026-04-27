@@ -1,8 +1,12 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockInvoke = vi.fn();
-const mockCheckDirty = vi.fn();
-const mockRenderContextFileList = vi.fn();
+const { mockInvoke, mockCheckDirty, mockRenderContextFileList, mockSaveActiveContextFile } =
+  vi.hoisted(() => ({
+    mockInvoke: vi.fn(),
+    mockCheckDirty: vi.fn(),
+    mockRenderContextFileList: vi.fn(),
+    mockSaveActiveContextFile: vi.fn(),
+  }));
 
 function createTab(tabName) {
   const button = document.createElement('button');
@@ -87,6 +91,7 @@ const mockState = {
 vi.mock('./app.js', () => ({
   dom: mockDom,
   state: mockState,
+  getCharacterDir: (workFolder, characterName) => workFolder + '/' + characterName,
   TAB_FILE_MAP: {
     instructions: 'instructions.txt',
     description: 'description.txt',
@@ -99,6 +104,7 @@ vi.mock('./git.js', () => ({
 
 vi.mock('./context.js', () => ({
   renderContextFileList: mockRenderContextFileList,
+  saveActiveContextFile: mockSaveActiveContextFile,
 }));
 
 globalThis.window.__TAURI__ = {
@@ -117,6 +123,7 @@ beforeEach(() => {
   mockInvoke.mockReset();
   mockCheckDirty.mockReset();
   mockRenderContextFileList.mockReset();
+  mockSaveActiveContextFile.mockReset();
 
   mockDom.saveErrorBanner.className = 'hidden';
   mockDom.saveErrorText.textContent = '';
@@ -179,15 +186,11 @@ describe('editor module', () => {
   it('saves context files separately and syncs their in-memory content', async () => {
     mockState.activeTab = 'context';
     mockState.cmView = createCmView('Updated lore');
+    mockSaveActiveContextFile.mockResolvedValue(true);
 
     await editor.saveCurrentTab();
 
-    expect(mockInvoke).toHaveBeenCalledWith('save_file', {
-      path: 'C:/chars/hero/context/lore.md',
-      content: 'Updated lore',
-    });
-    expect(mockState.contextLastSaved['lore.md']).toBe('Updated lore');
-    expect(mockState.contextFiles[0].content).toBe('Updated lore');
+    expect(mockSaveActiveContextFile).toHaveBeenCalled();
     expect(mockCheckDirty).toHaveBeenCalled();
   });
 
@@ -195,13 +198,11 @@ describe('editor module', () => {
     mockState.activeTab = 'context';
     mockState.cmView = createCmView('Unsaved context');
     mockState.tabContents.description = 'Loaded description';
+    mockSaveActiveContextFile.mockResolvedValue(true);
 
     await editor.switchTab('description');
 
-    expect(mockInvoke).toHaveBeenCalledWith('save_file', {
-      path: 'C:/chars/hero/context/lore.md',
-      content: 'Unsaved context',
-    });
+    expect(mockSaveActiveContextFile).toHaveBeenCalled();
     expect(mockState.activeTab).toBe('description');
     expect(editor.getEditorValue()).toBe('Loaded description');
     expect(mockRenderContextFileList).toHaveBeenCalled();

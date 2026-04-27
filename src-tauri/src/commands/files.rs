@@ -3,41 +3,9 @@ use std::path::Path;
 
 use lopdf::Document;
 
+use crate::commands::line_endings::normalize_line_endings;
+use crate::commands::validation::{validate_filename, validate_path};
 use crate::types::ContextFile;
-
-/// Reject paths that contain traversal components (e.g. ".." or "." segments).
-fn validate_path(path: &str) -> Result<(), String> {
-    let p = Path::new(path);
-    for component in p.components() {
-        match component {
-            std::path::Component::ParentDir => {
-                return Err(format!("Invalid path (contains '..'): {}", path));
-            }
-            std::path::Component::CurDir => {
-                return Err(format!("Invalid path (contains '.'): {}", path));
-            }
-            _ => {}
-        }
-    }
-    Ok(())
-}
-
-/// Validate a context filename: reject empty, path separators, traversal, and hidden files.
-fn validate_filename(filename: &str) -> Result<(), String> {
-    if filename.is_empty() {
-        return Err("Filename cannot be empty".to_string());
-    }
-    if filename.starts_with('.') {
-        return Err(format!(
-            "Invalid filename (cannot start with '.'): '{}'",
-            filename
-        ));
-    }
-    if filename.contains("..") || filename.contains('/') || filename.contains('\\') {
-        return Err(format!("Invalid filename: '{}'", filename));
-    }
-    Ok(())
-}
 
 #[tauri::command]
 pub fn load_file(path: String) -> Result<String, String> {
@@ -45,7 +13,7 @@ pub fn load_file(path: String) -> Result<String, String> {
     let content =
         fs::read_to_string(&path).map_err(|e| format!("Failed to read '{}': {}", path, e))?;
     // Normalize line endings to LF — prevents spurious saves on Windows (CRLF vs LF)
-    Ok(content.replace("\r\n", "\n").replace('\r', "\n"))
+    Ok(normalize_line_endings(&content))
 }
 
 #[tauri::command]
@@ -57,7 +25,7 @@ pub fn save_file(path: String, content: String) -> Result<(), String> {
             .map_err(|e| format!("Failed to create directory '{}': {}", parent.display(), e))?;
     }
     // Normalize line endings to LF — prevents CRLF/LF mismatch on Windows
-    let normalized = content.replace("\r\n", "\n").replace('\r', "\n");
+    let normalized = normalize_line_endings(&content);
     fs::write(&path, &normalized).map_err(|e| format!("Failed to write '{}': {}", path, e))
 }
 
@@ -108,7 +76,7 @@ pub fn list_context_files(character_dir: String) -> Result<Vec<ContextFile>, Str
             let content = fs::read_to_string(&path)
                 .map_err(|e| format!("Failed to read '{}': {}", path.display(), e))?;
             // Normalize line endings to LF for consistency
-            let content = content.replace("\r\n", "\n").replace('\r', "\n");
+            let content = normalize_line_endings(&content);
             (content, false)
         };
 
@@ -268,7 +236,7 @@ fn extract_pdf_text(path: &Path) -> Result<String, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_filename, validate_path};
+    use crate::commands::validation::{validate_filename, validate_path};
 
     #[test]
     fn test_validate_path_rejects_parent_dir() {
