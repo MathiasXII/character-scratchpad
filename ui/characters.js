@@ -119,6 +119,12 @@ export function closeNewCharacterModal() {
   dom.newCharacterModal.classList.add("hidden");
 }
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !dom.newCharacterModal.classList.contains("hidden")) {
+    closeNewCharacterModal();
+  }
+});
+
 export async function handleCreateCharacter() {
   const name = dom.newCharacterNameInput.value.trim();
   if (!name) {

@@ -363,6 +363,12 @@ export function closeSettingsModal() {
   dom.settingsModal.classList.add("hidden");
 }
 
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !dom.settingsModal.classList.contains("hidden")) {
+    closeSettingsModal();
+  }
+});
+
 export async function loadSettingsFromFile() {
   const settings = await invoke("get_settings");
   await loadSettingsSnapshot(settings, localStorage.getItem("llm-work-folder") || "");
