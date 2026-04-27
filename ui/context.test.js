@@ -13,6 +13,11 @@ function resetDom() {
   mockDom.contextSidebarTitle = document.createElement('div');
   mockDom.contextFileList = document.createElement('div');
   mockDom.contextAddBtn = document.createElement('button');
+  mockDom.newContextModal = document.createElement('div');
+  mockDom.newContextNameInput = document.createElement('input');
+  mockDom.newContextClose = document.createElement('button');
+  mockDom.newContextCancel = document.createElement('button');
+  mockDom.newContextCreate = document.createElement('button');
   mockDom.deleteContextModal = document.createElement('div');
   mockDom.deleteContextClose = document.createElement('button');
   mockDom.deleteContextMessage = document.createElement('div');
@@ -66,8 +71,6 @@ globalThis.window.__TAURI__ = {
   },
 };
 
-globalThis.prompt = vi.fn();
-
 let contextModule;
 
 beforeAll(async () => {
@@ -81,7 +84,6 @@ beforeEach(() => {
   mockSetEditorPlaceholder.mockReset();
   mockSetEditorReadOnly.mockReset();
   mockCheckDirty.mockReset();
-  globalThis.prompt.mockReset();
   resetDom();
 
   mockState.activeTab = 'context';
@@ -137,7 +139,7 @@ describe('context module', () => {
 
   it('creates a context file, refreshes the list, and selects the created file', async () => {
     mockState.selectedCharacter = 'hero';
-    globalThis.prompt.mockReturnValue('notes');
+    mockDom.newContextNameInput.value = 'notes';
     mockInvoke.mockImplementation(async (command) => {
       if (command === 'create_context_file') {
         return 'C:/chars/hero/context/notes.txt';
@@ -148,7 +150,7 @@ describe('context module', () => {
       throw new Error(`Unexpected command: ${command}`);
     });
 
-    await contextModule.handleAddContextFile();
+    await contextModule.handleCreateContextFile();
 
     expect(mockInvoke).toHaveBeenNthCalledWith(1, 'create_context_file', {
       characterDir: 'C:/chars/hero',
