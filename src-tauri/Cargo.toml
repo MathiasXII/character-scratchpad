@@ -3,6 +3,7 @@ name = "character-scratch-pad"
 version = "1.0.0"
 description = "A desktop application for developing and testing AI characters against OpenAI-compatible chat APIs"
 authors = ["MathiasXII"]
+license = "MIT"
 edition = "2021"
 
 [lib]
