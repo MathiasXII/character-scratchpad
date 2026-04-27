@@ -361,6 +361,12 @@ export function initGit() {
     historyClose.addEventListener("click", closeGitHistory);
   }
 
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && historyModal && !historyModal.classList.contains("hidden")) {
+      closeGitHistory();
+    }
+  });
+
 
 
   updateGitBarVisibility();

@@ -227,6 +227,12 @@ export function handleDeleteContextFile(filename) {
 
 }
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !dom.deleteContextModal.classList.contains("hidden")) {
+    dom.deleteContextModal.classList.add("hidden");
+  }
+});
+
 /**
  * Actually delete the file after user confirms.
  * @param {string} filename
