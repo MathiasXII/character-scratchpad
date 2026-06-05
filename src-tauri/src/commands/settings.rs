@@ -8,16 +8,44 @@ use crate::types::{
     Settings, DEFAULT_ENDPOINT, DEFAULT_MODEL, DEFAULT_TEMPERATURE, DEFAULT_TOP_P,
 };
 
-/// Returns the path to settings.json.
-/// In production: next to the executable.
-/// In development: falls back to exe directory (works with npm run dev).
+/// Returns the path to settings.json in the user's home directory:
+///   ~/.character-scratchpad/settings.json
 fn get_settings_path() -> Result<PathBuf, String> {
-    let exe_dir = std::env::current_exe()
-        .map_err(|e| format!("Failed to get executable path: {}", e))?
-        .parent()
-        .ok_or("Failed to get executable parent directory")?
-        .to_path_buf();
-    Ok(exe_dir.join("settings.json"))
+    let home = dirs::home_dir().ok_or("Failed to determine home directory")?;
+    Ok(home.join(".character-scratchpad").join("settings.json"))
+}
+
+/// Returns the legacy settings path next to the executable (pre-migration).
+fn get_legacy_settings_path() -> Option<PathBuf> {
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|p| p.join("settings.json")))
+}
+
+/// Migrates settings.json from the old location (next to the executable)
+/// to the new location (~/.character-scratchpad/) if the new location
+/// doesn't already have a file. Removes the legacy file after a successful copy.
+fn migrate_legacy_settings(new_path: &PathBuf) {
+    if new_path.exists() {
+        return;
+    }
+
+    if let Some(legacy_path) = get_legacy_settings_path() {
+        if legacy_path.exists() {
+            if let Some(parent) = new_path.parent() {
+                if fs::create_dir_all(parent).is_ok()
+                    && fs::copy(&legacy_path, new_path).is_ok()
+                {
+                    eprintln!(
+                        "Migrated settings from {:?} to {:?}",
+                        legacy_path, new_path
+                    );
+                    // Remove legacy file after successful copy
+                    let _ = fs::remove_file(&legacy_path);
+                }
+            }
+        }
+    }
 }
 
 /// Strips `/chat/completions` suffix (with optional trailing `/`) from an endpoint URL,
@@ -50,6 +78,9 @@ fn normalize_endpoint(endpoint: &str) -> String {
 fn load_settings_from_file() -> Settings {
     match get_settings_path() {
         Ok(path) => {
+            // Attempt legacy migration before reading
+            migrate_legacy_settings(&path);
+
             if path.exists() {
                 match fs::read_to_string(&path) {
                     Ok(content) => match serde_json::from_str::<Settings>(&content) {
@@ -164,6 +195,11 @@ mod tests {
 
         if path.exists() {
             fs::remove_file(&path).expect("existing settings file should be removable");
+        }
+
+        // Ensure the config directory exists before running the test
+        if let Some(parent) = path.parent() {
+            let _ = fs::create_dir_all(parent);
         }
 
         test(&path);

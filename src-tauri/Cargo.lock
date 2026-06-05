@@ -380,6 +380,7 @@ dependencies = [
 name = "character-scratch-pad"
 version = "1.0.0"
 dependencies = [
+ "dirs",
  "futures-util",
  "git2",
  "lopdf",
