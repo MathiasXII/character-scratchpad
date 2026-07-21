@@ -1708,10 +1708,47 @@ input.field-error {
   line-height: 1.5;
   resize: vertical;
   outline: none;
+  overflow-y: hidden;
 }
 
 .edit-textarea:focus {
   border-color: var(--accent);
+}
+
+.edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.edit-actions .save-btn,
+.edit-actions .cancel-btn {
+  padding: 4px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.edit-actions .save-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+}
+
+.edit-actions .save-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.edit-actions .cancel-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.message:has(.edit-textarea) {
+  min-width: 100%;
 }
 
 /* Chat Disabled Overlay */
