@@ -24,7 +24,7 @@ fn git_workflow_round_trip() {
 
     assert!(!git_is_dirty(character_dir.clone()).expect("initial repo should be clean"));
 
-    save_file(instructions_path_str.clone(), "first revision".to_string())
+    save_file(instructions_path_str.clone(), "first revision".to_string(), work_folder.clone())
         .expect("save should succeed");
     assert!(git_is_dirty(character_dir.clone()).expect("repo should be dirty after edit"));
 
@@ -35,7 +35,7 @@ fn git_workflow_round_trip() {
     assert!(!commits_after_first.is_empty());
 
     thread::sleep(Duration::from_secs(1));
-    save_file(instructions_path_str.clone(), "second revision".to_string())
+    save_file(instructions_path_str.clone(), "second revision".to_string(), work_folder.clone())
         .expect("second save should succeed");
     git_commit(character_dir.clone(), "second commit".to_string()).expect("second commit should succeed");
 

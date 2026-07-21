@@ -26,7 +26,7 @@ export async function saveActiveContextFile() {
   }
   const charDir = getRepoPath(state);
   const path = charDir + "/context/" + state.activeContextFile;
-  await invoke("save_file", { path, content });
+  await invoke("save_file", { path, content, workFolder: state.currentWorkFolder });
   state.contextLastSaved[state.activeContextFile] = content;
   const file = state.contextFiles.find(f => f.name === state.activeContextFile);
   if (file) file.content = content;
@@ -38,7 +38,10 @@ export async function saveActiveContextFile() {
  */
 export async function refreshContextFiles(charDir) {
   try {
-    state.contextFiles = await invoke("list_context_files", { characterDir: charDir });
+    state.contextFiles = await invoke("list_context_files", {
+      characterDir: charDir,
+      workFolder: state.currentWorkFolder,
+    });
   } catch (error) {
     console.error("Failed to load context files:", formatError(error));
     state.contextFiles = [];
@@ -199,6 +202,7 @@ export async function handleCreateContextFile() {
     await invoke("create_context_file", {
       characterDir: charDir,
       filename,
+      workFolder: state.currentWorkFolder,
     });
 
     await refreshContextFiles(charDir);
@@ -282,6 +286,7 @@ async function performDelete(filename) {
     await invoke("delete_context_file", {
       characterDir: charDir,
       filename,
+      workFolder: state.currentWorkFolder,
     });
 
     // Refresh file list
@@ -346,6 +351,7 @@ async function handleDroppedFiles(paths) {
       await invoke("copy_file_to_context", {
         sourcePath: filePath,
         characterDir: charDir,
+        workFolder: state.currentWorkFolder,
       });
       copiedCount++;
     } catch (error) {

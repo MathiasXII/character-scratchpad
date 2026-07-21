@@ -20,7 +20,7 @@ async function loadCharacterFiles(charDir) {
 
   const results = await Promise.all(
     fileEntries.map(([key, path]) =>
-      invoke("load_file", { path })
+      invoke("load_file", { path, workFolder: state.currentWorkFolder })
         .then((content) => ({ key, content }))
         .catch((error) => {
           console.error(`Failed to load ${key}:`, formatError(error));
@@ -38,7 +38,7 @@ async function loadCharacterFiles(charDir) {
 
   let contextFiles = [];
   try {
-    contextFiles = await invoke("list_context_files", { characterDir: charDir });
+    contextFiles = await invoke("list_context_files", { characterDir: charDir, workFolder: state.currentWorkFolder });
   } catch (error) {
     console.error("Failed to load context files:", formatError(error));
   }

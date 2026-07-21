@@ -130,6 +130,7 @@ describe('context module', () => {
     expect(mockInvoke).toHaveBeenCalledWith('save_file', {
       path: 'C:/chars/hero/context/old.txt',
       content: 'changed',
+      workFolder: 'C:/chars',
     });
     expect(mockState.contextFiles[0].content).toBe('changed');
     expect(mockState.activeContextFile).toBe('new.txt');
@@ -155,6 +156,7 @@ describe('context module', () => {
     expect(mockInvoke).toHaveBeenNthCalledWith(1, 'create_context_file', {
       characterDir: 'C:/chars/hero',
       filename: 'notes',
+      workFolder: 'C:/chars',
     });
     expect(mockState.contextFiles).toEqual([{ name: 'notes.txt', content: '' }]);
     expect(mockState.activeContextFile).toBe('notes.txt');

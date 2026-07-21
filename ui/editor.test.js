@@ -169,6 +169,7 @@ describe('editor module', () => {
     expect(mockInvoke).toHaveBeenCalledWith('save_file', {
       path: 'C:/chars/hero/instructions.txt',
       content: 'Updated instructions',
+      workFolder: 'C:/chars',
     });
     expect(mockState.tabContents.instructions).toBe('Updated instructions');
     expect(mockState.lastSavedContent.instructions).toBe('Updated instructions');

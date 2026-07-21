@@ -1,5 +1,42 @@
 use serde::{Deserialize, Serialize};
 
+// --- Custom Error Definition ---
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "kind", content = "message")]
+pub enum AppError {
+    IoError(String),
+    ValidationError(String),
+    PathTraversalError(String),
+    PdfExtractionError(String),
+}
+
+impl From<String> for AppError {
+    fn from(msg: String) -> Self {
+        AppError::IoError(msg)
+    }
+}
+
+impl std::fmt::Display for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AppError::IoError(msg) => write!(f, "I/O Error: {}", msg),
+            AppError::ValidationError(msg) => write!(f, "Validation Error: {}", msg),
+            AppError::PathTraversalError(msg) => write!(f, "Path Traversal Error: {}", msg),
+            AppError::PdfExtractionError(msg) => write!(f, "PDF Extraction Error: {}", msg),
+        }
+    }
+}
+
+// Implement From traits for easy error conversion from standard library errors
+impl From<std::io::Error> for AppError {
+    fn from(err: std::io::Error) -> Self {
+        AppError::IoError(err.to_string())
+    }
+}
+
+// --- Constants and Default Functions ---
+
 pub const DEFAULT_MODEL: &str = "zai-org-glm-4.6";
 pub const DEFAULT_ENDPOINT: &str = "https://api.venice.ai/api/v1";
 pub const DEFAULT_TEMPERATURE: f32 = 0.7;
@@ -12,6 +49,8 @@ fn default_temperature() -> f32 {
 fn default_top_p() -> f32 {
     DEFAULT_TOP_P
 }
+
+// --- Data Structures ---
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ChatMessage {
@@ -46,7 +85,6 @@ pub struct Settings {
     pub top_p: f32,
 }
 
-/// Result of a connection/model test command.
 #[derive(Debug, Serialize, Clone)]
 pub struct TestConnectionResult {
     pub success: bool,
