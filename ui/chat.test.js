@@ -98,6 +98,9 @@ let chat;
 let syncFirstResponse;
 
 beforeAll(async () => {
+  HTMLElement.prototype.scrollIntoView = vi.fn();
+  HTMLElement.prototype.focus = vi.fn();
+
   mockListen.mockImplementation((eventName, handler) => {
     listeners[eventName] = handler;
     return Promise.resolve(() => {});

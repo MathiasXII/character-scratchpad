@@ -488,6 +488,11 @@ export function handleDelete(index) {
   });
 }
 
+function autoSizeTextarea(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+}
+
 export function startEdit(index) {
   if (state.isStreaming) return;
   
@@ -516,30 +521,36 @@ export function startEdit(index) {
   const textarea = document.createElement('textarea');
   textarea.className = 'edit-textarea';
   textarea.value = rawText;
-  el.querySelector('.message-bubble').appendChild(textarea);
-  
-  // Add Save/Cancel buttons
-  const actionsDiv = el.querySelector('.message-actions');
-  actionsDiv.querySelectorAll('.preview-btn, .edit-btn, .delete-btn').forEach(btn => btn.style.display = 'none');
-  
+  const bubble = el.querySelector('.message-bubble');
+  bubble.appendChild(textarea);
+  autoSizeTextarea(textarea);
+
+  const editActions = document.createElement('div');
+  editActions.className = 'edit-actions';
+
   const saveBtn = document.createElement('button');
   saveBtn.className = 'action-btn save-btn';
   saveBtn.textContent = 'Save';
   saveBtn.disabled = rawText.trim() === '';
-  
+
   const cancelBtn = document.createElement('button');
   cancelBtn.className = 'action-btn cancel-btn';
   cancelBtn.textContent = 'Cancel';
-  
-  actionsDiv.appendChild(saveBtn);
-  actionsDiv.appendChild(cancelBtn);
+
+  editActions.appendChild(saveBtn);
+  editActions.appendChild(cancelBtn);
+  bubble.appendChild(editActions);
   
   saveBtn.addEventListener('click', () => saveEdit(index));
   cancelBtn.addEventListener('click', cancelEdit);
   
   textarea.addEventListener('input', () => {
+    autoSizeTextarea(textarea);
     saveBtn.disabled = textarea.value.trim() === '';
   });
+
+  textarea.focus();
+  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
 }
 
 function cancelEdit() {
@@ -548,8 +559,7 @@ function cancelEdit() {
   if (el) {
     el.querySelector('.content').style.display = '';
     el.querySelector('.edit-textarea')?.remove();
-    el.querySelectorAll('.preview-btn, .edit-btn, .delete-btn').forEach(btn => btn.style.display = '');
-    el.querySelectorAll('.save-btn, .cancel-btn').forEach(btn => btn.remove());
+    el.querySelector('.edit-actions')?.remove();
   }
   state.editingIndex = null;
 }
@@ -568,11 +578,10 @@ export function saveEdit(index) {
   contentDiv.innerHTML = renderMarkdown(newContent);
   contentDiv.style.display = '';
 
-  // Remove textarea and Save/Cancel
+  // Remove textarea and edit-actions
   textarea.remove();
-  const actionsDiv = el.querySelector('.message-actions');
-  actionsDiv.querySelectorAll('.save-btn, .cancel-btn').forEach(btn => btn.remove());
-  actionsDiv.querySelectorAll('.preview-btn, .edit-btn, .delete-btn').forEach(btn => btn.style.display = '');
+  const editActions = el.querySelector('.edit-actions');
+  editActions?.remove();
 
   state.editingIndex = null;
   dom.resendBtn.disabled = state.conversationHistory.length === 0;
