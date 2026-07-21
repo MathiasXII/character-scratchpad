@@ -40,8 +40,8 @@ fn character_lifecycle_workflow() {
     let instructions_path = character_path.join("instructions.txt");
     let instructions_path_str = instructions_path.to_string_lossy().to_string();
     let content = "Be helpful, concise, and consistent.".to_string();
-    save_file(instructions_path_str.clone(), content.clone()).expect("save_file should succeed");
+    save_file(instructions_path_str.clone(), content.clone(), work_folder.clone()).expect("save_file should succeed");
 
-    let loaded = load_file(instructions_path_str).expect("load_file should succeed");
+    let loaded = load_file(instructions_path_str.clone(), work_folder.clone()).expect("load_file should succeed");
     assert_eq!(loaded, content);
 }

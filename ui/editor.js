@@ -81,7 +81,7 @@ export { getEditorValue, setEditorValue, setEditorPlaceholder, setEditorReadOnly
 function persistTabFile(tab, content) {
   const filename = TAB_FILE_MAP[tab];
   const path = getRepoPath(state) + "/" + filename;
-  return Promise.resolve(invoke("save_file", { path, content }))
+  return Promise.resolve(invoke("save_file", { path, content, workFolder: state.currentWorkFolder }))
     .then(() => {
       state.lastSavedContent[tab] = content;
       hideSaveError();
